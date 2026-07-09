@@ -1,10 +1,11 @@
 "use client";
 
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
-import { LayoutGrid, Plus, Search, Settings, Tag } from "lucide-react";
+import { LayoutGrid, Plus, Search, Settings, SlidersHorizontal, Tag } from "lucide-react";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
+import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
 import { LabelManager } from "../board/label-manager";
@@ -81,6 +82,19 @@ function MainArea() {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80">
                 <LabelManager boardId={active.id} />
+              </PopoverContent>
+            </Popover>
+          ) : null}
+          {active ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-fg-muted">
+                  <SlidersHorizontal className="size-3.5" />
+                  Badges
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72">
+                <BadgeConfig boardId={active.id} />
               </PopoverContent>
             </Popover>
           ) : null}

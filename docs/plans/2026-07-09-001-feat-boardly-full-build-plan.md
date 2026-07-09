@@ -484,7 +484,7 @@ sequenceDiagram
 - Edge case — deleting an item updates the count; empty checklist hides the progress indicator.
   **Verification:** unit tests pass.
 
-- [ ] **Unit 2.6: Highlighted badge row (per-board config)**
+- [x] **Unit 2.6: Highlighted badge row (per-board config)**
 
 **Goal:** a compact, scannable badge row on the card face showing configured fields; a per-board setting controls which badges show and in what order.
 **Requirements:** R7.

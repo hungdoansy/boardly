@@ -130,12 +130,14 @@ export function SortableCard({
   card,
   columnId,
   labels,
+  config,
   onOpen,
   onArchive,
 }: {
   card: Card;
   columnId: string;
   labels?: Label[];
+  config?: string[];
   onOpen: () => void;
   onArchive: () => void;
 }) {
@@ -155,7 +157,7 @@ export function SortableCard({
       {...attributes}
       {...listeners}
     >
-      <CardFace card={card} labels={labels} onOpen={onOpen} onArchive={onArchive} />
+      <CardFace card={card} labels={labels} config={config} onOpen={onOpen} onArchive={onArchive} />
     </div>
   );
 }

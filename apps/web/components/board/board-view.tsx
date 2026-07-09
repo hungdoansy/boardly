@@ -4,6 +4,7 @@ import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortabl
 import { useMemo, useState } from "react";
 
 import {
+  useBadgeConfig,
   useCardActions,
   useCardCounts,
   useColumnActions,
@@ -24,6 +25,7 @@ export function BoardView({ boardId }: { boardId: string }) {
   const columnActions = useColumnActions(boardId);
   const cardActions = useCardActions(boardId);
   const labels = useLabels(boardId);
+  const config = useBadgeConfig(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
 
@@ -61,6 +63,7 @@ export function BoardView({ boardId }: { boardId: string }) {
                   labels={card.labelIds
                     .map((id) => labelById.get(id))
                     .filter((l) => l !== undefined)}
+                  config={config}
                   onOpen={() => setOpenCardId(card.id)}
                   onArchive={() => cardActions.archive(card.id)}
                 />

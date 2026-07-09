@@ -17,6 +17,7 @@ import {
   renameCard,
   renameColumn,
   renameLabel,
+  setBadgeConfig,
   setCardDescription,
   setCardDueDate,
   setCardPriority,
@@ -29,7 +30,9 @@ import {
   boardCards,
   boardColumns,
   boardLabels,
+  boardMeta,
   cardsInColumn,
+  getBoard,
   getCard,
   listLabels,
   liveColumns,
@@ -54,6 +57,24 @@ export function useCardCounts(boardId: string): Record<string, number> {
     for (const col of liveColumns(doc)) counts[col.id] = cardsInColumn(doc, col.id).length;
     return counts;
   });
+}
+
+/** Live ordered card-face badge config for the board. */
+export function useBadgeConfig(boardId: string): string[] {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useY(boardMeta(doc), () => getBoard(doc, boardId).badgeConfig, {
+    isEqual: (a, b) => a.length === b.length && a.every((k, i) => k === b[i]),
+  });
+}
+
+export function useSetBadgeConfig(boardId: string): (config: string[]) => void {
+  const ctx = useBoardlyContext();
+  return useCallback(
+    (config: string[]) => {
+      execute(setBadgeConfig, ctx, { boardId, config });
+    },
+    [ctx, boardId],
+  );
 }
 
 /** Live board label palette, sorted by ord. */

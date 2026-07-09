@@ -7,6 +7,7 @@ import {
   listBoards as syncListBoards,
   renameBoard as syncRenameBoard,
   renameBoardRef,
+  setBadgeConfig as syncSetBadgeConfig,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -53,6 +54,17 @@ export const archiveBoard = defineCommand({
   run: (ctx, input) => {
     archiveBoardRef(ctx.getWorkspaceDoc(), input.boardId);
     return { id: input.boardId, archived: true };
+  },
+});
+
+export const setBadgeConfig = defineCommand({
+  name: "setBadgeConfig",
+  description: "Set the ordered card-face badge row for a board.",
+  input: z.object({ boardId: z.string(), config: z.array(z.string()) }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncSetBadgeConfig(doc, input.config, ctx.now());
+    return getBoard(doc, input.boardId);
   },
 });
 

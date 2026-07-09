@@ -3,7 +3,7 @@
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useMemo } from "react";
 
-import { useCardActions, useCardsInColumn, useLabels } from "../../lib/use-board";
+import { useBadgeConfig, useCardActions, useCardsInColumn, useLabels } from "../../lib/use-board";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
 
@@ -18,6 +18,7 @@ export function ColumnCards({
 }) {
   const cards = useCardsInColumn(boardId, columnId);
   const labels = useLabels(boardId);
+  const config = useBadgeConfig(boardId);
   const actions = useCardActions(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
@@ -30,6 +31,7 @@ export function ColumnCards({
             card={card}
             columnId={columnId}
             labels={card.labelIds.map((id) => labelById.get(id)).filter((l) => l !== undefined)}
+            config={config}
             onOpen={() => onOpenCard(card.id)}
             onArchive={() => actions.archive(card.id)}
           />

@@ -1,22 +1,19 @@
 "use client";
 
 import type { Card, Label } from "@boardly/domain";
-import { Priority } from "@boardly/domain";
-import { Archive, ListChecks } from "lucide-react";
+import { Archive } from "lucide-react";
 
-import { DueChip } from "./due-date";
-import { LabelChip } from "./labels";
-import { PriorityBadge } from "./priority-badge";
-import { SeverityBadge } from "./severity-badge";
+import { BadgeRow } from "./badge-row";
 
 interface CardFaceProps {
   card: Card;
   labels?: Label[];
+  config?: string[];
   onOpen: () => void;
   onArchive: () => void;
 }
 
-export function CardFace({ card, labels, onOpen, onArchive }: CardFaceProps) {
+export function CardFace({ card, labels, config, onOpen, onArchive }: CardFaceProps) {
   return (
     <article
       aria-label={`Card: ${card.title}`}
@@ -39,24 +36,9 @@ export function CardFace({ card, labels, onOpen, onArchive }: CardFaceProps) {
           <Archive className="size-3.5" />
         </button>
       </div>
-      {labels && labels.length > 0 ? (
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {labels.map((label) => (
-            <LabelChip key={label.id} label={label} />
-          ))}
-        </div>
-      ) : null}
 
-      <div className="mt-1.5 flex items-center gap-1.5">
-        {card.priority !== Priority.None ? <PriorityBadge priority={card.priority} /> : null}
-        {card.severity !== null ? <SeverityBadge severity={card.severity} /> : null}
-        {card.dueDate ? <DueChip due={card.dueDate} /> : null}
-        {card.checklist.length > 0 ? (
-          <span className="inline-flex items-center gap-0.5 text-[11px] text-fg-faint">
-            <ListChecks className="size-3" />
-            {card.checklist.filter((i) => i.done).length}/{card.checklist.length}
-          </span>
-        ) : null}
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <BadgeRow card={card} labels={labels ?? []} config={config ?? []} />
         <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
       </div>
     </article>

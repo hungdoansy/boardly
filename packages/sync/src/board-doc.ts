@@ -14,6 +14,7 @@ import {
   type PriorityValue,
   type SeverityValue,
   type Status,
+  DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
   Priority,
   byOrd,
@@ -92,7 +93,7 @@ export function initBoard(doc: Y.Doc, params: InitBoardParams): void {
     meta.set("description", new Y.Text());
     meta.set("shortIdPrefix", params.shortIdPrefix ?? "BRD");
     meta.set("shortIdSeq", 0);
-    meta.set("badgeConfig", ["severity", "dueDate", "labels", "links"]);
+    meta.set("badgeConfig", [...DEFAULT_BADGE_CONFIG]);
     meta.set("createdAt", params.now);
     meta.set("updatedAt", params.now);
     if (params.createdBy !== undefined) meta.set("createdBy", params.createdBy);
@@ -109,6 +110,15 @@ export function renameBoard(doc: Y.Doc, title: string, now: number): void {
 
 export function getBoard(doc: Y.Doc, id: string): Board {
   return boardToPlain(doc, id);
+}
+
+/** Set the ordered card-face badge row config. */
+export function setBadgeConfig(doc: Y.Doc, config: string[], now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    meta.set("badgeConfig", [...config]);
+    meta.set("updatedAt", now);
+  });
 }
 
 // ----- columns -----
