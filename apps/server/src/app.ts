@@ -30,8 +30,11 @@ export function buildServer({ config, pool }: BuildServerOptions): FastifyInstan
       await db.query("SELECT 1");
       return { status: "ok", db: "up" };
     } catch (error) {
+      // Log the real error server-side only; the raw message can carry the
+      // connection string / internal host details, so never return it.
+      console.error("[boardly-server] health check db query failed:", error);
       reply.status(503);
-      return { status: "degraded", db: "down", error: (error as Error).message };
+      return { status: "degraded", db: "down" };
     }
   });
 
