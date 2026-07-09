@@ -31,5 +31,11 @@ apps/desktop/src-tauri/target/
 .vscode/*
 !.vscode/extensions.json
 
+# Next.js auto-generated (regenerated on build/dev)
+next-env.d.ts
+
 # Misc
 *.tsbuildinfo
+
+# Playwright MCP scratch
+.playwright-mcp/

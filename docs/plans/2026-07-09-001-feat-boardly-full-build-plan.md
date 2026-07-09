@@ -279,7 +279,7 @@ sequenceDiagram
 - Edge case — malformed/relative URLs in `detectProvider` fall back to `generic` without throwing.
   **Verification:** all `packages/domain` unit tests pass; no dependency on React/DOM.
 
-- [ ] **Unit 0.4: `apps/web` Next.js scaffold + Linear theme shell**
+- [x] **Unit 0.4: `apps/web` Next.js scaffold + Linear theme shell**
 
 **Goal:** a running Next.js 16.2.6 static-export app with Tailwind v4 + shadcn/ui and the dark Linear-style app shell.
 **Requirements:** R4, R11.

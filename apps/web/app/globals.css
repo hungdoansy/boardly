@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "@boardly/ui/theme.css";
+
+/* Tailwind ignores node_modules by default; scan the shared UI package so its
+   component utility classes are generated. */
+@source "../../../packages/ui/src";
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Respect reduced motion globally (DESIGN.md §6). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
