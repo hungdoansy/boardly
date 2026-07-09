@@ -827,6 +827,13 @@ sequenceDiagram
 
 ## Documentation / Operational Notes
 
+### Working conventions & repo rules (binding — see `CLAUDE.md`)
+- **Repo rules:** `CLAUDE.md` (and `AGENTS.md` pointer) is authoritative for docs, design, engineering, versioning, and git conventions. Read it before each unit.
+- **Per-unit docs (required):** every unit produces an intensive doc `docs/units/UNIT-<id>-<slug>.md` (template + convention in `docs/units/README.md`) covering what changed, why, how it works, and how to verify. **Docs-first is welcome** — if a design/approach note before coding helps, write it and **commit it before continuing**. The doc must be committed before the unit's checkbox is ticked.
+- **Design (binding):** all UI follows `docs/design/DESIGN.md` — Linear-like, **dark mode first**, built on **shadcn/ui** primitives, using the design tokens (no ad-hoc colors/px). **Transitions are measured** per DESIGN.md §6 (add where they aid comprehension, never gratuitous; respect reduced-motion).
+- **Engineering:** React + frontend best practices per `CLAUDE.md` §3 (derive-don't-sync, scoped `useY` subscriptions, stable keys, a11y/keyboard-first, transforms/opacity for motion, all mutations via the command layer).
+- **Dependencies:** every `package.json` pins **exact versions** (no `^`/`~`); commit `pnpm-lock.yaml`; Node `22.17.1`, Next `16.2.6`.
+
 ### Execution environment (apply on every step)
 - **Node 22.17.1** via `nvm use` before any pnpm/turbo command (machine default is 18 — memory `tools/pnpm_node.md`). Set `engines`/`.nvmrc`.
 - **Docker** required from U3.1 onward (`docker compose up -d db`); server runs `migrate()` at boot against it.
@@ -837,9 +844,12 @@ Advance a unit's checkbox only when all hold (do not re-state per unit):
 1. Typecheck + ESLint clean for touched packages.
 2. `turbo run build` succeeds for affected packages (web `next build` static export must stay valid).
 3. Unit tests written and green (scenarios enumerated in the unit).
-4. For **user-facing or critical flows** (marked in the unit): a Playwright e2e path is green **and** a screenshot has been captured and visually checked against the **Linear-inspired dark** aesthetic (dense, subtle borders, single accent, visible focus rings).
+4. For **user-facing or critical flows** (marked in the unit): a Playwright e2e path is green **and** a **dark-mode** screenshot has been captured and checked against `docs/design/DESIGN.md` (Linear-like: dense, quiet chrome, single accent, visible focus rings, measured motion).
 5. Integration-dependent units (Phase 3+) verified against a live server + Dockerized Postgres, migrations applied.
-6. Commit the unit (local only — do not push; do not create branches — per user's global git rules) and check the box.
+6. **Design & engineering rules met:** UI composed from shadcn/ui + DESIGN.md tokens (no hardcoded values), transitions measured per DESIGN.md §6, dark mode verified; React/frontend best practices per `CLAUDE.md` §3; all mutations go through the command layer.
+7. **Dependencies pinned:** any `package.json` touched uses exact versions (no `^`/`~`); `pnpm-lock.yaml` committed.
+8. **Unit doc written and committed:** `docs/units/UNIT-<id>-<slug>.md` per `docs/units/README.md` (docs-first welcome — if written before coding, committed before continuing).
+9. Commit the unit (local only — do not push; do not create branches — per user's global git rules) and check the box.
 
 If a unit is genuinely blocked, leave it unchecked with a short note in the plan and proceed to the next independent unit rather than stopping.
 
