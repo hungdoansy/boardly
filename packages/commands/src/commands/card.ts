@@ -1,13 +1,18 @@
 import {
   addCard,
+  addChecklistItem as syncAddChecklistItem,
   archiveCard as syncArchiveCard,
+  deleteChecklistItem as syncDeleteChecklistItem,
   getCard as syncGetCard,
   moveCard as syncMoveCard,
+  moveChecklistItem as syncMoveChecklistItem,
   setCardDescription as syncSetDescription,
   setCardDueDate as syncSetDueDate,
   setCardPriority as syncSetPriority,
   setCardSeverity as syncSetSeverity,
   setCardTitle,
+  setChecklistItemText as syncSetChecklistItemText,
+  toggleChecklistItem as syncToggleChecklistItem,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -122,6 +127,90 @@ export const setCardDueDate = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
     syncSetDueDate(doc, input.cardId, input.dueDate, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const addChecklistItem = defineCommand({
+  name: "addChecklistItem",
+  description: "Add a checklist item to a card.",
+  input: z.object({
+    boardId: z.string(),
+    cardId: z.string(),
+    text: z.string().min(1),
+    id: z.string().optional(),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncAddChecklistItem(doc, {
+      cardId: input.cardId,
+      id: input.id,
+      text: input.text,
+      now: ctx.now(),
+      clientId: ctx.clientId,
+    });
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const toggleChecklistItem = defineCommand({
+  name: "toggleChecklistItem",
+  description: "Toggle a checklist item's done state.",
+  input: z.object({ boardId: z.string(), cardId: z.string(), itemId: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncToggleChecklistItem(doc, input.cardId, input.itemId, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const setChecklistItemText = defineCommand({
+  name: "setChecklistItemText",
+  description: "Edit a checklist item's text.",
+  input: z.object({
+    boardId: z.string(),
+    cardId: z.string(),
+    itemId: z.string(),
+    text: z.string().min(1),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncSetChecklistItemText(doc, input.cardId, input.itemId, input.text, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const deleteChecklistItem = defineCommand({
+  name: "deleteChecklistItem",
+  description: "Delete a checklist item from a card.",
+  input: z.object({ boardId: z.string(), cardId: z.string(), itemId: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncDeleteChecklistItem(doc, input.cardId, input.itemId, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const moveChecklistItem = defineCommand({
+  name: "moveChecklistItem",
+  description: "Reorder a checklist item between neighbors.",
+  input: z.object({
+    boardId: z.string(),
+    cardId: z.string(),
+    itemId: z.string(),
+    afterId: z.string().nullish(),
+    beforeId: z.string().nullish(),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncMoveChecklistItem(
+      doc,
+      input.cardId,
+      input.itemId,
+      { afterId: input.afterId ?? null, beforeId: input.beforeId ?? null },
+      ctx.clientId,
+      ctx.now(),
+    );
     return syncGetCard(doc, input.cardId);
   },
 });

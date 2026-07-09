@@ -2,14 +2,17 @@
 
 import type { Card, Column, DueDate, Label, PriorityValue, SeverityValue } from "@boardly/domain";
 import {
+  addChecklistItem,
   addColumn,
   archiveCard,
   archiveColumn,
   assignLabel,
   createCard,
   createLabel,
+  deleteChecklistItem,
   deleteLabel,
   execute,
+  moveChecklistItem,
   recolorLabel,
   renameCard,
   renameColumn,
@@ -18,6 +21,8 @@ import {
   setCardDueDate,
   setCardPriority,
   setCardSeverity,
+  setChecklistItemText,
+  toggleChecklistItem,
   unassignLabel,
 } from "@boardly/commands";
 import {
@@ -185,6 +190,64 @@ export function useCardActions(boardId: string): CardActions {
     [ctx, boardId],
   );
   return { create, rename, setDescription, setPriority, setSeverity, setDueDate, archive };
+}
+
+export interface ChecklistActions {
+  add(cardId: string, text: string): void;
+  toggle(cardId: string, itemId: string): void;
+  setText(cardId: string, itemId: string, text: string): void;
+  remove(cardId: string, itemId: string): void;
+  move(
+    cardId: string,
+    itemId: string,
+    neighbors: { afterId?: string | null; beforeId?: string | null },
+  ): void;
+}
+
+export function useChecklistActions(boardId: string): ChecklistActions {
+  const ctx = useBoardlyContext();
+  return {
+    add: useCallback(
+      (cardId: string, text: string) => {
+        execute(addChecklistItem, ctx, { boardId, cardId, text });
+      },
+      [ctx, boardId],
+    ),
+    toggle: useCallback(
+      (cardId: string, itemId: string) => {
+        execute(toggleChecklistItem, ctx, { boardId, cardId, itemId });
+      },
+      [ctx, boardId],
+    ),
+    setText: useCallback(
+      (cardId: string, itemId: string, text: string) => {
+        execute(setChecklistItemText, ctx, { boardId, cardId, itemId, text });
+      },
+      [ctx, boardId],
+    ),
+    remove: useCallback(
+      (cardId: string, itemId: string) => {
+        execute(deleteChecklistItem, ctx, { boardId, cardId, itemId });
+      },
+      [ctx, boardId],
+    ),
+    move: useCallback(
+      (
+        cardId: string,
+        itemId: string,
+        neighbors: { afterId?: string | null; beforeId?: string | null },
+      ) => {
+        execute(moveChecklistItem, ctx, {
+          boardId,
+          cardId,
+          itemId,
+          afterId: neighbors.afterId ?? null,
+          beforeId: neighbors.beforeId ?? null,
+        });
+      },
+      [ctx, boardId],
+    ),
+  };
 }
 
 export function useColumnActions(boardId: string): ColumnActions {

@@ -471,7 +471,7 @@ sequenceDiagram
 - Edge case — `hasTime=false` shows date only; `true` shows time.
   **Verification:** unit tests (with injected `now`) pass across today/near/overdue.
 
-- [ ] **Unit 2.5: Checklist / sub-tasks**
+- [x] **Unit 2.5: Checklist / sub-tasks**
 
 **Goal:** add checklist items to a card with toggle-done and reordering.
 **Requirements:** R6.

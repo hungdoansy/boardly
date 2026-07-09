@@ -4,15 +4,20 @@
 import type { Command } from "./command";
 import { archiveBoard, createBoard, listBoards, renameBoard } from "./commands/board";
 import {
+  addChecklistItem,
   archiveCard,
   createCard,
+  deleteChecklistItem,
   getCard,
   moveCard,
+  moveChecklistItem,
   renameCard,
   setCardDescription,
   setCardDueDate,
   setCardPriority,
   setCardSeverity,
+  setChecklistItemText,
+  toggleChecklistItem,
 } from "./commands/card";
 import { addColumn, archiveColumn, moveColumn, renameColumn } from "./commands/column";
 import {
@@ -45,6 +50,11 @@ export const commands = [
   setCardSeverity,
   archiveCard,
   getCard,
+  addChecklistItem,
+  toggleChecklistItem,
+  setChecklistItemText,
+  deleteChecklistItem,
+  moveChecklistItem,
   setCardStatus,
   createLabel,
   renameLabel,

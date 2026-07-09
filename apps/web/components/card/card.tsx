@@ -2,7 +2,7 @@
 
 import type { Card, Label } from "@boardly/domain";
 import { Priority } from "@boardly/domain";
-import { Archive } from "lucide-react";
+import { Archive, ListChecks } from "lucide-react";
 
 import { DueChip } from "./due-date";
 import { LabelChip } from "./labels";
@@ -51,6 +51,12 @@ export function CardFace({ card, labels, onOpen, onArchive }: CardFaceProps) {
         {card.priority !== Priority.None ? <PriorityBadge priority={card.priority} /> : null}
         {card.severity !== null ? <SeverityBadge severity={card.severity} /> : null}
         {card.dueDate ? <DueChip due={card.dueDate} /> : null}
+        {card.checklist.length > 0 ? (
+          <span className="inline-flex items-center gap-0.5 text-[11px] text-fg-faint">
+            <ListChecks className="size-3" />
+            {card.checklist.filter((i) => i.done).length}/{card.checklist.length}
+          </span>
+        ) : null}
         <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
       </div>
     </article>

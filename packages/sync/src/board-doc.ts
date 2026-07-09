@@ -308,6 +308,107 @@ export function setCardDescription(doc: Y.Doc, cardId: string, text: string, now
   });
 }
 
+// ----- checklist -----
+
+function checklistOf(card: YCard): Y.Map<unknown> | null {
+  const cl = card.get("checklist");
+  return cl instanceof Y.Map ? cl : null;
+}
+
+export interface AddChecklistItemParams {
+  cardId: string;
+  id?: string;
+  text: string;
+  now: number;
+  clientId: string;
+}
+
+export function addChecklistItem(doc: Y.Doc, params: AddChecklistItemParams): string {
+  const id = params.id ?? newId();
+  withCard(
+    doc,
+    params.cardId,
+    (card) => {
+      const cl = checklistOf(card);
+      if (!cl) return;
+      const lastOrd = maxOrd(
+        [...cl.values()]
+          .filter((i): i is Y.Map<unknown> => i instanceof Y.Map)
+          .map((i) => getString(i, "ord")),
+      );
+      const item = new Y.Map<unknown>();
+      item.set("text", params.text);
+      item.set("done", false);
+      item.set("ord", keyBetween(lastOrd, null, params.clientId));
+      cl.set(id, item);
+    },
+    params.now,
+  );
+  return id;
+}
+
+function withChecklistItem(
+  doc: Y.Doc,
+  cardId: string,
+  itemId: string,
+  mutate: (item: Y.Map<unknown>) => void,
+  now: number,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const item = checklistOf(card)?.get(itemId);
+      if (item instanceof Y.Map) mutate(item);
+    },
+    now,
+  );
+}
+
+export function toggleChecklistItem(doc: Y.Doc, cardId: string, itemId: string, now: number): void {
+  withChecklistItem(doc, cardId, itemId, (item) => item.set("done", !getBool(item, "done")), now);
+}
+
+export function setChecklistItemText(
+  doc: Y.Doc,
+  cardId: string,
+  itemId: string,
+  text: string,
+  now: number,
+): void {
+  withChecklistItem(doc, cardId, itemId, (item) => item.set("text", text), now);
+}
+
+export function deleteChecklistItem(doc: Y.Doc, cardId: string, itemId: string, now: number): void {
+  withCard(doc, cardId, (card) => checklistOf(card)?.delete(itemId), now);
+}
+
+export function moveChecklistItem(
+  doc: Y.Doc,
+  cardId: string,
+  itemId: string,
+  neighbors: Neighbors,
+  clientId: string,
+  now: number,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const cl = checklistOf(card);
+      const item = cl?.get(itemId);
+      if (!cl || !(item instanceof Y.Map)) return;
+      const ordOf = (id: string | null | undefined): string | null => {
+        if (!id) return null;
+        const other = cl.get(id);
+        return other instanceof Y.Map ? getString(other, "ord") : null;
+      };
+      item.set("ord", keyBetween(ordOf(neighbors.afterId), ordOf(neighbors.beforeId), clientId));
+    },
+    now,
+  );
+}
+
 export interface AddLinkParams {
   cardId: string;
   id?: string;

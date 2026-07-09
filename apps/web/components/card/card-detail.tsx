@@ -6,6 +6,7 @@ import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
+import { Checklist } from "./checklist";
 import { DueDatePicker } from "./due-date";
 import { CardLabels } from "./labels";
 import { MarkdownEditor } from "./markdown-editor";
@@ -87,6 +88,11 @@ function CardDetailBody({
             value={card.description}
             onChange={(v) => actions.setDescription(card.id, v)}
           />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
+          <Checklist boardId={boardId} card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
