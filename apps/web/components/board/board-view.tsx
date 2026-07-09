@@ -1,19 +1,23 @@
 "use client";
 
 import {
+  useCardActions,
   useCardCounts,
   useColumnActions,
   useColumns,
   useReclaimedCards,
 } from "../../lib/use-board";
+import { CardFace } from "../card/card";
 import { AddColumn } from "./add-column";
 import { BoardColumn } from "./column";
+import { ColumnCards } from "./column-cards";
 
 export function BoardView({ boardId }: { boardId: string }) {
   const columns = useColumns(boardId);
   const counts = useCardCounts(boardId);
   const reclaimed = useReclaimedCards(boardId);
-  const actions = useColumnActions(boardId);
+  const columnActions = useColumnActions(boardId);
+  const cardActions = useCardActions(boardId);
 
   return (
     <div className="flex h-full items-start gap-3 overflow-x-auto p-4">
@@ -22,9 +26,11 @@ export function BoardView({ boardId }: { boardId: string }) {
           key={column.id}
           column={column}
           count={counts[column.id] ?? 0}
-          onRename={(title) => actions.rename(column.id, title)}
-          onDelete={() => actions.remove(column.id)}
-        />
+          onRename={(title) => columnActions.rename(column.id, title)}
+          onDelete={() => columnActions.remove(column.id)}
+        >
+          <ColumnCards boardId={boardId} columnId={column.id} />
+        </BoardColumn>
       ))}
 
       {reclaimed.length > 0 && (
@@ -36,11 +42,20 @@ export function BoardView({ boardId }: { boardId: string }) {
             <span className="text-md font-medium text-fg-muted">Unsorted</span>
             <span className="px-1 text-xs tabular-nums text-fg-faint">{reclaimed.length}</span>
           </header>
-          <p className="px-2 pb-2 text-xs text-fg-faint">Cards from deleted columns.</p>
+          <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
+            {reclaimed.map((card) => (
+              <CardFace
+                key={card.id}
+                card={card}
+                onRename={(title) => cardActions.rename(card.id, title)}
+                onArchive={() => cardActions.archive(card.id)}
+              />
+            ))}
+          </div>
         </section>
       )}
 
-      <AddColumn onAdd={actions.add} />
+      <AddColumn onAdd={columnActions.add} />
     </div>
   );
 }

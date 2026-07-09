@@ -1,8 +1,16 @@
 "use client";
 
 import type { Card, Column } from "@boardly/domain";
-import { addColumn, archiveColumn, execute, renameColumn } from "@boardly/commands";
-import { boardColumns, cardsInColumn, liveColumns, reclaimCards } from "@boardly/sync";
+import {
+  addColumn,
+  archiveCard,
+  archiveColumn,
+  createCard,
+  execute,
+  renameCard,
+  renameColumn,
+} from "@boardly/commands";
+import { boardCards, boardColumns, cardsInColumn, liveColumns, reclaimCards } from "@boardly/sync";
 import { useY, useYDoc } from "@boardly/sync/react";
 import { useCallback } from "react";
 
@@ -34,6 +42,40 @@ export interface ColumnActions {
   add(title: string): string;
   rename(columnId: string, title: string): void;
   remove(columnId: string): void;
+}
+
+/** Live, ord-sorted, non-archived cards in a column. */
+export function useCardsInColumn(boardId: string, columnId: string): Card[] {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useY(boardCards(doc), () => cardsInColumn(doc, columnId), { deep: true });
+}
+
+export interface CardActions {
+  create(columnId: string, title: string): string;
+  rename(cardId: string, title: string): void;
+  archive(cardId: string): void;
+}
+
+export function useCardActions(boardId: string): CardActions {
+  const ctx = useBoardlyContext();
+  const create = useCallback(
+    (columnId: string, title: string) =>
+      execute(createCard, ctx, { boardId, columnId, title })?.id ?? "",
+    [ctx, boardId],
+  );
+  const rename = useCallback(
+    (cardId: string, title: string) => {
+      execute(renameCard, ctx, { boardId, cardId, title });
+    },
+    [ctx, boardId],
+  );
+  const archive = useCallback(
+    (cardId: string) => {
+      execute(archiveCard, ctx, { boardId, cardId });
+    },
+    [ctx, boardId],
+  );
+  return { create, rename, archive };
 }
 
 export function useColumnActions(boardId: string): ColumnActions {

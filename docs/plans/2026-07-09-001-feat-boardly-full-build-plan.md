@@ -358,7 +358,7 @@ sequenceDiagram
 - Edge case — a board must always render even with zero columns (shows add-column affordance).
   **Verification:** unit tests pass; columns render in `ord` order; delete preserves cards.
 
-- [ ] **Unit 1.5: Cards UI (create / edit title / archive) + card face**
+- [x] **Unit 1.5: Cards UI (create / edit title / archive) + card face**
 
 **Goal:** cards render in their column and support quick create, inline title edit, and archive.
 **Requirements:** R5, R6.
