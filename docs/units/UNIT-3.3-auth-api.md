@@ -21,8 +21,8 @@ reuse-detecting opaque refresh tokens.
   `AuthError` (no enumeration).
 - `apps/server/src/auth/routes.ts` — Fastify plugin: `POST /auth/{signup,login,logout,refresh}`,
   `@fastify/cookie` (httpOnly `SameSite=Lax` refresh cookie on `/auth`), `@fastify/rate-limit` on
-  login, zod body validation. Refresh token is read from the cookie, a `Bearer` header, or the body
-  (desktop path).
+  login, zod body validation. The refresh token is **issued** only via the cookie; on
+  refresh/logout it is **read** from the cookie, a `Bearer` header, or the body.
 - `apps/server/src/{app,index}.ts` — `buildServer` mounts `/auth/*` when an `authService` is passed;
   boot generates an Ed25519 keypair and wires the service.
 - `apps/server/src/config.ts` — `NODE_ENV`, `ACCESS_TOKEN_TTL_SECONDS` (900), `REFRESH_TOKEN_TTL_DAYS`
@@ -83,9 +83,10 @@ reuse-detecting opaque refresh tokens.
   works, old dies); **reusing a rotated token revokes the whole family**; logout revokes.
   `routes.test.ts`: login sets an httpOnly `SameSite=Lax` cookie + returns an access token; wrong
   password → generic `401`; malformed → `400`; cookie refresh rotates the cookie and logout clears
-  it (and the token then fails); **login is `429` after `LOGIN_RATE_MAX`**. All 29 server tests pass
-  against the container db.
-- **Gates:** `pnpm -r typecheck` (7/7), `pnpm -r lint` (7/7), `pnpm -r test` (server 14 pass + 15
+  it (and the token then fails); login **never** returns the refresh token in the body (even with a
+  spoofed client header); **login is `429` after `LOGIN_RATE_MAX`**. All 30 server tests pass against
+  the container db.
+- **Gates:** `pnpm -r typecheck` (7/7), `pnpm -r lint` (7/7), `pnpm -r test` (server 14 pass + 16
   db-gated skips by default), `pnpm --filter @boardly/server build`, `pnpm format:check` — all green.
   No user-facing UI (that's Unit 3.4), so no Playwright screenshot applies.
 
