@@ -3,7 +3,7 @@
 import { Priority } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import { useBoardlyContext } from "../../lib/boardly-context";
 import {
@@ -15,6 +15,7 @@ import {
   useLabels,
   useReclaimedCards,
 } from "../../lib/use-board";
+import { useSelectedCard } from "../../lib/use-boards";
 import { CardDetail } from "../card/card-detail";
 import { CardFace } from "../card/card";
 import { AddColumn } from "./add-column";
@@ -33,7 +34,7 @@ export function BoardView({ boardId }: { boardId: string }) {
   const labels = useLabels(boardId);
   const config = useBadgeConfig(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
-  const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [openCardId, setOpenCardId] = useSelectedCard();
 
   const ctx = useBoardlyContext();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -62,7 +63,7 @@ export function BoardView({ boardId }: { boardId: string }) {
       const root = boardRef.current;
       requestAnimationFrame(() => focusCard(root, restore));
     }
-  }, [openCardId]);
+  }, [openCardId, setOpenCardId]);
 
   return (
     <BoardDndProvider boardId={boardId}>

@@ -2,6 +2,7 @@
 
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import { LayoutGrid, Plus, Search, Settings, SlidersHorizontal, Tag } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
@@ -10,6 +11,13 @@ import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
 import { LabelManager } from "../board/label-manager";
 import { CommandPalette } from "../command-palette/palette";
+import { SearchDialog } from "../search/search";
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
 
 export function WorkspaceApp() {
   return (
@@ -20,6 +28,19 @@ export function WorkspaceApp() {
 }
 
 function Shell() {
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditableTarget(e.target)) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <aside className="flex w-60 shrink-0 flex-col border-r border-line-subtle bg-surface">
@@ -31,10 +52,15 @@ function Shell() {
         </div>
 
         <div className="px-2 pb-1">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-fg-muted">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchOpen(true)}
+            className="w-full justify-start text-fg-muted"
+          >
             <Search className="size-4" />
             <span>Search</span>
-            <kbd className="ml-auto font-mono text-xs text-fg-faint">⌘K</kbd>
+            <kbd className="ml-auto font-mono text-xs text-fg-faint">/</kbd>
           </Button>
         </div>
 
@@ -53,6 +79,7 @@ function Shell() {
 
       <MainArea />
       <CommandPalette />
+      <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

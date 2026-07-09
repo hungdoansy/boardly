@@ -5,6 +5,7 @@ import * as Y from "yjs";
 import {
   addCard,
   addColumn,
+  allLiveCards,
   archiveCard,
   archiveColumn,
   cardsInColumn,
@@ -121,6 +122,20 @@ describe("soft-delete", () => {
     expect(cardsInColumn(doc, c1)).toEqual([]);
     expect(boardCards(doc).has(a)).toBe(true);
     expect(getCard(doc, a)?.archived).toBe(true);
+  });
+});
+
+describe("allLiveCards", () => {
+  it("returns every non-archived card across columns, excluding archived", () => {
+    const { doc, c1, c2 } = setup();
+    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { columnId: c2, title: "B", now: NOW, clientId: "1" });
+    const gone = addCard(doc, { columnId: c1, title: "Gone", now: NOW, clientId: "1" });
+    archiveCard(doc, gone, NOW);
+    const ids = allLiveCards(doc)
+      .map((c) => c.id)
+      .sort();
+    expect(ids).toEqual([a, b].sort());
   });
 });
 

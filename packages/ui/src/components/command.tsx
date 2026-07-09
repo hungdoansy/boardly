@@ -19,12 +19,25 @@ export function Command({ className, ...props }: React.ComponentProps<typeof Com
   );
 }
 
-export function CommandDialog({ children, ...props }: React.ComponentProps<typeof Dialog>) {
+export function CommandDialog({
+  children,
+  title = "Command palette",
+  shouldFilter,
+  ...props
+}: React.ComponentProps<typeof Dialog> & {
+  /** Accessible dialog name (screen-reader only). */
+  title?: string;
+  /** Forwarded to cmdk; pass `false` to rank results yourself (e.g. search). */
+  shouldFilter?: boolean;
+}) {
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0">
-        <DialogTitle className="sr-only">Command palette</DialogTitle>
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-fg-faint [&_[cmdk-input-wrapper]]:h-11">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <Command
+          shouldFilter={shouldFilter}
+          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-fg-faint [&_[cmdk-input-wrapper]]:h-11"
+        >
           {children}
         </Command>
       </DialogContent>

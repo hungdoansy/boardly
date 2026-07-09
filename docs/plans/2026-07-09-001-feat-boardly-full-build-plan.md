@@ -555,7 +555,7 @@ sequenceDiagram
 - Edge case — navigation wraps/stops sensibly at edges; shortcuts are ignored while typing in an input.
   **Verification:** unit tests for the focus/shortcut logic pass; e2e keyboard-only create+move sequence green.
 
-- [ ] **Unit 2.11: Instant fuzzy search**
+- [x] **Unit 2.11: Instant fuzzy search** — done (`docs/units/UNIT-2.11-search.md`). Pure weighted fuzzy ranking over title/description/shortId/labels across all boards; live index; standalone `/` palette + cards-in-⌘K mode; deep-link via `#board/<b>/card/<c>` hash. Deferred: search-archived toggle (→4.x).
 
 **Goal:** fast search across boards and cards.
 **Requirements:** R8.

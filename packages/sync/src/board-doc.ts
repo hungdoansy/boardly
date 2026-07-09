@@ -661,3 +661,11 @@ export function getCard(doc: Y.Doc, cardId: string): Card | null {
   const c = boardCards(doc).get(cardId);
   return c instanceof Y.Map ? withRepairedShortId(cardToPlain(c), shortIdOverrides(doc)) : null;
 }
+
+/** Every non-archived card on the board (any column, incl. unsorted), short-id repaired. */
+export function allLiveCards(doc: Y.Doc): Card[] {
+  const overrides = shortIdOverrides(doc);
+  return [...boardCards(doc).values()]
+    .filter((c) => c instanceof Y.Map && !getBool(c, "archived"))
+    .map((c) => withRepairedShortId(cardToPlain(c), overrides));
+}
