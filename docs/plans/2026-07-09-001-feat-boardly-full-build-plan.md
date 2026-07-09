@@ -344,7 +344,7 @@ sequenceDiagram
 - Integration (e2e) — create board, reload the page → board still present (offline persistence).
   **Verification:** unit tests pass; e2e create→reload persistence flow green (critical flow → e2e + screenshot).
 
-- [ ] **Unit 1.4: Columns UI (create / rename / reorder / delete)**
+- [x] **Unit 1.4: Columns UI (create / rename / reorder / delete)**
 
 **Goal:** render and manage columns within a board.
 **Requirements:** R5.

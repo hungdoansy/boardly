@@ -1,0 +1,72 @@
+"use client";
+
+import type { Column } from "@boardly/domain";
+import { Trash2 } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+
+interface BoardColumnProps {
+  column: Column;
+  count: number;
+  onRename: (title: string) => void;
+  onDelete: () => void;
+  children?: ReactNode;
+}
+
+export function BoardColumn({ column, count, onRename, onDelete, children }: BoardColumnProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(column.title);
+
+  useEffect(() => {
+    if (editing) setDraft(column.title);
+  }, [editing, column.title]);
+
+  const commit = (): void => {
+    onRename(draft.trim() || column.title);
+    setEditing(false);
+  };
+
+  return (
+    <section
+      aria-label={`Column: ${column.title}`}
+      className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-line-subtle bg-surface"
+    >
+      <header className="group flex h-9 shrink-0 items-center gap-1 px-2">
+        {editing ? (
+          <input
+            autoFocus
+            aria-label="Column name"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+            className="h-6 min-w-0 flex-1 rounded-[var(--radius-sm)] bg-elevated px-1.5 text-md font-medium text-fg outline-none ring-1 ring-[var(--accent)]"
+          />
+        ) : (
+          <button
+            type="button"
+            onDoubleClick={() => setEditing(true)}
+            className="min-w-0 flex-1 truncate rounded-[var(--radius-sm)] px-1 py-0.5 text-left text-md font-medium text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            {column.title}
+          </button>
+        )}
+        <span className="px-1 text-xs tabular-nums text-fg-faint">{count}</span>
+        <button
+          type="button"
+          aria-label={`Delete ${column.title}`}
+          onClick={onDelete}
+          className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      </header>
+
+      <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
+        {children}
+      </div>
+    </section>
+  );
+}

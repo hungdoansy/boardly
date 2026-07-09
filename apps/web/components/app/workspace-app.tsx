@@ -6,6 +6,7 @@ import { LayoutGrid, Plus, Search, Settings } from "lucide-react";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
 import { BoardList } from "../board/board-list";
+import { BoardView } from "../board/board-view";
 
 export function WorkspaceApp() {
   return (
@@ -74,15 +75,12 @@ function MainArea() {
         </div>
       </header>
 
-      <main className="grid flex-1 place-items-center p-6">
-        {active ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-fg">{active.title}</h2>
-            <p className="text-base text-fg-muted">
-              Board view (columns &amp; cards) arrives in Unit 1.4.
-            </p>
-          </div>
-        ) : (
+      {active ? (
+        <main className="min-h-0 flex-1">
+          <BoardView boardId={active.id} />
+        </main>
+      ) : (
+        <main className="grid flex-1 place-items-center p-6">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <div className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-elevated text-fg-faint">
               <LayoutGrid className="size-5" />
@@ -101,8 +99,8 @@ function MainArea() {
               Create board
             </Button>
           </div>
-        )}
-      </main>
+        </main>
+      )}
     </div>
   );
 }

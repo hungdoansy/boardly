@@ -69,3 +69,55 @@ export function useY<T>(target: YObservable, selector: () => T, options: UseYOpt
   // Same function for client + server snapshot (SSR renders the initial value).
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
+
+/** Structural view of a Y.Doc's update event. */
+export interface YDocLike {
+  on(event: "update", handler: () => void): void;
+  off(event: "update", handler: () => void): void;
+}
+
+/**
+ * Like `useY`, but recomputes on ANY change to the whole doc. Use for
+ * selectors that span multiple top-level types (e.g. reclaimed cards depend on
+ * both columns and cards), where a single scoped observer would miss updates.
+ */
+export function useYDoc<T>(
+  doc: YDocLike,
+  selector: () => T,
+  options: { isEqual?: (a: T, b: T) => boolean } = {},
+): T {
+  const { isEqual } = options;
+  const selectorRef = useRef(selector);
+  selectorRef.current = selector;
+  const isEqualRef = useRef(isEqual);
+  isEqualRef.current = isEqual;
+
+  const cache = useRef<{ value: T } | null>(null);
+
+  const getSnapshot = useCallback((): T => {
+    if (cache.current === null) cache.current = { value: selectorRef.current() };
+    return cache.current.value;
+  }, []);
+
+  const subscribe = useCallback(
+    (onStoreChange: () => void): (() => void) => {
+      const handler = (): void => {
+        const next = selectorRef.current();
+        const prev = cache.current?.value;
+        const equal =
+          prev !== undefined && isEqualRef.current
+            ? isEqualRef.current(prev, next)
+            : Object.is(prev, next);
+        if (!equal) {
+          cache.current = { value: next };
+          onStoreChange();
+        }
+      };
+      doc.on("update", handler);
+      return () => doc.off("update", handler);
+    },
+    [doc],
+  );
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
