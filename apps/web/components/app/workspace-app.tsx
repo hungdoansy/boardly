@@ -1,9 +1,11 @@
 "use client";
 
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
-import { LayoutGrid, Plus, Search, Settings, SlidersHorizontal, Tag } from "lucide-react";
+import { LayoutGrid, LogOut, Plus, Search, SlidersHorizontal, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { apiClient } from "../../lib/api-client";
+import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
 import { BadgeConfig } from "../board/badge-config";
@@ -29,6 +31,7 @@ export function WorkspaceApp() {
 
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { userId } = useAuthSession();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -69,10 +72,17 @@ function Shell() {
         <div className="border-t border-line-subtle p-2">
           <div className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5">
             <span className="grid size-6 shrink-0 place-items-center rounded-full bg-overlay text-xs text-fg-muted">
-              HD
+              {(userId ?? "?").slice(0, 2).toUpperCase()}
             </span>
-            <span className="truncate text-sm text-fg-muted">hung@moonbase.vn</span>
-            <Settings className="ml-auto size-3.5 shrink-0 text-fg-faint" />
+            <span className="truncate text-sm text-fg-muted">Account</span>
+            <button
+              type="button"
+              aria-label="Sign out"
+              onClick={() => void apiClient.logout()}
+              className="ml-auto grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <LogOut className="size-3.5" />
+            </button>
           </div>
         </div>
       </aside>

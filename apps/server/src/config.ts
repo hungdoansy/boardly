@@ -10,6 +10,8 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   HOST: z.string().min(1).default("0.0.0.0"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // Comma-separated web origins allowed to call the API with credentials (CORS).
+  CORS_ORIGINS: z.string().default("http://localhost:3000"),
   // Auth (Unit 3.3).
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900), // 15 min
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),

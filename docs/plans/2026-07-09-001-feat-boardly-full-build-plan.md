@@ -631,7 +631,7 @@ sequenceDiagram
 - Edge case — password verify is constant-time via the library; hashes are argon2id; JWT verification rejects `alg:none` and bad `exp`/`iss`/`aud`.
   **Verification:** all auth tests pass against the container db, including rotation + reuse-detection + generic-error cases.
 
-- [ ] **Unit 3.4: Web auth UI + session wiring**
+- [x] **Unit 3.4: Web auth UI + session wiring** — done (`docs/units/UNIT-3.4-web-auth-ui.md`). Login/signup screens (react-hook-form+zod), in-memory access token + httpOnly-cookie silent refresh (auth-store), api-client with Bearer + refresh-once-on-401, AuthGate route guard, logout. Added credentialed CORS to the server. e2e verified live: signup→login→reload→logout + generic-error path; login/signup dark screenshots.
 
 **Goal:** login/signup screens and client session handling that gates the app.
 **Requirements:** R9, R11.

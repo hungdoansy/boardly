@@ -1,3 +1,4 @@
+import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import { Pool } from "pg";
 
@@ -21,6 +22,23 @@ export interface BuildServerOptions {
 export function buildServer({ config, pool, authService }: BuildServerOptions): FastifyInstance {
   const app = Fastify({ logger: false });
   const db = pool ?? new Pool({ connectionString: config.DATABASE_URL });
+
+  // Credentialed CORS: only the configured web origins may call the API and
+  // receive the httpOnly refresh cookie. `credentials:true` forbids `*`, so the
+  // allow-list is explicit.
+  const allowedOrigins = new Set(
+    config.CORS_ORIGINS.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  );
+  void app.register(cors, {
+    credentials: true,
+    origin(origin, cb) {
+      // Same-origin / non-browser requests (no Origin header) are allowed.
+      if (!origin || allowedOrigins.has(origin)) return cb(null, true);
+      cb(null, false);
+    },
+  });
 
   // Only close the pool we created; a caller-supplied pool is theirs to manage.
   if (!pool) {
