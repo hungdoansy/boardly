@@ -1,3 +1,4 @@
+import { isSafeHttpUrl } from "@boardly/domain";
 import {
   addLink as syncAddLink,
   getCard as syncGetCard,
@@ -14,7 +15,7 @@ export const addLink = defineCommand({
   input: z.object({
     boardId: z.string(),
     cardId: z.string(),
-    url: z.string().min(1),
+    url: z.string().min(1).refine(isSafeHttpUrl, "URL must be http(s)"),
     id: z.string().optional(),
     title: z.string().optional(),
   }),

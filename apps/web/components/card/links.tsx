@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { shortLabelFor } from "@boardly/domain";
+import { isSafeHttpUrl, shortLabelFor } from "@boardly/domain";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
                 className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay"
               >
                 <a
-                  href={link.url}
+                  href={isSafeHttpUrl(link.url) ? link.url : "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"

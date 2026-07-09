@@ -45,6 +45,12 @@ export function shortLabelFor(url: string): string {
   return parsed ? providerFor(parsed).shortLabel(parsed) : url;
 }
 
+/** Only http(s) URLs are safe to store and render in an href (blocks javascript:, data:, etc.). */
+export function isSafeHttpUrl(url: string): boolean {
+  const parsed = safeUrl(url);
+  return parsed !== null && (parsed.protocol === "https:" || parsed.protocol === "http:");
+}
+
 /** Canonical form for de-duplication: lowercase origin, no trailing slash, no hash. */
 export function normalizeUrl(url: string): string {
   const parsed = safeUrl(url);

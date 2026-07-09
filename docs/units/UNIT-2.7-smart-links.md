@@ -41,6 +41,12 @@ registry; groundwork for generic-link unfurl.
   `github.com/o/r` correctly falls to generic).
 - **De-dup by `normalizeUrl`** (lowercase origin, no trailing slash, no hash) so pasting the same
   link twice is a no-op.
+- **URL scheme hardening (XSS/SSRF).** Only `http(s)` URLs are accepted/stored/rendered
+  (`isSafeHttpUrl`): the `addLink` command rejects other schemes via zod (agents can't store a
+  `javascript:`/`data:` URL), the UI add action skips them, and the chip `href` falls back to `#` as
+  defense-in-depth. `unfurl-client` pre-flights the scheme; the actual SSRF defenses (block loopback/
+  RFC-1918/link-local after DNS, manual redirect re-validation) live in the Unit 3.7 `/api/unfurl`
+  server handler.
 - **Bundled monogram icons** (not fetched, not a brand-icon dependency) — reliable, brand-colored,
   and dependency-free; the generic globe covers everything else.
 - **Unfurl is a graceful seam** — `unfurl-client` is wired for the Phase-3 `/api/unfurl`; until then

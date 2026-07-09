@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { LinkProvider } from "../enums";
-import { detectProvider, normalizeUrl, shortLabelFor } from "./registry";
+import { detectProvider, isSafeHttpUrl, normalizeUrl, shortLabelFor } from "./registry";
 
 describe("detectProvider", () => {
   it("maps each shipped provider", () => {
@@ -33,6 +33,16 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://github.com/facebook/react/issues/99")).toBe("facebook/react#99");
     expect(shortLabelFor("https://claude.ai/code/session_x")).toBe("session →");
     expect(shortLabelFor("https://www.example.com/page")).toBe("example.com");
+  });
+});
+
+describe("isSafeHttpUrl", () => {
+  it("allows http(s) and rejects dangerous schemes", () => {
+    expect(isSafeHttpUrl("https://example.com")).toBe(true);
+    expect(isSafeHttpUrl("http://example.com")).toBe(true);
+    expect(isSafeHttpUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeHttpUrl("data:text/html,<script>1</script>")).toBe(false);
+    expect(isSafeHttpUrl("not a url")).toBe(false);
   });
 });
 

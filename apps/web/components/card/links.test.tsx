@@ -76,6 +76,13 @@ describe("CardLinks", () => {
     expect(screen.getByText("Example Page")).toBeInTheDocument();
   });
 
+  it("ignores a non-http(s) url (XSS guard)", () => {
+    const ctx = setup();
+    fireEvent.change(field(), { target: { value: "javascript:alert(1)" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(links(ctx)).toHaveLength(0);
+  });
+
   it("removes a link", () => {
     const ctx = setup((c) => {
       execute(addLink, c, { boardId: "b1", cardId: "c1", id: "l1", url: "https://example.com/x" });

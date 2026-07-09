@@ -1,6 +1,7 @@
 "use client";
 
 import type { Card, Column, DueDate, Label, PriorityValue, SeverityValue } from "@boardly/domain";
+import { isSafeHttpUrl } from "@boardly/domain";
 import {
   addChecklistItem,
   addColumn,
@@ -283,6 +284,7 @@ export function useLinkActions(boardId: string): LinkActions {
   return {
     add: useCallback(
       (cardId: string, url: string) => {
+        if (!isSafeHttpUrl(url)) return; // command also rejects; skip here to avoid a throw
         execute(addLink, ctx, { boardId, cardId, url });
       },
       [ctx, boardId],
