@@ -129,12 +129,12 @@ export function BoardDndProvider({ boardId, children }: { boardId: string; child
 export function SortableCard({
   card,
   columnId,
-  onRename,
+  onOpen,
   onArchive,
 }: {
   card: Card;
   columnId: string;
-  onRename: (title: string) => void;
+  onOpen: () => void;
   onArchive: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -153,7 +153,7 @@ export function SortableCard({
       {...attributes}
       {...listeners}
     >
-      <CardFace card={card} onRename={onRename} onArchive={onArchive} />
+      <CardFace card={card} onOpen={onOpen} onArchive={onArchive} />
     </div>
   );
 }

@@ -24,3 +24,12 @@ export {
   CommandSeparator,
   CommandItem,
 } from "./components/command";
+export {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "./components/sheet";

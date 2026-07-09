@@ -14,6 +14,7 @@ import {
   liveColumns,
   moveCard,
   reclaimCards,
+  setCardDescription,
   setCardPriority,
 } from "./board-doc";
 import { boardCards } from "./schema";
@@ -153,6 +154,22 @@ describe("concurrency (merged docs)", () => {
     const inC2 = cardsInColumn(doc, c2).filter((c) => c.id === card).length;
     const inC3 = cardsInColumn(doc, c3).filter((c) => c.id === card).length;
     expect(inC2 + inC3).toBe(1);
+  });
+
+  it("merges concurrent description edits at different positions (Y.Text)", () => {
+    const { doc, c1 } = setup();
+    const card = addCard(doc, { columnId: c1, title: "X", now: NOW, clientId: "1" });
+    setCardDescription(doc, card, "hello", NOW);
+    const docB = clone(doc); // both have "hello"
+
+    setCardDescription(doc, card, "hello A", NOW); // append " A"
+    setCardDescription(docB, card, "B hello", NOW); // prepend "B "
+    merge(doc, docB);
+
+    const desc = getCard(doc, card)?.description ?? "";
+    expect(desc).toContain("A");
+    expect(desc).toContain("B");
+    expect(getCard(doc, card)?.description).toBe(getCard(docB, card)?.description);
   });
 
   it("column deleted in A while B adds a card to it → orphan surfaced by reclaim, not lost", () => {

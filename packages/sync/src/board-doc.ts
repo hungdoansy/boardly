@@ -253,6 +253,38 @@ export function setCardStatus(doc: Y.Doc, cardId: string, status: Status, now: n
   withCard(doc, cardId, (card) => card.set("status", status), now);
 }
 
+/**
+ * Replace a card's description while preserving Y.Text character-level merge:
+ * instead of clobbering the whole text, apply the minimal single-range diff
+ * (common prefix/suffix trimmed) so concurrent edits at different positions
+ * merge cleanly rather than one overwriting the other.
+ */
+export function setCardDescription(doc: Y.Doc, cardId: string, text: string, now: number): void {
+  doc.transact(() => {
+    const card = boardCards(doc).get(cardId);
+    if (!(card instanceof Y.Map)) return;
+    const ytext = card.get("description");
+    if (!(ytext instanceof Y.Text)) return;
+    const old = ytext.toString();
+    if (old === text) return;
+
+    let start = 0;
+    const min = Math.min(old.length, text.length);
+    while (start < min && old[start] === text[start]) start++;
+    let endOld = old.length;
+    let endNew = text.length;
+    while (endOld > start && endNew > start && old[endOld - 1] === text[endNew - 1]) {
+      endOld--;
+      endNew--;
+    }
+    if (endOld > start) ytext.delete(start, endOld - start);
+    if (endNew > start) ytext.insert(start, text.slice(start, endNew));
+
+    card.set("updatedAt", now);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
 export interface AddLinkParams {
   cardId: string;
   id?: string;

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@boardly/ui/theme.css";
 
 /* Tailwind ignores node_modules by default; scan the shared UI package so its
@@ -19,6 +20,66 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+}
+
+/* Minimal markdown preview styling (token-based; avoids the typography plugin). */
+.prose-boardly {
+  line-height: 1.6;
+}
+.prose-boardly h1,
+.prose-boardly h2,
+.prose-boardly h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0.75em 0 0.35em;
+}
+.prose-boardly h1 {
+  font-size: 16px;
+}
+.prose-boardly h2 {
+  font-size: 14px;
+}
+.prose-boardly p {
+  margin: 0.5em 0;
+}
+.prose-boardly strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.prose-boardly em {
+  font-style: italic;
+}
+.prose-boardly a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-boardly ul,
+.prose-boardly ol {
+  margin: 0.5em 0;
+  padding-left: 1.25em;
+}
+.prose-boardly ul {
+  list-style: disc;
+}
+.prose-boardly ol {
+  list-style: decimal;
+}
+.prose-boardly li {
+  margin: 0.2em 0;
+}
+.prose-boardly code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-overlay);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-sm);
+}
+.prose-boardly blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 0.75em;
+  color: var(--text-secondary);
+  margin: 0.5em 0;
 }
 
 /* Respect reduced motion globally (DESIGN.md §6). */

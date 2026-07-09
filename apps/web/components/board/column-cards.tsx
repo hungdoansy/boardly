@@ -6,7 +6,15 @@ import { useCardActions, useCardsInColumn } from "../../lib/use-board";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
 
-export function ColumnCards({ boardId, columnId }: { boardId: string; columnId: string }) {
+export function ColumnCards({
+  boardId,
+  columnId,
+  onOpenCard,
+}: {
+  boardId: string;
+  columnId: string;
+  onOpenCard: (cardId: string) => void;
+}) {
   const cards = useCardsInColumn(boardId, columnId);
   const actions = useCardActions(boardId);
 
@@ -18,7 +26,7 @@ export function ColumnCards({ boardId, columnId }: { boardId: string; columnId: 
             key={card.id}
             card={card}
             columnId={columnId}
-            onRename={(title) => actions.rename(card.id, title)}
+            onOpen={() => onOpenCard(card.id)}
             onArchive={() => actions.archive(card.id)}
           />
         ))}

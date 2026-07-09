@@ -9,8 +9,16 @@ import {
   execute,
   renameCard,
   renameColumn,
+  setCardDescription,
 } from "@boardly/commands";
-import { boardCards, boardColumns, cardsInColumn, liveColumns, reclaimCards } from "@boardly/sync";
+import {
+  boardCards,
+  boardColumns,
+  cardsInColumn,
+  getCard,
+  liveColumns,
+  reclaimCards,
+} from "@boardly/sync";
 import { useY, useYDoc } from "@boardly/sync/react";
 import { useCallback } from "react";
 
@@ -50,9 +58,16 @@ export function useCardsInColumn(boardId: string, columnId: string): Card[] {
   return useY(boardCards(doc), () => cardsInColumn(doc, columnId), { deep: true });
 }
 
+/** A single live card by id (or null). Doc-level subscription (description is a nested Y.Text). */
+export function useCardById(boardId: string, cardId: string | null): Card | null {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useYDoc(doc, () => (cardId ? getCard(doc, cardId) : null), { deps: [cardId] });
+}
+
 export interface CardActions {
   create(columnId: string, title: string): string;
   rename(cardId: string, title: string): void;
+  setDescription(cardId: string, description: string): void;
   archive(cardId: string): void;
 }
 
@@ -69,13 +84,19 @@ export function useCardActions(boardId: string): CardActions {
     },
     [ctx, boardId],
   );
+  const setDescription = useCallback(
+    (cardId: string, description: string) => {
+      execute(setCardDescription, ctx, { boardId, cardId, description });
+    },
+    [ctx, boardId],
+  );
   const archive = useCallback(
     (cardId: string) => {
       execute(archiveCard, ctx, { boardId, cardId });
     },
     [ctx, boardId],
   );
-  return { create, rename, archive };
+  return { create, rename, setDescription, archive };
 }
 
 export function useColumnActions(boardId: string): ColumnActions {

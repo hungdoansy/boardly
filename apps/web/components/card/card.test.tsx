@@ -5,7 +5,7 @@ import { addColumn as addColumnCmd, createBoard, createCard, execute } from "@bo
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { cardsInColumn } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { ColumnCards } from "../board/column-cards";
@@ -14,13 +14,14 @@ function setup(seed?: (ctx: MemoryContext, boardId: string, columnId: string) =>
   const ctx = createMemoryContext();
   const board = execute(createBoard, ctx, { title: "Board" });
   const column = execute(addColumnCmd, ctx, { boardId: board.id, title: "To Do" });
+  const onOpenCard = vi.fn();
   seed?.(ctx, board.id, column.id);
   render(
     <BoardlyProvider context={ctx}>
-      <ColumnCards boardId={board.id} columnId={column.id} />
+      <ColumnCards boardId={board.id} columnId={column.id} onOpenCard={onOpenCard} />
     </BoardlyProvider>,
   );
-  return { ctx, boardId: board.id, columnId: column.id };
+  return { ctx, boardId: board.id, columnId: column.id, onOpenCard };
 }
 
 const composerInput = () => screen.getByRole("textbox", { name: "New card title" });
@@ -54,15 +55,12 @@ describe("cards", () => {
     expect(cardsInColumn(ctx.getBoardDoc(boardId), columnId)).toHaveLength(0);
   });
 
-  it("edits a card title inline", () => {
-    setup((ctx, boardId, columnId) => {
-      execute(createCard, ctx, { boardId, columnId, title: "Old" });
+  it("opens the card detail when a card is clicked", () => {
+    const { onOpenCard } = setup((ctx, boardId, columnId) => {
+      execute(createCard, ctx, { boardId, columnId, id: "card-1", title: "Open me" });
     });
-    fireEvent.dblClick(screen.getByText("Old"));
-    const input = screen.getByRole("textbox", { name: "Card title" });
-    fireEvent.change(input, { target: { value: "New" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByText("New")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Open me"));
+    expect(onOpenCard).toHaveBeenCalledWith("card-1");
   });
 
   it("archives a card", () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import { useState } from "react";
 
 import {
   useCardActions,
@@ -9,6 +10,7 @@ import {
   useColumns,
   useReclaimedCards,
 } from "../../lib/use-board";
+import { CardDetail } from "../card/card-detail";
 import { CardFace } from "../card/card";
 import { AddColumn } from "./add-column";
 import { ColumnCards } from "./column-cards";
@@ -20,6 +22,7 @@ export function BoardView({ boardId }: { boardId: string }) {
   const reclaimed = useReclaimedCards(boardId);
   const columnActions = useColumnActions(boardId);
   const cardActions = useCardActions(boardId);
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
 
   return (
     <BoardDndProvider boardId={boardId}>
@@ -33,7 +36,7 @@ export function BoardView({ boardId }: { boardId: string }) {
               onRename={(title) => columnActions.rename(column.id, title)}
               onDelete={() => columnActions.remove(column.id)}
             >
-              <ColumnCards boardId={boardId} columnId={column.id} />
+              <ColumnCards boardId={boardId} columnId={column.id} onOpenCard={setOpenCardId} />
             </SortableColumn>
           ))}
         </SortableContext>
@@ -52,7 +55,7 @@ export function BoardView({ boardId }: { boardId: string }) {
                 <CardFace
                   key={card.id}
                   card={card}
-                  onRename={(title) => cardActions.rename(card.id, title)}
+                  onOpen={() => setOpenCardId(card.id)}
                   onArchive={() => cardActions.archive(card.id)}
                 />
               ))}
@@ -62,6 +65,8 @@ export function BoardView({ boardId }: { boardId: string }) {
 
         <AddColumn onAdd={columnActions.add} />
       </div>
+
+      <CardDetail boardId={boardId} cardId={openCardId} onClose={() => setOpenCardId(null)} />
     </BoardDndProvider>
   );
 }

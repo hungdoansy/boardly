@@ -8,6 +8,10 @@
 //   - unrelated changes to other Y types never re-render this component;
 //   - returning a fresh array/object from the selector doesn't loop
 //     useSyncExternalStore (the cached reference stays stable between changes).
+//
+// The cache is also invalidated when `options.deps` change, so a selector that
+// closes over changing inputs (e.g. a selected card id) recomputes even without
+// a doc change.
 import { useCallback, useRef, useSyncExternalStore } from "react";
 
 /** Structural view of the Yjs observe API shared by Y.Map / Y.Array / Y.Text. */
@@ -23,10 +27,22 @@ export interface UseYOptions<T> {
   deep?: boolean;
   /** Equality check to decide whether a change should re-render. */
   isEqual?: (a: T, b: T) => boolean;
+  /** Recompute when any of these change (for selectors closing over props/state). */
+  deps?: readonly unknown[];
+}
+
+function depsChanged(
+  a: readonly unknown[] | undefined,
+  b: readonly unknown[] | undefined,
+): boolean {
+  if (a === b) return false;
+  if (!a || !b || a.length !== b.length) return true;
+  for (let i = 0; i < a.length; i++) if (!Object.is(a[i], b[i])) return true;
+  return false;
 }
 
 export function useY<T>(target: YObservable, selector: () => T, options: UseYOptions<T> = {}): T {
-  const { deep = false, isEqual } = options;
+  const { deep = false, isEqual, deps } = options;
 
   const selectorRef = useRef(selector);
   selectorRef.current = selector;
@@ -34,11 +50,14 @@ export function useY<T>(target: YObservable, selector: () => T, options: UseYOpt
   isEqualRef.current = isEqual;
 
   const cache = useRef<{ value: T } | null>(null);
+  const depsRef = useRef<readonly unknown[] | undefined>(deps);
+  if (depsChanged(depsRef.current, deps)) {
+    depsRef.current = deps;
+    cache.current = null;
+  }
 
   const getSnapshot = useCallback((): T => {
-    if (cache.current === null) {
-      cache.current = { value: selectorRef.current() };
-    }
+    if (cache.current === null) cache.current = { value: selectorRef.current() };
     return cache.current.value;
   }, []);
 
@@ -84,15 +103,20 @@ export interface YDocLike {
 export function useYDoc<T>(
   doc: YDocLike,
   selector: () => T,
-  options: { isEqual?: (a: T, b: T) => boolean } = {},
+  options: { isEqual?: (a: T, b: T) => boolean; deps?: readonly unknown[] } = {},
 ): T {
-  const { isEqual } = options;
+  const { isEqual, deps } = options;
   const selectorRef = useRef(selector);
   selectorRef.current = selector;
   const isEqualRef = useRef(isEqual);
   isEqualRef.current = isEqual;
 
   const cache = useRef<{ value: T } | null>(null);
+  const depsRef = useRef<readonly unknown[] | undefined>(deps);
+  if (depsChanged(depsRef.current, deps)) {
+    depsRef.current = deps;
+    cache.current = null;
+  }
 
   const getSnapshot = useCallback((): T => {
     if (cache.current === null) cache.current = { value: selectorRef.current() };

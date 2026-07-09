@@ -3,6 +3,7 @@ import {
   archiveCard as syncArchiveCard,
   getCard as syncGetCard,
   moveCard as syncMoveCard,
+  setCardDescription as syncSetDescription,
   setCardPriority as syncSetPriority,
   setCardSeverity as syncSetSeverity,
   setCardTitle,
@@ -94,6 +95,17 @@ export const setCardSeverity = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
     syncSetSeverity(doc, input.cardId, input.severity, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const setCardDescription = defineCommand({
+  name: "setCardDescription",
+  description: "Set a card's markdown description (character-level merge-safe).",
+  input: z.object({ boardId: z.string(), cardId: z.string(), description: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncSetDescription(doc, input.cardId, input.description, ctx.now());
     return syncGetCard(doc, input.cardId);
   },
 });

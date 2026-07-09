@@ -415,7 +415,7 @@ sequenceDiagram
 
 ### Phase 2 — Card features & Linear UX
 
-- [ ] **Unit 2.1: Card detail panel + markdown description**
+- [x] **Unit 2.1: Card detail panel + markdown description**
 
 **Goal:** open a card into a detail panel with a `Y.Text`-backed markdown description and all metadata fields.
 **Requirements:** R6.
