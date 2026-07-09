@@ -62,6 +62,7 @@ export const SEVERITY_META: Record<SeverityValue, { name: SeverityName; color: s
 export const LinkProvider = {
   Slack: "slack",
   Linear: "linear",
+  GitHub: "github",
   Claude: "claude",
   Generic: "generic",
 } as const;

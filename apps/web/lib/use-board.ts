@@ -4,6 +4,7 @@ import type { Card, Column, DueDate, Label, PriorityValue, SeverityValue } from 
 import {
   addChecklistItem,
   addColumn,
+  addLink,
   archiveCard,
   archiveColumn,
   assignLabel,
@@ -14,6 +15,7 @@ import {
   execute,
   moveChecklistItem,
   recolorLabel,
+  removeLink,
   renameCard,
   renameColumn,
   renameLabel,
@@ -265,6 +267,29 @@ export function useChecklistActions(boardId: string): ChecklistActions {
           afterId: neighbors.afterId ?? null,
           beforeId: neighbors.beforeId ?? null,
         });
+      },
+      [ctx, boardId],
+    ),
+  };
+}
+
+export interface LinkActions {
+  add(cardId: string, url: string): void;
+  remove(cardId: string, linkId: string): void;
+}
+
+export function useLinkActions(boardId: string): LinkActions {
+  const ctx = useBoardlyContext();
+  return {
+    add: useCallback(
+      (cardId: string, url: string) => {
+        execute(addLink, ctx, { boardId, cardId, url });
+      },
+      [ctx, boardId],
+    ),
+    remove: useCallback(
+      (cardId: string, linkId: string) => {
+        execute(removeLink, ctx, { boardId, cardId, linkId });
       },
       [ctx, boardId],
     ),

@@ -11,6 +11,7 @@ export const BADGE_FIELDS: BadgeField[] = [
   { key: "severity", label: "Severity" },
   { key: "dueDate", label: "Due date" },
   { key: "labels", label: "Labels" },
+  { key: "links", label: "Links" },
   { key: "checklist", label: "Checklist" },
 ];
 
@@ -20,5 +21,6 @@ export const DEFAULT_BADGE_CONFIG: string[] = [
   "severity",
   "dueDate",
   "labels",
+  "links",
   "checklist",
 ];

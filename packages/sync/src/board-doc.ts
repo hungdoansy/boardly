@@ -23,6 +23,7 @@ import {
   formatShortId,
   keyBetween,
   newId,
+  normalizeUrl,
 } from "@boardly/domain";
 import * as Y from "yjs";
 
@@ -429,14 +430,24 @@ export interface AddLinkParams {
   clientId: string;
 }
 
-/** Attach a link to a card. Provider is auto-detected from the URL if omitted. */
+/**
+ * Attach a link to a card. Provider is auto-detected from the URL if omitted.
+ * De-duplicated by normalized URL — adding an existing link returns its id.
+ */
 export function addLink(doc: Y.Doc, params: AddLinkParams): string {
-  const id = params.id ?? newId();
+  let id = params.id ?? newId();
   doc.transact(() => {
     const card = boardCards(doc).get(params.cardId);
     if (!(card instanceof Y.Map)) return;
     const links = card.get("links");
     if (!(links instanceof Y.Map)) return;
+    const target = normalizeUrl(params.url);
+    for (const [existingId, existing] of links.entries()) {
+      if (existing instanceof Y.Map && normalizeUrl(getString(existing, "url")) === target) {
+        id = existingId;
+        return;
+      }
+    }
     const lastOrd = maxOrd(
       [...links.values()]
         .filter((l): l is Y.Map<unknown> => l instanceof Y.Map)

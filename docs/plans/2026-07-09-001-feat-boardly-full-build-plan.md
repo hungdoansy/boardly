@@ -498,7 +498,7 @@ sequenceDiagram
 - Edge case — reordering `badgeConfig` reorders badges on all cards.
   **Verification:** unit tests pass; screenshot of a card face with a realistic badge row in Linear style.
 
-- [ ] **Unit 2.7: Smart link chips + extensible provider registry + unfurl**
+- [x] **Unit 2.7: Smart link chips + extensible provider registry + unfurl**
 
 **Goal:** attach URLs to a card; render provider-aware chips (icon + shortened label) via an extensible registry, with title/favicon unfurl for generic links.
 **Requirements:** R7.

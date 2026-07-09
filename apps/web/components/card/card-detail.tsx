@@ -9,6 +9,7 @@ import { useCardActions, useCardById } from "../../lib/use-board";
 import { Checklist } from "./checklist";
 import { DueDatePicker } from "./due-date";
 import { CardLabels } from "./labels";
+import { CardLinks } from "./links";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
 import { SeveritySelect } from "./severity-select";
@@ -98,6 +99,11 @@ function CardDetailBody({
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Labels</h3>
           <CardLabels boardId={boardId} card={card} />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Links</h3>
+          <CardLinks boardId={boardId} card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
