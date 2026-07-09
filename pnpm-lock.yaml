@@ -72,9 +72,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@boardly/commands':
+        specifier: workspace:*
+        version: link:../../packages/commands
       '@boardly/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@boardly/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@boardly/ui':
         specifier: workspace:*
         version: link:../../packages/ui

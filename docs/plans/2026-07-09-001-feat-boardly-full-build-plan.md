@@ -330,7 +330,7 @@ sequenceDiagram
 - Edge case — a doc with no prior state hydrates to empty without error; UI can render immediately.
   **Verification:** persistence round-trip test passes with fake-indexeddb; `useY` re-render scoping test passes.
 
-- [ ] **Unit 1.3: Board list / workspace UI**
+- [x] **Unit 1.3: Board list / workspace UI**
 
 **Goal:** create, rename, archive, and open boards from the workspace index doc.
 **Requirements:** R5, R1.

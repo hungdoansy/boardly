@@ -25,8 +25,8 @@ describe("indexeddb persistence", () => {
 
     expect(liveColumns(doc2).map((c) => c.title)).toEqual(["Col A"]);
 
-    await p1.destroy();
-    await p2.destroy();
+    await p1?.destroy();
+    await p2?.destroy();
   });
 
   it("hydrates an empty doc without error", async () => {
@@ -34,6 +34,6 @@ describe("indexeddb persistence", () => {
     const { whenSynced, persistence } = attachIndexedDb(doc, "boardly:test:empty");
     await whenSynced;
     expect(liveColumns(doc)).toEqual([]);
-    await persistence.destroy();
+    await persistence?.destroy();
   });
 });

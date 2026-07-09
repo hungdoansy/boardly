@@ -31,7 +31,7 @@ function createHandle(room: string): DocHandle {
     room,
     whenSynced,
     destroy: () => {
-      void persistence.destroy();
+      if (persistence) void persistence.destroy();
       doc.destroy();
       registry.delete(room);
     },

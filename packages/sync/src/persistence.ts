@@ -6,13 +6,21 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import type * as Y from "yjs";
 
 export interface LocalPersistence {
-  persistence: IndexeddbPersistence;
-  /** Resolves once the doc has hydrated from IndexedDB (empty on first run). */
+  /** Null during SSR/static prerender (no IndexedDB); the doc is still usable, just not persisted. */
+  persistence: IndexeddbPersistence | null;
+  /** Resolves once the doc has hydrated from IndexedDB (immediately when unavailable). */
   whenSynced: Promise<void>;
 }
 
-/** Attach IndexedDB persistence to a doc for the given room. */
+/**
+ * Attach IndexedDB persistence to a doc for the given room. When IndexedDB is
+ * unavailable (SSR / static prerender), this is a no-op so the same call is
+ * safe on the server — persistence attaches for real once on the client.
+ */
 export function attachIndexedDb(doc: Y.Doc, room: string): LocalPersistence {
+  if (typeof indexedDB === "undefined") {
+    return { persistence: null, whenSynced: Promise.resolve() };
+  }
   const persistence = new IndexeddbPersistence(room, doc);
   const whenSynced = persistence.whenSynced.then(() => undefined);
   return { persistence, whenSynced };
