@@ -66,7 +66,7 @@ Deps pinned exactly (root `devDependencies`): `eslint 10.6.0`, `@eslint/js 10.0.
   `node_modules`, which every package reaches by walk-up, so per-package configs importing
   `@vitejs/plugin-react` etc. resolve without duplicating the deps in each package.
 - **Per-project Vitest configs + a root aggregator.** Gives Turbo independent, cacheable `test`
-  tasks *and* a single `vitest run` for local full-suite runs — satisfying both the DoD's
+  tasks _and_ a single `vitest run` for local full-suite runs — satisfying both the DoD's
   `turbo run test` and the plan's "root `test.projects`" requirement.
 
 ## Design (UI units)

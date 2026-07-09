@@ -262,7 +262,7 @@ sequenceDiagram
 **Test scenarios:** Happy path — a trivial sample test in one package is discovered and passes under the root `test` task.
 **Verification:** `turbo run lint` and `turbo run test` run across all projects; a sample test passes; jsdom + fake-indexeddb available in UI tests.
 
-- [ ] **Unit 0.3: `packages/domain` — types, enums, pure helpers**
+- [x] **Unit 0.3: `packages/domain` — types, enums, pure helpers**
 
 **Goal:** framework-agnostic domain vocabulary and pure functions shared by all apps.
 **Requirements:** R6, R7, R8.

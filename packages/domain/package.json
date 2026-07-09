@@ -8,8 +8,10 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "fractional-indexing": "4.0.0"
   }
 }
