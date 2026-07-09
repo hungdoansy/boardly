@@ -1,8 +1,15 @@
 "use client";
 
 import type { Column } from "@boardly/domain";
-import { Trash2 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
+import { GripVertical, Trash2 } from "lucide-react";
+import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+
+interface DragHandle {
+  ref: (el: HTMLElement | null) => void;
+  attributes: DraggableAttributes;
+  listeners: DraggableSyntheticListeners;
+}
 
 interface BoardColumnProps {
   column: Column;
@@ -10,9 +17,21 @@ interface BoardColumnProps {
   onRename: (title: string) => void;
   onDelete: () => void;
   children?: ReactNode;
+  dndRef?: (el: HTMLElement | null) => void;
+  dndStyle?: CSSProperties;
+  dragHandle?: DragHandle;
 }
 
-export function BoardColumn({ column, count, onRename, onDelete, children }: BoardColumnProps) {
+export function BoardColumn({
+  column,
+  count,
+  onRename,
+  onDelete,
+  children,
+  dndRef,
+  dndStyle,
+  dragHandle,
+}: BoardColumnProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(column.title);
 
@@ -27,10 +46,24 @@ export function BoardColumn({ column, count, onRename, onDelete, children }: Boa
 
   return (
     <section
+      ref={dndRef}
+      style={dndStyle}
       aria-label={`Column: ${column.title}`}
       className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-line-subtle bg-surface"
     >
       <header className="group flex h-9 shrink-0 items-center gap-1 px-2">
+        {dragHandle ? (
+          <button
+            type="button"
+            ref={dragHandle.ref}
+            aria-label={`Reorder ${column.title}`}
+            className="grid size-5 shrink-0 cursor-grab touch-none place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+            {...dragHandle.attributes}
+            {...dragHandle.listeners}
+          >
+            <GripVertical className="size-3.5" />
+          </button>
+        ) : null}
         {editing ? (
           <input
             autoFocus

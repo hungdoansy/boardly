@@ -372,7 +372,7 @@ sequenceDiagram
 - Edge case — many cards (e.g. 500) render and scroll smoothly within a column (perf sanity).
   **Verification:** unit tests pass; e2e add-card flow green + screenshot of a populated column in Linear style.
 
-- [ ] **Unit 1.6: Drag-and-drop (cards + columns, keyboard-accessible)**
+- [x] **Unit 1.6: Drag-and-drop (cards + columns, keyboard-accessible)**
 
 **Goal:** move cards within/across columns and reorder columns via pointer and keyboard.
 **Requirements:** R2, R5, R8.
