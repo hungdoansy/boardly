@@ -28,6 +28,7 @@ export function CardComposer({ onAdd }: CardComposerProps) {
     return (
       <button
         type="button"
+        data-nav-composer
         onClick={() => setAdding(true)}
         className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-sm text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       >
@@ -40,6 +41,7 @@ export function CardComposer({ onAdd }: CardComposerProps) {
   return (
     <input
       autoFocus
+      data-nav-composer
       aria-label="New card title"
       placeholder="Card title…"
       value={draft}

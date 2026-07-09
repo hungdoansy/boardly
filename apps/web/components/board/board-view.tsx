@@ -1,8 +1,11 @@
 "use client";
 
+import { Priority } from "@boardly/domain";
+import { getCard } from "@boardly/sync";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
+import { useBoardlyContext } from "../../lib/boardly-context";
 import {
   useBadgeConfig,
   useCardActions,
@@ -17,6 +20,9 @@ import { CardFace } from "../card/card";
 import { AddColumn } from "./add-column";
 import { ColumnCards } from "./column-cards";
 import { BoardDndProvider, SortableColumn } from "./dnd";
+import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
+
+const PRIORITY_CYCLE = Object.values(Priority).sort((a, b) => a - b);
 
 export function BoardView({ boardId }: { boardId: string }) {
   const columns = useColumns(boardId);
@@ -29,9 +35,38 @@ export function BoardView({ boardId }: { boardId: string }) {
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
 
+  const ctx = useBoardlyContext();
+  const boardRef = useRef<HTMLDivElement>(null);
+  const cyclePriority = useCallback(
+    (cardId: string) => {
+      const card = getCard(ctx.getBoardDoc(boardId), cardId);
+      if (!card) return;
+      const current = card.priority ?? Priority.None;
+      const next = PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(current) + 1) % PRIORITY_CYCLE.length]!;
+      cardActions.setPriority(cardId, next);
+    },
+    [ctx, boardId, cardActions],
+  );
+  useBoardKeyboardNav(boardRef, {
+    onOpenCard: setOpenCardId,
+    onArchiveCard: cardActions.archive,
+    onCyclePriority: cyclePriority,
+  });
+
+  // Restore keyboard focus to the card whose detail we just closed, so an
+  // Enter → edit → Esc round-trip lands the user back where they were.
+  const closeCard = useCallback(() => {
+    const restore = openCardId;
+    setOpenCardId(null);
+    if (restore && boardRef.current) {
+      const root = boardRef.current;
+      requestAnimationFrame(() => focusCard(root, restore));
+    }
+  }, [openCardId]);
+
   return (
     <BoardDndProvider boardId={boardId}>
-      <div className="flex h-full items-start gap-3 overflow-x-auto p-4">
+      <div ref={boardRef} className="flex h-full items-start gap-3 overflow-x-auto p-4">
         <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
           {columns.map((column) => (
             <SortableColumn
@@ -75,7 +110,7 @@ export function BoardView({ boardId }: { boardId: string }) {
         <AddColumn onAdd={columnActions.add} />
       </div>
 
-      <CardDetail boardId={boardId} cardId={openCardId} onClose={() => setOpenCardId(null)} />
+      <CardDetail boardId={boardId} cardId={openCardId} onClose={closeCard} />
     </BoardDndProvider>
   );
 }

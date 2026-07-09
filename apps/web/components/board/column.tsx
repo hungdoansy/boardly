@@ -48,6 +48,7 @@ export function BoardColumn({
     <section
       ref={dndRef}
       style={dndStyle}
+      data-nav-column={column.id}
       aria-label={`Column: ${column.title}`}
       className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-line-subtle bg-surface"
     >
@@ -80,6 +81,8 @@ export function BoardColumn({
         ) : (
           <button
             type="button"
+            data-nav="column"
+            data-column-id={column.id}
             onDoubleClick={() => setEditing(true)}
             className="min-w-0 flex-1 truncate rounded-[var(--radius-sm)] px-1 py-0.5 text-left text-md font-medium text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >

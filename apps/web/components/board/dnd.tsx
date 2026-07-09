@@ -6,6 +6,7 @@ import { cardsInColumn, liveColumns } from "@boardly/sync";
 import {
   DndContext,
   DragOverlay,
+  KeyboardCode,
   KeyboardSensor,
   PointerSensor,
   type DragEndEvent,
@@ -42,7 +43,16 @@ export function BoardDndProvider({ boardId, children }: { boardId: string; child
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      // Space (not Enter) picks up / drops a card, leaving Enter to open it
+      // and arrows to rove focus when no drag is active (see keyboard-nav).
+      keyboardCodes: {
+        start: [KeyboardCode.Space],
+        cancel: [KeyboardCode.Esc],
+        end: [KeyboardCode.Space],
+      },
+    }),
   );
 
   function onDragStart(event: DragStartEvent): void {
@@ -148,12 +158,15 @@ export function SortableCard({
   return (
     <div
       ref={setNodeRef}
+      data-nav="card"
+      data-card-id={card.id}
+      data-column-id={columnId}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
         opacity: isDragging ? 0.4 : undefined,
       }}
-      className="touch-none"
+      className="rounded-[var(--radius-md)] touch-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       {...attributes}
       {...listeners}
     >

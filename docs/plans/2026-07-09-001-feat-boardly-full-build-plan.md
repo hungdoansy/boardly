@@ -542,7 +542,7 @@ sequenceDiagram
 - Edge case — focus returns to the prior element on close.
   **Verification:** unit tests pass; e2e ⌘K→create-card flow green + screenshot of the open palette. _(User-facing.)_
 
-- [ ] **Unit 2.10: Keyboard-first navigation**
+- [x] **Unit 2.10: Keyboard-first navigation** — done (`docs/units/UNIT-2.10-keyboard-nav.md`). Arrow-key roving focus (DOM-derived model), Enter opens, `c`/`e`/`p` act on the focused card, Space+arrows keyboard-drag (dnd-kit), focus-return after detail closes. Deferred: label/priority _menu_ & Unsorted-lane nav (noted in doc).
 
 **Goal:** navigate and act on the board without a mouse.
 **Requirements:** R8.
