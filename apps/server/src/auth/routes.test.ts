@@ -69,7 +69,7 @@ describe.skipIf(!DATABASE_URL)("auth routes (integration, real db)", () => {
     expect(setCookie?.value).toBeTruthy();
   });
 
-  it("returns the refresh token in the body only for the desktop client", async () => {
+  it("never returns the refresh token in the body, even with a spoofed client header", async () => {
     const e = email();
     await app.inject({
       method: "POST",
@@ -83,7 +83,7 @@ describe.skipIf(!DATABASE_URL)("auth routes (integration, real db)", () => {
       payload: { email: e, password: PASSWORD },
     });
     expect(login.statusCode).toBe(200);
-    expect(login.json().refreshToken).toBeTruthy();
+    expect(login.json().refreshToken).toBeUndefined();
   });
 
   it("returns a generic 401 for a wrong password (no enumeration)", async () => {

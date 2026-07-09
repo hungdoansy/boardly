@@ -52,8 +52,15 @@ reuse-detecting opaque refresh tokens.
   `invalid email or password` for both unknown-email and wrong-password, and runs a **decoy argon2
   verify** when the email is unknown so response timing doesn't distinguish the two.
 - **Login rate-limited** per IP (`@fastify/rate-limit`, route-scoped) to blunt online guessing.
-- **Refresh via httpOnly `SameSite=Lax` cookie for web; Bearer/body for desktop.** The cookie keeps
-  the refresh token out of JS (XSS-resilient); the Bearer/body path serves the Tauri client.
+- **Refresh token is issued via the httpOnly `SameSite=Lax` cookie ONLY — never in the response
+  body.** The cookie keeps the token out of JS (XSS-resilient). An earlier iteration returned the
+  token in the body for a desktop client that opted in via an `X-Boardly-Client` header, but a
+  request header is trivially spoofable by same-origin browser JS — XSS could add it to an automatic
+  cookie-bearing `/auth/refresh` call and read the token from the body, defeating the cookie's whole
+  purpose (flagged HIGH in review). Issuance is now cookie-only; the desktop app doesn't exist until
+  Phase 5, where token bootstrap will be designed securely (custom-scheme redirect + PKCE, or a
+  client secret the browser can't hold). The Bearer/body **read** path in `readRefreshToken` stays —
+  it only _presents_ a token the caller already holds, which is not a bypass.
 - **Ephemeral signing keys at boot** (documented follow-up): access tokens are short-lived and
   refresh tokens are DB-backed, so a restart's key rotation only forces a silent refresh. Persisted
   keys for multi-instance are deferred.
@@ -84,7 +91,11 @@ reuse-detecting opaque refresh tokens.
 
 ## Follow-ups / known gaps
 
-- **Web auth UI + session wiring (3.4)** consumes these endpoints.
+- **Web auth UI + session wiring (3.4)** consumes these endpoints (access token in body, refresh in
+  the httpOnly cookie).
+- **Desktop token bootstrap (Phase 5):** how the Tauri client obtains a refresh token without a
+  browser cookie jar — designed securely then (custom-scheme redirect + PKCE, or a client secret),
+  not via a spoofable header.
 - **Persisted/rotated signing keys** for multi-instance deployments (currently ephemeral per boot).
 - **Expired/revoked refresh-token GC**: rows accumulate; a periodic cleanup (or partial index) is a
   later optimization. An index on `refresh_tokens.token_hash`/`family_id` should accompany that.

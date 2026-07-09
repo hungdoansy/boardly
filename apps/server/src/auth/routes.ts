@@ -18,7 +18,10 @@ export interface AuthRoutesOptions {
   config: ServerConfig;
 }
 
-/** Extract the refresh token from the cookie, a Bearer header, or the body. */
+/**
+ * Extract the refresh token to *present* (cookie, Bearer header, or body). This
+ * only reads a token the caller already holds; it never gates issuance.
+ */
 function readRefreshToken(request: FastifyRequest): string | null {
   const cookieToken = request.cookies?.[REFRESH_COOKIE];
   if (cookieToken) return cookieToken;
@@ -26,16 +29,6 @@ function readRefreshToken(request: FastifyRequest): string | null {
   if (auth?.startsWith("Bearer ")) return auth.slice("Bearer ".length).trim() || null;
   const body = request.body as { refreshToken?: unknown } | undefined;
   return typeof body?.refreshToken === "string" ? body.refreshToken : null;
-}
-
-/**
- * Whether to return the refresh token in the response body. Web clients rely on
- * the httpOnly cookie only (keeps the token out of JS, so XSS can't read it);
- * the desktop (Tauri) client has no cookie jar and opts in with this header to
- * receive the token for secure OS-keychain storage + a Bearer refresh path.
- */
-function wantsBodyToken(request: FastifyRequest): boolean {
-  return request.headers["x-boardly-client"] === "desktop";
 }
 
 export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions): Promise<void> {
@@ -80,13 +73,10 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions):
       try {
         const session = await service.login(parsed.data.email, parsed.data.password);
         setRefreshCookie(reply, session);
-        return reply.send({
-          accessToken: session.accessToken,
-          userId: session.userId,
-          // Only desktop clients get the refresh token in the body; web uses
-          // the httpOnly cookie so the token stays out of reach of JS/XSS.
-          ...(wantsBodyToken(request) ? { refreshToken: session.refreshToken } : {}),
-        });
+        // Refresh token is delivered via the httpOnly cookie ONLY — never in the
+        // JS-readable body (a spoofable client header could otherwise let XSS
+        // exfiltrate it). Desktop token bootstrap is a Phase 5 concern.
+        return reply.send({ accessToken: session.accessToken, userId: session.userId });
       } catch (error) {
         if (error instanceof AuthError) return reply.status(401).send({ error: error.message });
         throw error;
@@ -100,10 +90,7 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions):
     try {
       const session = await service.refresh(token);
       setRefreshCookie(reply, session);
-      return reply.send({
-        accessToken: session.accessToken,
-        ...(wantsBodyToken(request) ? { refreshToken: session.refreshToken } : {}),
-      });
+      return reply.send({ accessToken: session.accessToken });
     } catch (error) {
       if (error instanceof AuthError) {
         clearRefreshCookie(reply);
