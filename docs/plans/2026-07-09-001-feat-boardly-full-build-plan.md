@@ -73,7 +73,7 @@ devices) with room to add multi-user collaboration later.
 ### Relevant Code and Patterns
 
 - `PLAN.md` — origin document: pillars, stack, feature set, Focalboard decision, roadmap.
-- Focalboard (reference only, do not copy — AGPL) at `../focalboard`: its data-model lessons are distilled into Key Technical Decisions below. Notable takeaways: **do not** use array-of-IDs ordering (`cardOrder`/`contentOrder` rewrite the whole array on every move → CRDT clobber/dup); **do** reference select-options by id so renames propagate; **do not** serialize structured values (date ranges) as JSON strings inside the store; **do not** use one opaque `fields` bag — use typed keys so unrelated edits don't collide. Focalboard derives columns from a property value; Boardly instead models **columns as first-class entities** (simpler, matches the product).
+- Focalboard (reference only, do not copy — AGPL) at `../demo-app/focalboard`: its data-model lessons are distilled into Key Technical Decisions below. Notable takeaways: **do not** use array-of-IDs ordering (`cardOrder`/`contentOrder` rewrite the whole array on every move → CRDT clobber/dup); **do** reference select-options by id so renames propagate; **do not** serialize structured values (date ranges) as JSON strings inside the store; **do not** use one opaque `fields` bag — use typed keys so unrelated edits don't collide. Focalboard derives columns from a property value; Boardly instead models **columns as first-class entities** (simpler, matches the product).
 
 ### Institutional Learnings (from `~/.claude/memory/` — apply during the loop)
 
@@ -835,7 +835,7 @@ sequenceDiagram
 - **Dependencies:** every `package.json` pins **exact versions** (no `^`/`~`); commit `pnpm-lock.yaml`; Node `22.17.1`, Next `16.2.6`.
 
 ### Execution environment (apply on every step)
-- **Node 22.17.1** via `nvm use` before any pnpm/turbo command (machine default is 18 — memory `tools/pnpm_node.md`). Set `engines`/`.nvmrc`.
+- **Node 22.17.1 must front every pnpm/turbo/node command.** The machine default is **v24.15.0** and `nvm use` does **not** persist across separate shell invocations, so prefix each command with the pinned toolchain, e.g. `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"` (v22.17.1 is already installed). Set `.nvmrc` (22.17.1) + `engines`. (v24 would technically run Next ≥20.9, but the pin is for reproducibility.)
 - **Docker** required from U3.1 onward (`docker compose up -d db`); server runs `migrate()` at boot against it.
 - **Playwright**: `npx playwright install` once; serve the built web `out/` (not `next start`); for screenshots prefer the cached chrome-headless-shell if the default profile is locked (memory `tools/playwright_screenshot.md`, `tools/playwright_mcp.md`).
 
@@ -875,7 +875,7 @@ flowchart TD
 ## Sources & References
 
 - **Origin document:** `PLAN.md`
-- Reference (do not copy — AGPL): `../focalboard` (data-model lessons distilled above)
+- Reference (do not copy — AGPL): `../demo-app/focalboard` (data-model lessons distilled above)
 - Memory: `~/.claude/memory/tools/{pnpm_node,playwright_screenshot,playwright_mcp}.md`
 - Next.js: nextjs.org/docs/app/guides/static-exports · /blog/next-16 · /blog/next-16-2 · /docs/app/guides/testing/vitest
 - Tauri v2: v2.tauri.app (nextjs, sql, http-client, updater, deep-linking, csp, migrate-from-tauri-1)
