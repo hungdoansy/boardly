@@ -9,6 +9,12 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(8787),
   HOST: z.string().min(1).default("0.0.0.0"),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // Auth (Unit 3.3).
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900), // 15 min
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  LOGIN_RATE_MAX: z.coerce.number().int().positive().default(5),
+  LOGIN_RATE_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 export type ServerConfig = z.infer<typeof schema>;

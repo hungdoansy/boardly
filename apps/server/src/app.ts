@@ -1,20 +1,24 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { Pool } from "pg";
 
+import { authRoutes } from "./auth/routes";
+import type { AuthService } from "./auth/service";
 import type { ServerConfig } from "./config";
 
 export interface BuildServerOptions {
   config: ServerConfig;
   /** Inject a pool in tests; otherwise one is created from `DATABASE_URL`. */
   pool?: Pool;
+  /** When provided, the /auth/* routes are mounted. */
+  authService?: AuthService;
 }
 
 /**
  * Build the Fastify app (no `.listen`) so tests can drive it via `inject()`.
- * Owns a pg pool for liveness checks; later units (3.2+) layer Drizzle, auth,
- * and the Yjs sync endpoints on top.
+ * Owns a pg pool for liveness checks; auth routes mount when an `authService`
+ * is supplied. Later units layer the Yjs sync endpoints on top.
  */
-export function buildServer({ config, pool }: BuildServerOptions): FastifyInstance {
+export function buildServer({ config, pool, authService }: BuildServerOptions): FastifyInstance {
   const app = Fastify({ logger: false });
   const db = pool ?? new Pool({ connectionString: config.DATABASE_URL });
 
@@ -37,6 +41,10 @@ export function buildServer({ config, pool }: BuildServerOptions): FastifyInstan
       return { status: "degraded", db: "down" };
     }
   });
+
+  if (authService) {
+    void app.register(authRoutes, { service: authService, config });
+  }
 
   return app;
 }

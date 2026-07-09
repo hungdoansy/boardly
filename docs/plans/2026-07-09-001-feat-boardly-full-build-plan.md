@@ -614,7 +614,7 @@ sequenceDiagram
 - Edge case — `bytea` round-trips a `Uint8Array` (write Yjs update, read identical bytes).
   **Verification:** migrations apply cleanly to the container db and are idempotent on re-run; bytea round-trip test passes.
 
-- [ ] **Unit 3.3: Auth API (signup / login / logout / refresh)**
+- [x] **Unit 3.3: Auth API (signup / login / logout / refresh)** — done (`docs/units/UNIT-3.3-auth-api.md`). argon2id passwords, EdDSA access JWT (rejects alg:none), opaque DB-backed refresh tokens with rotation + family revocation on reuse; generic errors (no enumeration, decoy verify), login rate-limit, httpOnly SameSite=Lax refresh cookie + Bearer path. 29 server tests pass against the container db (rotation, reuse-detection, generic-error, rate-limit).
 
 **Goal:** email/password auth with argon2id and rotating refresh tokens.
 **Requirements:** R9.
