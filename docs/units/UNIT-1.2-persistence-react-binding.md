@@ -15,7 +15,7 @@ No network provider yet (Phase 3).
   `navigator.storage.persist()`, safe no-op off-browser).
 - `packages/sync/src/provider.ts` — a per-room doc **registry**: `getBoardDoc(boardId)` /
   `getWorkspaceDoc(userId)` / `getDoc(room)` return a cached `DocHandle` (`{ doc, room, whenSynced,
-  destroy }`). Rooms: `boardly:board:{id}` / `boardly:workspace:{userId}` (== the Phase-3 sync-server
+destroy }`). Rooms: `boardly:board:{id}` / `boardly:workspace:{userId}` (== the Phase-3 sync-server
   room). Caching guarantees the UI and all mutations share one in-memory doc.
 - `packages/sync/src/use-y.ts` — `useY(target, selector, options?)` built on `useSyncExternalStore`.
   Exposed via the new `@boardly/sync/react` subpath (kept out of the main barrel so the non-React
@@ -27,7 +27,7 @@ No network provider yet (Phase 3).
 
 ## Why (decisions)
 
-- **Doc registry (one doc per room).** `useY` and the command layer must observe/mutate the *same*
+- **Doc registry (one doc per room).** `useY` and the command layer must observe/mutate the _same_
   `Y.Doc`; a registry keyed by room enforces that and is where the Phase-3 websocket provider will
   attach (noted inline). `destroy()` tears down persistence + doc and evicts the entry.
 - **React binding on a separate entry (`@boardly/sync/react`).** `use-y.ts` imports React; keeping it

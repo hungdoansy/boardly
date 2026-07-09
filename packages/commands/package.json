@@ -1,0 +1,21 @@
+{
+  "name": "@boardly/commands",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client-context.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@boardly/domain": "workspace:*",
+    "@boardly/sync": "workspace:*",
+    "yjs": "13.6.31",
+    "zod": "4.4.3"
+  }
+}

@@ -6,6 +6,7 @@
 // `packages/domain/src/status.ts`.
 import type { LinkProvider, PriorityValue, SeverityValue } from "./enums";
 import type { Id } from "./ids";
+import type { Status } from "./status";
 
 /** A due date, stored structured (never a JSON string). `at` is epoch ms. */
 export interface DueDate {
@@ -54,6 +55,7 @@ export interface Card {
   description: string;
   columnId: Id;
   ord: string;
+  status: Status;
   priority: PriorityValue;
   severity: SeverityValue | null;
   dueDate: DueDate | null;

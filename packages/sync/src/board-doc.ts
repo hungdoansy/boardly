@@ -8,11 +8,15 @@ import {
   type Board,
   type Card,
   type Column,
+  type LinkProvider,
   type PriorityValue,
   type SeverityValue,
+  type Status,
+  DEFAULT_STATUS,
   Priority,
   byOrd,
   compareOrd,
+  detectProvider,
   formatShortId,
   keyBetween,
   newId,
@@ -195,6 +199,7 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     card.set("description", new Y.Text());
     card.set("columnId", params.columnId);
     card.set("ord", keyBetween(lastOrd, null, params.clientId));
+    card.set("status", DEFAULT_STATUS);
     card.set("priority", Priority.None);
     card.set("severity", null);
     card.set("dueDate", null);
@@ -241,6 +246,59 @@ export function setCardSeverity(
   now: number,
 ): void {
   withCard(doc, cardId, (card) => card.set("severity", severity), now);
+}
+
+/** Set the workflow status (LWW key, independent of the column). */
+export function setCardStatus(doc: Y.Doc, cardId: string, status: Status, now: number): void {
+  withCard(doc, cardId, (card) => card.set("status", status), now);
+}
+
+export interface AddLinkParams {
+  cardId: string;
+  id?: string;
+  url: string;
+  provider?: LinkProvider;
+  title?: string;
+  now: number;
+  clientId: string;
+}
+
+/** Attach a link to a card. Provider is auto-detected from the URL if omitted. */
+export function addLink(doc: Y.Doc, params: AddLinkParams): string {
+  const id = params.id ?? newId();
+  doc.transact(() => {
+    const card = boardCards(doc).get(params.cardId);
+    if (!(card instanceof Y.Map)) return;
+    const links = card.get("links");
+    if (!(links instanceof Y.Map)) return;
+    const lastOrd = maxOrd(
+      [...links.values()]
+        .filter((l): l is Y.Map<unknown> => l instanceof Y.Map)
+        .map((l) => getString(l, "ord")),
+    );
+    const link = new Y.Map<unknown>();
+    link.set("id", id);
+    link.set("url", params.url);
+    link.set("provider", params.provider ?? detectProvider(params.url));
+    if (params.title !== undefined) link.set("title", params.title);
+    link.set("ord", keyBetween(lastOrd, null, params.clientId));
+    links.set(id, link);
+    card.set("updatedAt", params.now);
+    boardMeta(doc).set("updatedAt", params.now);
+  });
+  return id;
+}
+
+export function removeLink(doc: Y.Doc, cardId: string, linkId: string, now: number): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const links = card.get("links");
+      if (links instanceof Y.Map) links.delete(linkId);
+    },
+    now,
+  );
 }
 
 /**

@@ -389,7 +389,14 @@ sequenceDiagram
 - Integration (e2e) — pointer drag across columns persists after reload.
   **Verification:** unit tests for ord computation pass; Playwright drag (pointer + keyboard) flows green; screenshot mid-drag/after-drop reviewed. _(Critical flow.)_
 
-- [ ] **Unit 1.7: Command layer & agent-native seam (`packages/commands`)**
+- [x] **Unit 1.7: Command layer & agent-native seam (`packages/commands`)**
+
+> **Build note (1.7 as implemented):** board/column/card/status/link/search commands + reads
+> shipped; `label.ts` commands are **deferred to Unit 2.2** (built with the label data layer + UI)
+> and will join the same catalog. Seeded here to satisfy the `setCardStatus`/`addLink` test
+> scenarios: a minimal `Status` enum in `@boardly/domain` (2.12 enriches) and `setCardStatus`/
+> `addLink`/`removeLink` sync accessors. The `@boardly/sync` barrel was split — pure main entry +
+> `@boardly/sync/client` for browser-only persistence/provider — to keep DOM off the command/server graph.
 
 **Goal:** a single typed, validated catalog of every board/card operation, executable both client-side (UI) and server-side (REST/MCP), so the UI and agents share one write path.
 **Requirements:** R13.

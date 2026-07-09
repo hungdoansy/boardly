@@ -6,6 +6,6 @@ import { defineConfig } from "vitest/config";
 // runs the whole suite in one pass.
 export default defineConfig({
   test: {
-    projects: ["packages/domain", "packages/sync", "packages/ui"],
+    projects: ["packages/domain", "packages/sync", "packages/commands", "packages/ui"],
   },
 });

@@ -4,17 +4,19 @@
 // flat, id-keyed Y.Maps; `columnId` on the card (no nested arrays); structured
 // values (dueDate) as nested Y.Map, never JSON strings; sets (labels) as
 // Y.Map<id,true>; description as Y.Text.
-import type {
-  Board,
-  Card,
-  CardLink,
-  ChecklistItem,
-  Column,
-  DueDate,
-  LinkProvider,
-  PriorityValue,
-  SeverityValue,
-  WorkspaceBoardRef,
+import {
+  type Board,
+  type Card,
+  type CardLink,
+  type ChecklistItem,
+  type Column,
+  type DueDate,
+  type LinkProvider,
+  type PriorityValue,
+  type SeverityValue,
+  type Status,
+  type WorkspaceBoardRef,
+  DEFAULT_STATUS,
 } from "@boardly/domain";
 import * as Y from "yjs";
 
@@ -124,6 +126,7 @@ export function cardToPlain(yc: YCard): Card {
     description: description instanceof Y.Text ? description.toString() : "",
     columnId: getString(yc, "columnId"),
     ord: getString(yc, "ord"),
+    status: getString(yc, "status", DEFAULT_STATUS) as Status,
     priority: getNumber(yc, "priority", 0) as PriorityValue,
     severity: typeof severity === "number" ? (severity as SeverityValue) : null,
     dueDate,

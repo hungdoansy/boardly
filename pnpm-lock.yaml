@@ -104,6 +104,21 @@ importers:
         specifier: 4.3.2
         version: 4.3.2
 
+  packages/commands:
+    dependencies:
+      '@boardly/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@boardly/sync':
+        specifier: workspace:*
+        version: link:../sync
+      yjs:
+        specifier: 13.6.31
+        version: 13.6.31
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+
   packages/domain:
     dependencies:
       fractional-indexing:
