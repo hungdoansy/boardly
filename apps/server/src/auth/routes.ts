@@ -28,6 +28,16 @@ function readRefreshToken(request: FastifyRequest): string | null {
   return typeof body?.refreshToken === "string" ? body.refreshToken : null;
 }
 
+/**
+ * Whether to return the refresh token in the response body. Web clients rely on
+ * the httpOnly cookie only (keeps the token out of JS, so XSS can't read it);
+ * the desktop (Tauri) client has no cookie jar and opts in with this header to
+ * receive the token for secure OS-keychain storage + a Bearer refresh path.
+ */
+function wantsBodyToken(request: FastifyRequest): boolean {
+  return request.headers["x-boardly-client"] === "desktop";
+}
+
 export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions): Promise<void> {
   const { service, config } = opts;
 
@@ -72,8 +82,10 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions):
         setRefreshCookie(reply, session);
         return reply.send({
           accessToken: session.accessToken,
-          refreshToken: session.refreshToken,
           userId: session.userId,
+          // Only desktop clients get the refresh token in the body; web uses
+          // the httpOnly cookie so the token stays out of reach of JS/XSS.
+          ...(wantsBodyToken(request) ? { refreshToken: session.refreshToken } : {}),
         });
       } catch (error) {
         if (error instanceof AuthError) return reply.status(401).send({ error: error.message });
@@ -88,7 +100,10 @@ export async function authRoutes(app: FastifyInstance, opts: AuthRoutesOptions):
     try {
       const session = await service.refresh(token);
       setRefreshCookie(reply, session);
-      return reply.send({ accessToken: session.accessToken, refreshToken: session.refreshToken });
+      return reply.send({
+        accessToken: session.accessToken,
+        ...(wantsBodyToken(request) ? { refreshToken: session.refreshToken } : {}),
+      });
     } catch (error) {
       if (error instanceof AuthError) {
         clearRefreshCookie(reply);

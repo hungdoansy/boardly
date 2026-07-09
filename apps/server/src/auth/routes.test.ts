@@ -61,10 +61,29 @@ describe.skipIf(!DATABASE_URL)("auth routes (integration, real db)", () => {
     });
     expect(login.statusCode).toBe(200);
     expect(login.json().accessToken).toBeTruthy();
+    // Web: refresh token is cookie-only, never in the JS-readable body.
+    expect(login.json().refreshToken).toBeUndefined();
     const setCookie = login.cookies.find((c) => c.name === "boardly_refresh");
     expect(setCookie?.httpOnly).toBe(true);
     expect(setCookie?.sameSite?.toLowerCase()).toBe("lax");
     expect(setCookie?.value).toBeTruthy();
+  });
+
+  it("returns the refresh token in the body only for the desktop client", async () => {
+    const e = email();
+    await app.inject({
+      method: "POST",
+      url: "/auth/signup",
+      payload: { email: e, password: PASSWORD },
+    });
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      headers: { "x-boardly-client": "desktop" },
+      payload: { email: e, password: PASSWORD },
+    });
+    expect(login.statusCode).toBe(200);
+    expect(login.json().refreshToken).toBeTruthy();
   });
 
   it("returns a generic 401 for a wrong password (no enumeration)", async () => {
