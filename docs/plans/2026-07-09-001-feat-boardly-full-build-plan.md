@@ -295,7 +295,7 @@ sequenceDiagram
 
 ### Phase 1 — Local-first core (offline, single-user, no network)
 
-- [ ] **Unit 1.1: `packages/sync` — Yjs schema & typed accessors**
+- [x] **Unit 1.1: `packages/sync` — Yjs schema & typed accessors**
 
 **Goal:** the board & workspace Y.Doc schemas with typed create/read/update/soft-delete helpers and fractional ordering wired in.
 **Requirements:** R1, R5, R6.

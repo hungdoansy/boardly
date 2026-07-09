@@ -12,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@boardly/domain": "workspace:*"
+    "@boardly/domain": "workspace:*",
+    "yjs": "13.6.31"
   }
 }

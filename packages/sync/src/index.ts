@@ -1,3 +1,4 @@
-// @boardly/sync — Yjs schema, persistence, and React bindings.
-// Populated in Units 1.1 / 1.2.
-export const PACKAGE_NAME = "@boardly/sync";
+// @boardly/sync — Yjs schema, typed accessors, persistence, and React bindings.
+export * from "./schema";
+export * from "./board-doc";
+export * from "./workspace-doc";
