@@ -9,6 +9,7 @@ import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
 import { LabelManager } from "../board/label-manager";
+import { CommandPalette } from "../command-palette/palette";
 
 export function WorkspaceApp() {
   return (
@@ -51,6 +52,7 @@ function Shell() {
       </aside>
 
       <MainArea />
+      <CommandPalette />
     </div>
   );
 }

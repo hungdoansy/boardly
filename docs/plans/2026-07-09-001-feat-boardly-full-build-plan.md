@@ -528,7 +528,7 @@ sequenceDiagram
 - Integration (merged docs) — two docs each create a card offline (both grab the same seq); after merge the repair assigns distinct ids deterministically (stable across both replicas).
   **Verification:** unit + merged-doc repair test pass.
 
-- [ ] **Unit 2.9: Command palette (⌘K)**
+- [x] **Unit 2.9: Command palette (⌘K)** — done (`docs/units/UNIT-2.9-command-palette.md`). Ships Create board / New card / Jump to board; fuzzy filter + Esc + focus-return. Deferred to their prerequisite units: focused-card priority/severity/label → 2.10 (needs the focus model); toggle theme → 5.3; search mode → 2.11.
 
 **Goal:** a keyboard-driven command palette for the most common actions.
 **Requirements:** R8.

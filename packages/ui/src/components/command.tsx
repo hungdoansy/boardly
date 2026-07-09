@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import type * as React from "react";
 
 import { cn } from "../lib/cn";
-import { Dialog, DialogContent } from "./dialog";
+import { Dialog, DialogContent, DialogTitle } from "./dialog";
 
 export function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
@@ -23,6 +23,7 @@ export function CommandDialog({ children, ...props }: React.ComponentProps<typeo
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0">
+        <DialogTitle className="sr-only">Command palette</DialogTitle>
         <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-fg-faint [&_[cmdk-input-wrapper]]:h-11">
           {children}
         </Command>
