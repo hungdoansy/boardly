@@ -569,7 +569,7 @@ sequenceDiagram
 - Edge case — search updates as underlying cards change.
   **Verification:** unit tests pass; e2e search→open flow green.
 
-- [ ] **Unit 2.12: Workflow status field**
+- [x] **Unit 2.12: Workflow status field** — done (`docs/units/UNIT-2.12-workflow-status.md`). Status enum+categories+meta, activity log (`setCardStatus` appends on change), Linear-style `StatusIcon` (ui), StatusBadge/StatusSelect, badge-row + done/canceled card styling, `status` in badge-config. Independent of column (tested). Deferred to their units: group-by (4.2) / filter (4.1) / palette action (2.9) / activity-feed UI (4.3).
 
 **Goal:** every card has a first-class workflow status independent of its column; set it from the UI, badge it, group/filter by it, and log changes.
 **Requirements:** R14.

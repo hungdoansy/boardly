@@ -1,4 +1,4 @@
-import { Priority } from "@boardly/domain";
+import { DEFAULT_STATUS, Priority, Status } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
@@ -12,11 +12,13 @@ import {
   getBoard,
   getCard,
   initBoard,
+  listActivity,
   liveColumns,
   moveCard,
   reclaimCards,
   setCardDescription,
   setCardPriority,
+  setCardStatus,
 } from "./board-doc";
 import { boardCards } from "./schema";
 
@@ -122,6 +124,45 @@ describe("soft-delete", () => {
     expect(cardsInColumn(doc, c1)).toEqual([]);
     expect(boardCards(doc).has(a)).toBe(true);
     expect(getCard(doc, a)?.archived).toBe(true);
+  });
+});
+
+describe("workflow status", () => {
+  it("records a status change in the activity log, leaving the column untouched", () => {
+    const { doc, c1 } = setup();
+    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    setCardStatus(doc, a, Status.InProgress, NOW + 1, "actor-1");
+
+    expect(getCard(doc, a)?.status).toBe(Status.InProgress);
+    expect(getCard(doc, a)?.columnId).toBe(c1);
+    const log = listActivity(doc);
+    expect(log).toHaveLength(1);
+    expect(log[0]).toMatchObject({
+      type: "status",
+      cardId: a,
+      from: DEFAULT_STATUS,
+      to: Status.InProgress,
+      actor: "actor-1",
+    });
+  });
+
+  it("no-ops (no activity) when the status is unchanged", () => {
+    const { doc, c1 } = setup();
+    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    setCardStatus(doc, a, DEFAULT_STATUS, NOW + 1);
+    expect(listActivity(doc)).toHaveLength(0);
+  });
+
+  it("is independent of the column: moving a card does not change its status", () => {
+    const { doc, c1, c2 } = setup();
+    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    setCardStatus(doc, a, Status.InReview, NOW + 1, "1");
+    moveCard(doc, a, c2, { afterId: null, beforeId: null }, "1", NOW + 2);
+
+    expect(getCard(doc, a)?.columnId).toBe(c2);
+    expect(getCard(doc, a)?.status).toBe(Status.InReview);
+    // The move added no status activity.
+    expect(listActivity(doc)).toHaveLength(1);
   });
 });
 

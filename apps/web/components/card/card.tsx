@@ -1,6 +1,7 @@
 "use client";
 
 import type { Card, Label } from "@boardly/domain";
+import { isTerminalStatus } from "@boardly/domain";
 import { Archive } from "lucide-react";
 
 import { BadgeRow } from "./badge-row";
@@ -14,6 +15,7 @@ interface CardFaceProps {
 }
 
 export function CardFace({ card, labels, config, onOpen, onArchive }: CardFaceProps) {
+  const terminal = isTerminalStatus(card.status);
   return (
     <article
       aria-label={`Card: ${card.title}`}
@@ -25,7 +27,15 @@ export function CardFace({ card, labels, config, onOpen, onArchive }: CardFacePr
           onClick={onOpen}
           className="min-w-0 flex-1 text-left focus-visible:outline-none"
         >
-          <span className="line-clamp-2 text-base leading-snug text-fg">{card.title}</span>
+          <span
+            className={
+              terminal
+                ? "line-clamp-2 text-base leading-snug text-fg-faint line-through"
+                : "line-clamp-2 text-base leading-snug text-fg"
+            }
+          >
+            {card.title}
+          </span>
         </button>
         <button
           type="button"

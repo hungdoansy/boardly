@@ -8,6 +8,7 @@ import { LabelChip } from "./labels";
 import { PriorityBadge } from "./priority-badge";
 import { ProviderIcon } from "./provider-icon";
 import { SeverityBadge } from "./severity-badge";
+import { StatusBadge } from "./status-badge";
 
 /**
  * Renders the card's "highlighted" badges in the per-board configured order,
@@ -24,7 +25,9 @@ export function BadgeRow({
 }) {
   const nodes: ReactNode[] = [];
   for (const key of config) {
-    if (key === "priority" && card.priority !== Priority.None) {
+    if (key === "status") {
+      nodes.push(<StatusBadge key="status" status={card.status} />);
+    } else if (key === "priority" && card.priority !== Priority.None) {
       nodes.push(<PriorityBadge key="priority" priority={card.priority} />);
     } else if (key === "severity" && card.severity !== null) {
       nodes.push(<SeverityBadge key="severity" severity={card.severity} />);

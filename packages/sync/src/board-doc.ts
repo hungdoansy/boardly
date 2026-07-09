@@ -5,6 +5,7 @@
 // `reclaimCards` surfaces orphans instead. `now` is injected so the logic
 // stays pure/testable.
 import {
+  type ActivityEntry,
   type Board,
   type Card,
   type Column,
@@ -30,6 +31,7 @@ import * as Y from "yjs";
 
 import {
   type YCard,
+  boardActivity,
   boardCards,
   boardColumns,
   boardLabels,
@@ -264,9 +266,57 @@ export function setCardSeverity(
   withCard(doc, cardId, (card) => card.set("severity", severity), now);
 }
 
-/** Set the workflow status (LWW key, independent of the column). */
-export function setCardStatus(doc: Y.Doc, cardId: string, status: Status, now: number): void {
-  withCard(doc, cardId, (card) => card.set("status", status), now);
+/**
+ * Set the workflow status (LWW key, independent of the column). When the value
+ * actually changes, append a status-change entry to the board activity log.
+ */
+export function setCardStatus(
+  doc: Y.Doc,
+  cardId: string,
+  status: Status,
+  now: number,
+  actor?: string,
+): void {
+  doc.transact(() => {
+    const card = boardCards(doc).get(cardId);
+    if (!(card instanceof Y.Map)) return;
+    const from = getString(card, "status", DEFAULT_STATUS) as Status;
+    if (from === status) return;
+    card.set("status", status);
+    card.set("updatedAt", now);
+    boardMeta(doc).set("updatedAt", now);
+    appendActivity(doc, { type: "status", cardId, from, to: status, at: now, actor });
+  });
+}
+
+/** Append an activity entry (append-only Y.Array of plain-ish Y.Maps). */
+export function appendActivity(doc: Y.Doc, entry: Omit<ActivityEntry, "id">): void {
+  const row = new Y.Map<unknown>();
+  row.set("id", newId());
+  for (const [key, value] of Object.entries(entry)) {
+    if (value !== undefined) row.set(key, value);
+  }
+  boardActivity(doc).push([row]);
+}
+
+/** Read the activity log, oldest → newest. */
+export function listActivity(doc: Y.Doc): ActivityEntry[] {
+  return boardActivity(doc)
+    .toArray()
+    .filter((row): row is Y.Map<unknown> => row instanceof Y.Map)
+    .map((row) => {
+      const entry: ActivityEntry = {
+        id: getString(row, "id"),
+        type: "status",
+        cardId: getString(row, "cardId"),
+        from: (row.get("from") as Status | undefined) ?? null,
+        to: getString(row, "to", DEFAULT_STATUS) as Status,
+        at: getNumber(row, "at"),
+      };
+      const actor = row.get("actor");
+      if (typeof actor === "string") entry.actor = actor;
+      return entry;
+    });
 }
 
 /** Set or clear the due date (stored as a nested Y.Map, never a JSON string). */

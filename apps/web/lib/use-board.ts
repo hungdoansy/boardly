@@ -1,6 +1,14 @@
 "use client";
 
-import type { Card, Column, DueDate, Label, PriorityValue, SeverityValue } from "@boardly/domain";
+import type {
+  Card,
+  Column,
+  DueDate,
+  Label,
+  PriorityValue,
+  SeverityValue,
+  Status,
+} from "@boardly/domain";
 import { isSafeHttpUrl } from "@boardly/domain";
 import {
   addChecklistItem,
@@ -25,6 +33,7 @@ import {
   setCardDueDate,
   setCardPriority,
   setCardSeverity,
+  setCardStatus,
   setChecklistItemText,
   toggleChecklistItem,
   unassignLabel,
@@ -166,6 +175,7 @@ export interface CardActions {
   setDescription(cardId: string, description: string): void;
   setPriority(cardId: string, priority: PriorityValue): void;
   setSeverity(cardId: string, severity: SeverityValue | null): void;
+  setStatus(cardId: string, status: Status): void;
   setDueDate(cardId: string, dueDate: DueDate | null): void;
   archive(cardId: string): void;
 }
@@ -201,6 +211,12 @@ export function useCardActions(boardId: string): CardActions {
     },
     [ctx, boardId],
   );
+  const setStatus = useCallback(
+    (cardId: string, status: Status) => {
+      execute(setCardStatus, ctx, { boardId, cardId, status });
+    },
+    [ctx, boardId],
+  );
   const setDueDate = useCallback(
     (cardId: string, dueDate: DueDate | null) => {
       execute(setCardDueDate, ctx, { boardId, cardId, dueDate });
@@ -213,7 +229,16 @@ export function useCardActions(boardId: string): CardActions {
     },
     [ctx, boardId],
   );
-  return { create, rename, setDescription, setPriority, setSeverity, setDueDate, archive };
+  return {
+    create,
+    rename,
+    setDescription,
+    setPriority,
+    setSeverity,
+    setStatus,
+    setDueDate,
+    archive,
+  };
 }
 
 export interface ChecklistActions {

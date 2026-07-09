@@ -32,6 +32,9 @@ export const boardMeta = (doc: Y.Doc): Y.Map<unknown> => doc.getMap<unknown>("me
 export const boardColumns = (doc: Y.Doc): Y.Map<YColumn> => doc.getMap<YColumn>("columns");
 export const boardCards = (doc: Y.Doc): Y.Map<YCard> => doc.getMap<YCard>("cards");
 export const boardLabels = (doc: Y.Doc): Y.Map<YLabel> => doc.getMap<YLabel>("labels");
+/** Append-only activity log (Unit 2.12; expanded in U4.3). */
+export const boardActivity = (doc: Y.Doc): Y.Array<Y.Map<unknown>> =>
+  doc.getArray<Y.Map<unknown>>("activity");
 
 /** Workspace index doc: the user's boards. */
 export const workspaceBoards = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>

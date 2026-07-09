@@ -34,3 +34,4 @@ export {
   SheetDescription,
 } from "./components/sheet";
 export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent } from "./components/popover";
+export { StatusIcon, type StatusVariant, type StatusIconProps } from "./components/status-icon";

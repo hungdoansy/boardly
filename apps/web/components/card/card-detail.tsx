@@ -13,6 +13,7 @@ import { CardLinks } from "./links";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
 import { SeveritySelect } from "./severity-select";
+import { StatusSelect } from "./status-select";
 
 interface CardDetailProps {
   boardId: string;
@@ -109,7 +110,6 @@ function CardDetailBody({
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
           <PropertyList card={card} actions={actions} />
-          <p className="text-xs text-fg-faint">Status control arrives in Unit 2.12.</p>
         </section>
       </div>
 
@@ -140,7 +140,7 @@ function PropertyList({
   return (
     <div className="grid grid-cols-[6rem_1fr] items-center gap-x-4 gap-y-1 text-sm">
       <span className="text-fg-faint">Status</span>
-      <span className="capitalize text-fg">{card.status.replace(/_/g, " ")}</span>
+      <StatusSelect value={card.status} onChange={(s) => actions.setStatus(card.id, s)} />
 
       <span className="text-fg-faint">Priority</span>
       <PrioritySelect value={card.priority} onChange={(p) => actions.setPriority(card.id, p)} />
