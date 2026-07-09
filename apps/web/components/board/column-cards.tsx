@@ -1,8 +1,9 @@
 "use client";
 
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo } from "react";
 
-import { useCardActions, useCardsInColumn } from "../../lib/use-board";
+import { useCardActions, useCardsInColumn, useLabels } from "../../lib/use-board";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
 
@@ -16,7 +17,9 @@ export function ColumnCards({
   onOpenCard: (cardId: string) => void;
 }) {
   const cards = useCardsInColumn(boardId, columnId);
+  const labels = useLabels(boardId);
   const actions = useCardActions(boardId);
+  const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
   return (
     <>
@@ -26,6 +29,7 @@ export function ColumnCards({
             key={card.id}
             card={card}
             columnId={columnId}
+            labels={card.labelIds.map((id) => labelById.get(id)).filter((l) => l !== undefined)}
             onOpen={() => onOpenCard(card.id)}
             onArchive={() => actions.archive(card.id)}
           />

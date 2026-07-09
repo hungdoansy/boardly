@@ -1,6 +1,6 @@
 "use client";
 
-import type { Card, Column } from "@boardly/domain";
+import type { Card, Column, Label } from "@boardly/domain";
 import { execute, moveCard, moveColumn } from "@boardly/commands";
 import { cardsInColumn, liveColumns } from "@boardly/sync";
 import {
@@ -129,11 +129,13 @@ export function BoardDndProvider({ boardId, children }: { boardId: string; child
 export function SortableCard({
   card,
   columnId,
+  labels,
   onOpen,
   onArchive,
 }: {
   card: Card;
   columnId: string;
+  labels?: Label[];
   onOpen: () => void;
   onArchive: () => void;
 }) {
@@ -153,7 +155,7 @@ export function SortableCard({
       {...attributes}
       {...listeners}
     >
-      <CardFace card={card} onOpen={onOpen} onArchive={onArchive} />
+      <CardFace card={card} labels={labels} onOpen={onOpen} onArchive={onArchive} />
     </div>
   );
 }

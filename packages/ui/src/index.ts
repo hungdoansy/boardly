@@ -33,3 +33,4 @@ export {
   SheetTitle,
   SheetDescription,
 } from "./components/sheet";
+export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent } from "./components/popover";

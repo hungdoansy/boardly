@@ -14,6 +14,14 @@ import {
   setCardSeverity,
 } from "./commands/card";
 import { addColumn, archiveColumn, moveColumn, renameColumn } from "./commands/column";
+import {
+  assignLabel,
+  createLabel,
+  deleteLabel,
+  recolorLabel,
+  renameLabel,
+  unassignLabel,
+} from "./commands/label";
 import { addLink, removeLink } from "./commands/link";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
@@ -36,6 +44,12 @@ export const commands = [
   archiveCard,
   getCard,
   setCardStatus,
+  createLabel,
+  renameLabel,
+  recolorLabel,
+  deleteLabel,
+  assignLabel,
+  unassignLabel,
   addLink,
   removeLink,
   searchCards,

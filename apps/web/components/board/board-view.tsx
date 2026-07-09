@@ -1,13 +1,14 @@
 "use client";
 
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   useCardActions,
   useCardCounts,
   useColumnActions,
   useColumns,
+  useLabels,
   useReclaimedCards,
 } from "../../lib/use-board";
 import { CardDetail } from "../card/card-detail";
@@ -22,6 +23,8 @@ export function BoardView({ boardId }: { boardId: string }) {
   const reclaimed = useReclaimedCards(boardId);
   const columnActions = useColumnActions(boardId);
   const cardActions = useCardActions(boardId);
+  const labels = useLabels(boardId);
+  const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const [openCardId, setOpenCardId] = useState<string | null>(null);
 
   return (
@@ -55,6 +58,9 @@ export function BoardView({ boardId }: { boardId: string }) {
                 <CardFace
                   key={card.id}
                   card={card}
+                  labels={card.labelIds
+                    .map((id) => labelById.get(id))
+                    .filter((l) => l !== undefined)}
                   onOpen={() => setOpenCardId(card.id)}
                   onArchive={() => cardActions.archive(card.id)}
                 />

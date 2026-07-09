@@ -1,21 +1,29 @@
 "use client";
 
-import type { Card, Column } from "@boardly/domain";
+import type { Card, Column, Label } from "@boardly/domain";
 import {
   addColumn,
   archiveCard,
   archiveColumn,
+  assignLabel,
   createCard,
+  createLabel,
+  deleteLabel,
   execute,
+  recolorLabel,
   renameCard,
   renameColumn,
+  renameLabel,
   setCardDescription,
+  unassignLabel,
 } from "@boardly/commands";
 import {
   boardCards,
   boardColumns,
+  boardLabels,
   cardsInColumn,
   getCard,
+  listLabels,
   liveColumns,
   reclaimCards,
 } from "@boardly/sync";
@@ -38,6 +46,62 @@ export function useCardCounts(boardId: string): Record<string, number> {
     for (const col of liveColumns(doc)) counts[col.id] = cardsInColumn(doc, col.id).length;
     return counts;
   });
+}
+
+/** Live board label palette, sorted by ord. */
+export function useLabels(boardId: string): Label[] {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useY(boardLabels(doc), () => listLabels(doc), { deep: true });
+}
+
+export interface LabelActions {
+  create(name: string, color: string): string;
+  rename(labelId: string, name: string): void;
+  recolor(labelId: string, color: string): void;
+  remove(labelId: string): void;
+  assign(cardId: string, labelId: string): void;
+  unassign(cardId: string, labelId: string): void;
+}
+
+export function useLabelActions(boardId: string): LabelActions {
+  const ctx = useBoardlyContext();
+  return {
+    create: useCallback(
+      (name: string, color: string) =>
+        execute(createLabel, ctx, { boardId, name, color })?.id ?? "",
+      [ctx, boardId],
+    ),
+    rename: useCallback(
+      (labelId: string, name: string) => {
+        execute(renameLabel, ctx, { boardId, labelId, name });
+      },
+      [ctx, boardId],
+    ),
+    recolor: useCallback(
+      (labelId: string, color: string) => {
+        execute(recolorLabel, ctx, { boardId, labelId, color });
+      },
+      [ctx, boardId],
+    ),
+    remove: useCallback(
+      (labelId: string) => {
+        execute(deleteLabel, ctx, { boardId, labelId });
+      },
+      [ctx, boardId],
+    ),
+    assign: useCallback(
+      (cardId: string, labelId: string) => {
+        execute(assignLabel, ctx, { boardId, cardId, labelId });
+      },
+      [ctx, boardId],
+    ),
+    unassign: useCallback(
+      (cardId: string, labelId: string) => {
+        execute(unassignLabel, ctx, { boardId, cardId, labelId });
+      },
+      [ctx, boardId],
+    ),
+  };
 }
 
 /** Cards whose column was deleted (surfaced in the "Unsorted" bucket). Depends on columns + cards. */

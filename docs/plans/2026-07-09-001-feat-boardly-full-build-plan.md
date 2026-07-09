@@ -429,7 +429,7 @@ sequenceDiagram
 - Edge case — empty description renders an empty editor without error.
   **Verification:** unit + merge test pass; e2e open→edit→reopen persists; screenshot of the detail panel in Linear style.
 
-- [ ] **Unit 2.2: Labels (board palette + card assignment)**
+- [x] **Unit 2.2: Labels (board palette + card assignment)**
 
 **Goal:** a per-board colored label palette; assign/unassign labels to cards.
 **Requirements:** R6, R7.

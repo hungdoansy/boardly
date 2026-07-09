@@ -1,12 +1,13 @@
 "use client";
 
-import { Button } from "@boardly/ui";
-import { LayoutGrid, Plus, Search, Settings } from "lucide-react";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
+import { LayoutGrid, Plus, Search, Settings, Tag } from "lucide-react";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
+import { LabelManager } from "../board/label-manager";
 
 export function WorkspaceApp() {
   return (
@@ -69,9 +70,24 @@ function MainArea() {
         <h1 className="text-md font-semibold tracking-[-0.01em] text-fg">
           {active ? active.title : "Welcome"}
         </h1>
-        <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint">
-          <span className="font-mono">⌘</span>
-          <span className="font-mono">K</span>
+        <div className="flex items-center gap-2">
+          {active ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-fg-muted">
+                  <Tag className="size-3.5" />
+                  Labels
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80">
+                <LabelManager boardId={active.id} />
+              </PopoverContent>
+            </Popover>
+          ) : null}
+          <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint">
+            <span className="font-mono">⌘</span>
+            <span className="font-mono">K</span>
+          </div>
         </div>
       </header>
 

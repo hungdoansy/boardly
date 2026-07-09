@@ -8,6 +8,7 @@ import {
   type Board,
   type Card,
   type Column,
+  type Label,
   type LinkProvider,
   type PriorityValue,
   type SeverityValue,
@@ -27,6 +28,7 @@ import {
   type YCard,
   boardCards,
   boardColumns,
+  boardLabels,
   boardMeta,
   boardToPlain,
   cardToPlain,
@@ -34,6 +36,7 @@ import {
   getBool,
   getString,
   getNumber,
+  labelToPlain,
 } from "./schema";
 
 // ----- internal helpers -----
@@ -369,6 +372,97 @@ export function archiveCard(doc: Y.Doc, cardId: string, now: number): void {
     },
     now,
   );
+}
+
+// ----- labels -----
+
+export interface AddLabelParams {
+  id?: string;
+  name: string;
+  color: string;
+  now: number;
+  clientId: string;
+}
+
+export function addLabel(doc: Y.Doc, params: AddLabelParams): string {
+  const id = params.id ?? newId();
+  doc.transact(() => {
+    const labels = boardLabels(doc);
+    const lastOrd = maxOrd([...labels.values()].map((l) => getString(l, "ord")));
+    const label = new Y.Map<unknown>();
+    label.set("id", id);
+    label.set("name", params.name);
+    label.set("color", params.color);
+    label.set("ord", keyBetween(lastOrd, null, params.clientId));
+    labels.set(id, label);
+    boardMeta(doc).set("updatedAt", params.now);
+  });
+  return id;
+}
+
+function withLabel(
+  doc: Y.Doc,
+  labelId: string,
+  mutate: (l: Y.Map<unknown>) => void,
+  now: number,
+): void {
+  doc.transact(() => {
+    const label = boardLabels(doc).get(labelId);
+    if (!(label instanceof Y.Map)) return;
+    mutate(label);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
+export function renameLabel(doc: Y.Doc, labelId: string, name: string, now: number): void {
+  withLabel(doc, labelId, (l) => l.set("name", name), now);
+}
+
+export function recolorLabel(doc: Y.Doc, labelId: string, color: string, now: number): void {
+  withLabel(doc, labelId, (l) => l.set("color", color), now);
+}
+
+/** Delete a label from the board palette AND strip it from every card's set. */
+export function deleteLabel(doc: Y.Doc, labelId: string, now: number): void {
+  doc.transact(() => {
+    boardLabels(doc).delete(labelId);
+    for (const card of boardCards(doc).values()) {
+      const set = card.get("labels");
+      if (set instanceof Y.Map && set.has(labelId)) set.delete(labelId);
+    }
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
+export function assignLabel(doc: Y.Doc, cardId: string, labelId: string, now: number): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const set = card.get("labels");
+      if (set instanceof Y.Map) set.set(labelId, true);
+    },
+    now,
+  );
+}
+
+export function unassignLabel(doc: Y.Doc, cardId: string, labelId: string, now: number): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const set = card.get("labels");
+      if (set instanceof Y.Map) set.delete(labelId);
+    },
+    now,
+  );
+}
+
+export function listLabels(doc: Y.Doc): Label[] {
+  return [...boardLabels(doc).values()]
+    .filter((l): l is Y.Map<unknown> => l instanceof Y.Map)
+    .map(labelToPlain)
+    .sort(byOrd);
 }
 
 // ----- selectors (read-only) -----

@@ -1,15 +1,18 @@
 "use client";
 
-import type { Card } from "@boardly/domain";
+import type { Card, Label } from "@boardly/domain";
 import { Archive } from "lucide-react";
+
+import { LabelChip } from "./labels";
 
 interface CardFaceProps {
   card: Card;
+  labels?: Label[];
   onOpen: () => void;
   onArchive: () => void;
 }
 
-export function CardFace({ card, onOpen, onArchive }: CardFaceProps) {
+export function CardFace({ card, labels, onOpen, onArchive }: CardFaceProps) {
   return (
     <article
       aria-label={`Card: ${card.title}`}
@@ -32,6 +35,14 @@ export function CardFace({ card, onOpen, onArchive }: CardFaceProps) {
           <Archive className="size-3.5" />
         </button>
       </div>
+      {labels && labels.length > 0 ? (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {labels.map((label) => (
+            <LabelChip key={label.id} label={label} />
+          ))}
+        </div>
+      ) : null}
+
       <div className="mt-1.5 flex items-center gap-2">
         <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
       </div>

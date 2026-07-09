@@ -7,6 +7,7 @@ import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
+import { CardLabels } from "./labels";
 import { MarkdownEditor } from "./markdown-editor";
 
 interface CardDetailProps {
@@ -28,17 +29,21 @@ export function CardDetail({ boardId, cardId, onClose }: CardDetailProps) {
       }}
     >
       <SheetContent aria-describedby={undefined}>
-        {card ? <CardDetailBody card={card} actions={actions} onClose={onClose} /> : null}
+        {card ? (
+          <CardDetailBody boardId={boardId} card={card} actions={actions} onClose={onClose} />
+        ) : null}
       </SheetContent>
     </Sheet>
   );
 }
 
 function CardDetailBody({
+  boardId,
   card,
   actions,
   onClose,
 }: {
+  boardId: string;
   card: Card;
   actions: ReturnType<typeof useCardActions>;
   onClose: () => void;
@@ -83,9 +88,16 @@ function CardDetailBody({
         </section>
 
         <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Labels</h3>
+          <CardLabels boardId={boardId} card={card} />
+        </section>
+
+        <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
           <PropertyList card={card} />
-          <p className="text-xs text-fg-faint">Editable controls arrive in Units 2.3–2.4 / 2.12.</p>
+          <p className="text-xs text-fg-faint">
+            Status/priority/severity/due controls arrive in Units 2.3–2.4 / 2.12.
+          </p>
         </section>
       </div>
 

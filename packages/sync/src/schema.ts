@@ -11,6 +11,7 @@ import {
   type ChecklistItem,
   type Column,
   type DueDate,
+  type Label,
   type LinkProvider,
   type PriorityValue,
   type SeverityValue,
@@ -163,6 +164,15 @@ export function boardToPlain(doc: Y.Doc, id: string): Board {
   if (typeof icon === "string") board.icon = icon;
   if (description instanceof Y.Text) board.description = description.toString();
   return board;
+}
+
+export function labelToPlain(yl: YLabel): Label {
+  return {
+    id: getString(yl, "id"),
+    name: getString(yl, "name"),
+    color: getString(yl, "color"),
+    ord: getString(yl, "ord"),
+  };
 }
 
 export function boardRefToPlain(yr: Y.Map<unknown>): WorkspaceBoardRef {
