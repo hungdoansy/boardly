@@ -24,6 +24,7 @@ import {
   keyBetween,
   newId,
   normalizeUrl,
+  repairShortIds,
 } from "@boardly/domain";
 import * as Y from "yjs";
 
@@ -609,6 +610,28 @@ export function listLabels(doc: Y.Doc): Label[] {
 
 // ----- selectors (read-only) -----
 
+/**
+ * Compute short-id overrides for the whole board (repair-on-read). Duplicate
+ * short ids from concurrent offline creation are reassigned deterministically;
+ * the map is `cardId → repaired shortId` for cards that changed.
+ */
+function shortIdOverrides(doc: Y.Doc): Map<string, string> {
+  return repairShortIds(
+    [...boardCards(doc).values()]
+      .filter((c): c is YCard => c instanceof Y.Map)
+      .map((c) => ({
+        id: getString(c, "id"),
+        shortId: getString(c, "shortId"),
+        createdAt: getNumber(c, "createdAt"),
+      })),
+  );
+}
+
+function withRepairedShortId(card: Card, overrides: Map<string, string>): Card {
+  const repaired = overrides.get(card.id);
+  return repaired ? { ...card, shortId: repaired } : card;
+}
+
 export function liveColumns(doc: Y.Doc): Column[] {
   return [...boardColumns(doc).values()]
     .filter((c) => !getBool(c, "archived"))
@@ -617,22 +640,24 @@ export function liveColumns(doc: Y.Doc): Column[] {
 }
 
 export function cardsInColumn(doc: Y.Doc, columnId: string): Card[] {
+  const overrides = shortIdOverrides(doc);
   return [...boardCards(doc).values()]
     .filter((c) => getString(c, "columnId") === columnId && !getBool(c, "archived"))
-    .map(cardToPlain)
+    .map((c) => withRepairedShortId(cardToPlain(c), overrides))
     .sort(byOrd);
 }
 
 /** Non-archived cards whose `columnId` points at no live column ("Unsorted"). */
 export function reclaimCards(doc: Y.Doc): Card[] {
   const live = new Set(liveColumns(doc).map((c) => c.id));
+  const overrides = shortIdOverrides(doc);
   return [...boardCards(doc).values()]
     .filter((c) => !getBool(c, "archived") && !live.has(getString(c, "columnId")))
-    .map(cardToPlain)
+    .map((c) => withRepairedShortId(cardToPlain(c), overrides))
     .sort(byOrd);
 }
 
 export function getCard(doc: Y.Doc, cardId: string): Card | null {
   const c = boardCards(doc).get(cardId);
-  return c instanceof Y.Map ? cardToPlain(c) : null;
+  return c instanceof Y.Map ? withRepairedShortId(cardToPlain(c), shortIdOverrides(doc)) : null;
 }

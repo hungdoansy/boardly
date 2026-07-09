@@ -515,7 +515,7 @@ sequenceDiagram
 - Edge case — duplicate URL add is de-duplicated by normalized URL.
   **Verification:** provider-registry unit tests pass for every shipped provider incl. GitHub PR/issue disambiguation; e2e adding a Linear + GitHub PR + generic link shows correct chips; screenshot reviewed. _(User-facing.)_
 
-- [ ] **Unit 2.8: Short card IDs (`BRD-###`)**
+- [x] **Unit 2.8: Short card IDs (`BRD-###`)**
 
 **Goal:** every card gets a stable short id; duplicates from concurrent offline creation are repaired deterministically.
 **Requirements:** R8.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatShortId, newId, parseShortId } from "./ids";
+import { formatShortId, newId, parseShortId, repairShortIds } from "./ids";
 
 describe("short ids", () => {
   it("formats prefix + seq", () => {
@@ -17,6 +17,38 @@ describe("short ids", () => {
     expect(parseShortId("BRD-")).toBeNull();
     expect(parseShortId("-1")).toBeNull();
     expect(parseShortId("1BRD-2")).toBeNull();
+  });
+});
+
+describe("repairShortIds", () => {
+  it("returns no overrides without duplicates", () => {
+    expect(
+      repairShortIds([
+        { id: "a", shortId: "BRD-1", createdAt: 1 },
+        { id: "b", shortId: "BRD-2", createdAt: 2 },
+      ]).size,
+    ).toBe(0);
+  });
+
+  it("keeps the earliest card and reassigns the later one beyond the max seq", () => {
+    const map = repairShortIds([
+      { id: "a", shortId: "BRD-3", createdAt: 10 },
+      { id: "b", shortId: "BRD-3", createdAt: 20 },
+    ]);
+    expect(map.get("a")).toBeUndefined();
+    expect(map.get("b")).toBe("BRD-4");
+  });
+
+  it("breaks ties by id and is order-independent (stable across replicas)", () => {
+    const cards = [
+      { id: "y", shortId: "BRD-3", createdAt: 10 },
+      { id: "x", shortId: "BRD-3", createdAt: 10 },
+    ];
+    const forward = repairShortIds(cards);
+    const reversed = repairShortIds([...cards].reverse());
+    expect(forward.get("x")).toBeUndefined(); // "x" < "y" → keeper
+    expect(forward.get("y")).toBe("BRD-4");
+    expect(Object.fromEntries(reversed)).toEqual(Object.fromEntries(forward));
   });
 });
 
