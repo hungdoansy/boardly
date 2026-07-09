@@ -240,7 +240,7 @@ sequenceDiagram
 
 ### Phase 0 — Foundation & tooling
 
-- [ ] **Unit 0.1: Monorepo scaffold**
+- [x] **Unit 0.1: Monorepo scaffold**
 
 **Goal:** pnpm + Turborepo monorepo with Node pinned, TS base config, and empty workspace packages/apps wired together.
 **Requirements:** R4.
