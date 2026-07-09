@@ -17,7 +17,11 @@ single user's devices through a self-hosted server. The card is the centerpiece:
 description, labels, priority, severity, due date, checklist, assignee, and a scannable
 **highlighted badge row** on the card face including **smart link chips** (Slack message, Linear
 ticket, Claude session, generic URL). Linear-style UX: command palette, keyboard-first
-navigation, short IDs (`BRD-142`), instant search, saved views. Auth is simple email/password.
+navigation, short IDs (`BRD-142`), instant search, saved views, and a first-class **workflow
+status** on every card (Backlog / Todo / In Progress / In Review / Done / Canceled), independent
+of its column. Auth is simple email/password. Boardly is **agent-native**: every action is
+defined once in a shared command layer and exposed through both a REST API and an MCP server, so
+an AI agent has full parity with the UI and its edits sync to every device like any other client.
 
 This plan is written to drive an **autonomous overnight loop** that implements, tests, and
 verifies each unit end-to-end. It is dependency-ordered; the loop advances unit by unit and must
@@ -47,6 +51,8 @@ devices) with room to add multi-user collaboration later.
 - **R10 — Interop:** import/export — JSON (full fidelity), Markdown export, Obsidian-kanban markdown import.
 - **R11 — Presentation:** Linear-inspired dark-first theme + light theme; responsive web layout.
 - **R12 — Quality bar (Balanced):** every unit has passing unit tests + green typecheck/lint/build; user-facing/critical flows additionally have Playwright e2e + a screenshot checked against the Linear-style aesthetic.
+- **R13 — Agent-native parity:** every board/card action is defined once in a shared, typed **command layer** and exposed through both a **REST API** and an **MCP server**, so an AI agent can do anything a user can do in the UI. The UI itself invokes the same commands — the interfaces cannot drift.
+- **R14 — Workflow status:** every card has a first-class workflow **status** (Backlog / Todo / In Progress / In Review / Done / Canceled) independent of its column; boards can group/filter by status; status changes are logged to activity; agents can set status directly.
 
 ## Scope Boundaries
 
@@ -97,7 +103,10 @@ devices) with room to add multi-user collaboration later.
 - **Sync server:** **Hocuspocus** for the WS layer (`onAuthenticate` ticket check + owner authz + Postgres persistence extension) co-hosted with a **Fastify** HTTP API (auth endpoints, WS-ticket endpoint, link-unfurl endpoint) in `apps/server`, sharing one Drizzle/Postgres connection.
 - **Database:** Dockerized **Postgres 17**; **Drizzle** schema + `generate`/`migrate`; migrations run programmatically at server boot (gated before serving). Yjs document state stored as `bytea`.
 - **Auth:** email/password, argon2id (`@node-rs/argon2`), EdDSA JWT access token (in memory) + rotating opaque refresh token (httpOnly cookie on web; OS keychain on desktop). Rate-limited login, generic errors (no user enumeration), refresh-token rotation with family revocation.
-- **Link unfurl:** provider detection (Slack/Linear/Claude/generic) is pure client logic on the URL; title+favicon fetch is server-side (`/api/unfurl`, cached) for **web**, and native `@tauri-apps/plugin-http` fetch for **desktop** (no CORS). Known-provider icons are bundled.
+- **Link / integration provider registry:** links are an **extensible provider registry** in `packages/domain` — each provider declares a URL matcher, a bundled icon, and a short-label formatter. Ships with Slack message, Linear issue (`ABC-123`), GitHub PR + GitHub issue, Claude session, and generic; adding a provider is one small file. Title+favicon for generic links is fetched server-side (`/api/unfurl`, cached) on **web** and via native `@tauri-apps/plugin-http` on **desktop** (no CORS). Known-provider icons are bundled (no fetch).
+- **Agent-native command layer (`packages/commands`):** a single typed, zod-validated catalog of every mutation/query (create/move/update/set-status/add-link/search/…). Each command is `{name, description, input schema, run(ctx, input)}`. The **UI**, the **REST API**, and the **MCP server** all execute the *same* commands — the only difference is the `CommandContext` (client-local `Y.Doc` in the UI; a server-side Hocuspocus **direct connection** to the board doc for REST/MCP, so agent edits persist to Postgres and broadcast to connected clients). This is the agent-native seam that guarantees UI/agent parity.
+- **Workflow status:** cards carry a `status` enum — Backlog / Todo / In Progress / In Review / Done / Canceled — grouped into categories (unstarted / started / completed / canceled) à la Linear, **independent of `columnId`**. A board can group/filter by status (giving status-as-columns on demand). Status is a plain LWW key on the card map; changes append to the activity log.
+- **Agent interfaces = REST + MCP (MCP wraps REST):** the Fastify server exposes the command catalog as authenticated HTTP endpoints; a separate `apps/mcp` MCP server is a thin wrapper that turns each command into an MCP tool (tool schema derived from the command's zod input) and calls the REST API with a service token. Claude/other agents connect to the MCP server; scripts can hit REST directly.
 - **Short IDs (`BRD-###`):** per-board counter in board `meta` incremented in a Yjs transaction; because a shared counter can collide under concurrent offline creates, a deterministic **repair-on-read** reassigns duplicates by `(createdAt, clientID)` — documented as an accepted CRDT limitation, not a blocker.
 - **Desktop verification posture:** the loop fully builds+e2e-verifies **web**; for Tauri it writes config/capabilities/plugins and confirms `frontendDist` (the web `out/`) builds and the Rust project compiles *if the toolchain is present*; otherwise it completes the scaffold and marks native launch verification as a user follow-up. (Reconciles "plan everything incl. desktop" with "web-first, scaffold desktop only".)
 
@@ -131,11 +140,15 @@ devices) with room to add multi-user collaboration later.
       vitest.config.ts             # test.projects
       docker-compose.yml           # postgres:17 (+ server in a later pass)
       packages/
-        domain/                    # types, enums (Priority/Severity/LinkProvider), pure helpers
-          src/{types.ts,enums.ts,ids.ts,links.ts,ordering.ts,index.ts}
+        domain/                    # types, enums (Priority/Severity/Status), pure helpers
+          src/{types.ts,enums.ts,status.ts,ids.ts,ordering.ts,index.ts}
+          src/links/{registry.ts,providers/{slack,linear,github-pr,github-issue,claude,generic}.ts}
           src/*.test.ts
         sync/                      # Yjs schema + persistence + React bindings
           src/{schema.ts,board-doc.ts,workspace-doc.ts,persistence.ts,provider.ts,use-y.ts,index.ts}
+          src/*.test.ts
+        commands/                  # agent-native command catalog (UI + REST + MCP all call these)
+          src/{context.ts,catalog.ts,commands/*,index.ts}
           src/*.test.ts
         ui/                        # shadcn/ui components + Linear theme tokens
           src/{theme.css,components/*,index.ts}
@@ -148,9 +161,12 @@ devices) with room to add multi-user collaboration later.
         desktop/                   # Tauri v2
           src-tauri/{tauri.conf.json,Cargo.toml,src/main.rs,capabilities/*.json}
         server/                    # Fastify + Hocuspocus + Drizzle
-          src/{index.ts,db/{schema.ts,client.ts,migrate.ts},auth/*,sync/hocuspocus.ts,routes/{auth.ts,ticket.ts,unfurl.ts}}
+          src/{index.ts,db/{schema.ts,client.ts,migrate.ts},auth/*,sync/hocuspocus.ts,
+               routes/{auth.ts,ticket.ts,unfurl.ts,boards.ts,commands.ts}}   # commands.ts = REST command API
           drizzle/                 # generated SQL migrations
           drizzle.config.ts
+        mcp/                       # MCP server (wraps the REST command API as MCP tools)
+          src/{index.ts,tools.ts}
         e2e/                       # Playwright
           playwright.config.ts
           tests/*.spec.ts
@@ -163,14 +179,19 @@ devices) with room to add multi-user collaboration later.
 
 ```mermaid
 flowchart LR
-  UI[React UI (apps/web)] -- read/write --> Y[Y.Doc per board]
-  Y <--> IDB[(y-indexeddb\nlocal, offline)]
+  UI[React UI apps/web] --> CMD[command layer packages/commands]
+  CMD -- read/write --> Y[Y.Doc per board]
+  Y <--> IDB[(y-indexeddb local, offline)]
   Y <-. after whenSynced .-> WS[y-websocket provider]
-  WS <--> HP[Hocuspocus server]
+  WS <--> HP[Hocuspocus]
   HP <--> PG[(Postgres: yjs_documents bytea)]
   UI -- login/refresh/ticket/unfurl --> API[Fastify API]
   API <--> PG2[(Postgres: users, refresh_tokens, boards)]
   HP -. onAuthenticate: verify ticket + owner .-> API
+  Agent[AI agent] --> MCP[MCP server apps/mcp]
+  MCP -- HTTP + service token --> API
+  API --> CMD2[same command layer, server-side ctx]
+  CMD2 -. Hocuspocus direct connection .-> HP
 ```
 
 **Board Y.Doc shape (sketch):**
@@ -181,6 +202,7 @@ BoardDoc(room = boardId)
   columns: Y.Map<colId, Y.Map { id, title, ord, wipLimit?, archived, deletedAt? }>
   cards:   Y.Map<cardId, Y.Map {
              id, shortId, title, description:Y.Text, columnId, ord,
+             status:Backlog|Todo|InProgress|InReview|Done|Canceled,
              priority:0-4, severity:0-4|null, dueDate:Y.Map{at,hasTime}|null, assigneeId?,
              labels:Y.Map<labelId,true>, checklist:Y.Map<itemId,{text,done,ord}>,
              links:Y.Map<linkId,{url,provider,title,iconRef,ord}>,
@@ -359,6 +381,22 @@ sequenceDiagram
 - Integration (e2e) — pointer drag across columns persists after reload.
 **Verification:** unit tests for ord computation pass; Playwright drag (pointer + keyboard) flows green; screenshot mid-drag/after-drop reviewed. *(Critical flow.)*
 
+- [ ] **Unit 1.7: Command layer & agent-native seam (`packages/commands`)**
+
+**Goal:** a single typed, validated catalog of every board/card operation, executable both client-side (UI) and server-side (REST/MCP), so the UI and agents share one write path.
+**Requirements:** R13.
+**Dependencies:** 1.1, 1.2.
+**Build order:** implement immediately after 1.2. Units 1.3–1.6 and every Phase 2+ mutation **route their writes through these commands** rather than calling `packages/sync` accessors directly — this is what enforces UI/agent parity.
+**Files:** Create `packages/commands/src/{context.ts,catalog.ts,index.ts}` and `packages/commands/src/commands/{board,column,card,label,link,status,search}.ts` + `*.test.ts`.
+**Approach:** Each command is `{ name, description, input: ZodSchema, run(ctx, input) }`. `CommandContext` abstracts doc access: a client context backed by the in-memory `Y.Doc`, and a server context backed by a Hocuspocus **direct connection** to the board doc (added in U3.9) — commands are written once against the abstraction. `catalog.ts` registers all commands so REST/MCP can enumerate them and derive schemas. Commands wrap `packages/sync` accessors; inputs are zod-validated; results are plain JSON-serializable objects (agent-friendly). Read commands (list boards, get board, search) included alongside mutations.
+**Execution note:** define the `CommandContext` interface and one command (e.g. `createCard`) test-first to lock the seam before the catalog grows.
+**Patterns to follow:** agent-native parity principle — no UI-only mutation path may bypass the catalog.
+**Test scenarios:**
+- Happy path — `createCard`, `moveCard`, `setCardStatus`, `addLink`, `renameColumn` each mutate the doc correctly via a client context; output is JSON-serializable.
+- Edge case — invalid input (missing or wrong-typed fields) is rejected by the zod schema with a clear error before any mutation.
+- Integration — a command run against a server-style context (mocked direct connection) produces the identical doc state as the same command run against a client context (parity proof).
+**Verification:** catalog unit tests pass; the parity test (client ctx vs server ctx → identical state) passes; no UI mutation call site bypasses the catalog (spot-checked in later units).
+
 ### Phase 2 — Card features & Linear UX
 
 - [ ] **Unit 2.1: Card detail panel + markdown description**
@@ -438,19 +476,21 @@ sequenceDiagram
 - Edge case — reordering `badgeConfig` reorders badges on all cards.
 **Verification:** unit tests pass; screenshot of a card face with a realistic badge row in Linear style.
 
-- [ ] **Unit 2.7: Smart link chips + unfurl**
+- [ ] **Unit 2.7: Smart link chips + extensible provider registry + unfurl**
 
-**Goal:** attach URLs to a card; render provider-aware chips (Slack/Linear/Claude/generic) with icon + shortened label; fetch title/favicon for generic links.
+**Goal:** attach URLs to a card; render provider-aware chips (icon + shortened label) via an extensible registry, with title/favicon unfurl for generic links.
 **Requirements:** R7.
-**Dependencies:** 2.6, 0.3.
-**Files:** Create `apps/web/components/card/links.tsx`, `apps/web/lib/unfurl-client.ts`; Test `links.test.tsx`. (Server endpoint in U3.7; desktop native fetch in U5.2.)
-**Approach:** On paste/add, `detectProvider` (from `packages/domain`) picks the chip; known providers use **bundled** icons + a short label (no fetch); generic links call `unfurl-client` → `/api/unfurl` (web). Until U3.7 exists, generic chips degrade gracefully to hostname + favicon-by-convention. Clicking opens the link (new tab on web).
+**Dependencies:** 2.6, 0.3, 1.7.
+**Files:** Create `packages/domain/src/links/{registry.ts,providers/{slack,linear,github-pr,github-issue,claude,generic}.ts}` (+ tests), `apps/web/components/card/links.tsx`, `apps/web/lib/unfurl-client.ts`; Test `links.test.tsx`. (Server endpoint in U3.7; desktop native fetch in U5.2.)
+**Approach:** A **provider registry**: each provider is `{ id, match(url), icon, shortLabel(url) }`. The card add-link flow runs the URL through the registry (first match wins, `generic` last). Ships with: **Slack** message (`#channel` / `msg →`), **Linear** issue (`ABC-123`), **GitHub PR** (`owner/repo#123`), **GitHub issue** (`owner/repo#123`), **Claude** session (`session →`), and **generic**. Known providers use **bundled** icons + label (no fetch); generic links call `unfurl-client` → `/api/unfurl` (web). Adding a new provider = one file + registry entry (this is the "lots of other things" extensibility). Adding a link is a `addLink` command (U1.7). Clicking opens the link (new tab on web).
+**Patterns to follow:** the domain provider registry is the single source of truth used by card chips *and* the command layer.
 **Test scenarios:**
-- Happy path — add a Linear URL → chip shows Linear icon + `ABC-123`; a Slack URL → Slack icon + short label; a Claude session URL → Claude icon + `session →`.
+- Happy path — a Linear issue URL → Linear icon + `ABC-123`; a Slack archive URL → Slack + short label; a GitHub PR URL (`github.com/o/r/pull/123`) → GitHub + `o/r#123`; a GitHub issue URL (`/issues/123`) → GitHub + `o/r#123`; a Claude session URL → Claude + `session →`.
 - Happy path — a generic URL renders hostname + favicon; when unfurl returns a title, the chip shows it.
+- Edge case — GitHub PR vs issue disambiguated by path (`/pull/` vs `/issues/`); order of registry matchers puts `generic` last so it never shadows a specific provider.
 - Edge case — an unreachable/failed unfurl falls back to hostname without breaking the card.
-- Edge case — duplicate URL add is de-duplicated or clearly allowed (decide: dedupe by normalized URL).
-**Verification:** unit tests for provider chips pass; e2e adding a Linear + generic link shows correct chips; screenshot reviewed. *(User-facing.)*
+- Edge case — duplicate URL add is de-duplicated by normalized URL.
+**Verification:** provider-registry unit tests pass for every shipped provider incl. GitHub PR/issue disambiguation; e2e adding a Linear + GitHub PR + generic link shows correct chips; screenshot reviewed. *(User-facing.)*
 
 - [ ] **Unit 2.8: Short card IDs (`BRD-###`)**
 
@@ -501,6 +541,21 @@ sequenceDiagram
 - Edge case — empty query shows recents/empty state; no matches shows an empty state.
 - Edge case — search updates as underlying cards change.
 **Verification:** unit tests pass; e2e search→open flow green.
+
+- [ ] **Unit 2.12: Workflow status field**
+
+**Goal:** every card has a first-class workflow status independent of its column; set it from the UI, badge it, group/filter by it, and log changes.
+**Requirements:** R14.
+**Dependencies:** 2.1, 2.6, 1.7.
+**Files:** Create `packages/domain/src/status.ts` (enum + categories + transitions), `apps/web/components/card/status-select.tsx`, status badge in `packages/ui`; Modify `packages/sync` card schema + `packages/commands` (`setCardStatus`), badge-row (2.6) to support status; Test `status.test.ts`, `status-select.test.tsx`.
+**Approach:** `Status` enum: Backlog / Todo / In Progress / In Review / Done / Canceled, grouped into categories (unstarted / started / completed / canceled) with per-status color/icon. Default new cards to Todo. `status` is a plain LWW key on the card map (not tied to `columnId`). `setCardStatus` command appends an activity entry (U4.3). Status is available as a badge (via badge-config U2.6), a group-by axis (U4.2), a filter field (U4.1), a command-palette action (U2.9), and an MCP/REST operation. Done/Canceled optionally strike/dim the card face.
+**Patterns to follow:** enum-with-categories like Linear workflow states; mutation goes through the command layer.
+**Test scenarios:**
+- Happy path — set a card to In Progress → status badge updates; set to Done → card shows done styling; default new card is Todo.
+- Happy path — `setCardStatus` command changes status and appends a correctly-typed activity entry.
+- Edge case — status is independent of column: moving a card between columns does not change its status, and setting status does not move the card.
+- Edge case — grouping the board by status places each card in its status lane; filtering by `status = In Review` shows only those.
+**Verification:** unit tests pass (enum/categories, command + activity, independence from column); e2e set-status flow green + screenshot of status badges across a board.
 
 ### Phase 3 — Backend, auth, and sync
 
@@ -611,6 +666,36 @@ sequenceDiagram
 - Edge case — offline-created boards register on next connection (queued reconciliation).
 **Verification:** unit/integration tests pass; end-to-end a newly created board syncs across two clients of the same user.
 
+- [ ] **Unit 3.9: REST command API (agent write path)**
+
+**Goal:** expose the command catalog over authenticated HTTP, executing commands server-side against live board docs so agent/script edits persist and sync.
+**Requirements:** R13.
+**Dependencies:** 1.7, 3.3, 3.5, 3.8.
+**Files:** Create `apps/server/src/routes/commands.ts`, a server `CommandContext` backed by a Hocuspocus **direct connection**; Modify `apps/server/src/index.ts`; Test `apps/server/src/routes/commands.test.ts`.
+**Approach:** `GET /api/commands` lists the catalog (name, description, JSON schema of input — derived from each command's zod schema). `POST /api/commands/:name` validates input against the schema, resolves the target board, opens a Hocuspocus direct connection to that board doc, runs the command via `packages/commands` with a server context, and returns the JSON result; the mutation persists to Postgres and broadcasts to connected clients. Auth: user Bearer token (reusing U3.3) **or** a scoped service token (for the MCP server). Authorization reuses the board-owner check (U3.5/U3.8). Idempotency-friendly where feasible.
+**Execution note:** cover authz (a user cannot run a command against a board they don't own) test-first.
+**Test scenarios:**
+- Happy path — `POST /api/commands/createCard` on an owned board creates the card; a connected WS client receives it; the state persists (reload from Postgres shows it).
+- Happy path — `GET /api/commands` returns every catalog command with a valid JSON input schema.
+- Error path — invalid input → 400 with the validation error; a command against a non-owned board → 403; unknown command → 404.
+- Integration — a command issued via REST and the same command issued in the UI produce identical doc state (server/UI parity end-to-end).
+**Verification:** REST command tests pass against the container db + live sync; authz + validation enforced; a REST-created card appears in a second connected client.
+
+- [ ] **Unit 3.10: MCP server (`apps/mcp`)**
+
+**Goal:** an MCP server that exposes every Boardly command as an MCP tool, so an AI agent (Claude, etc.) can drive Boardly directly.
+**Requirements:** R13.
+**Dependencies:** 3.9.
+**Files:** Create `apps/mcp/src/{index.ts,tools.ts}`, `apps/mcp/package.json`; Test `apps/mcp/src/tools.test.ts`.
+**Approach:** On startup, fetch `GET /api/commands` and register one MCP tool per command, mapping each command's JSON input schema to the tool's input schema and forwarding calls to `POST /api/commands/:name` with a configured service token (or a user token). Tool descriptions come from the command metadata so the catalog is self-documenting to the agent. Support the read commands (list boards, get board, search) as tools too, so an agent can orient before acting. Ship a short README on configuring the server in an MCP client.
+**Execution note:** verify the tool surface is generated from the live catalog (not hand-maintained) so it can never drift from REST.
+**Test scenarios:**
+- Happy path — the server lists tools matching the command catalog; invoking the `createCard` tool creates a card (verified via REST/DB) and returns the result to the caller.
+- Happy path — a read tool (`search` / `listBoards`) returns data an agent can act on.
+- Error path — a tool call with invalid args surfaces the validation error as an MCP tool error; an unauthorized token yields an auth error, not a crash.
+- Integration — end-to-end: an MCP tool call creates a card that appears in a connected web client (agent→MCP→REST→command→sync).
+**Verification:** tool-generation + invocation tests pass; an MCP `createCard`/`setCardStatus`/`addLink` call is reflected in a live client; tools mirror the catalog exactly.
+
 ### Phase 4 — Views, filters, activity, interop
 
 - [ ] **Unit 4.1: Saved views & filters**
@@ -714,7 +799,8 @@ sequenceDiagram
 
 ## System-Wide Impact
 
-- **Interaction graph:** `packages/sync` accessors are the single write path to Yjs; UI never mutates Y types directly. The network provider (U3.6) observes the same doc the UI already renders — attaching it must not restructure state, only merge. Auth-store gates both the API client and the WS-ticket request.
+- **Interaction graph:** the **command layer (`packages/commands`)** is the single write path — the UI, REST, and MCP all call it; it wraps `packages/sync` accessors, which are the only code that mutates Y types. No UI-only mutation path may bypass the catalog (agent-native parity). The network provider (U3.6) observes the same doc the UI already renders — attaching it must not restructure state, only merge. Auth-store gates the API client and the WS-ticket request.
+- **Agent parity & drift prevention:** REST tool schemas and MCP tools are **generated from the command catalog**, not hand-maintained, so the agent surface cannot drift from the UI. Server-side commands run against a Hocuspocus direct connection so agent edits persist + broadcast identically to UI edits — proven by the client-ctx-vs-server-ctx parity tests (U1.7, U3.9).
 - **Error propagation:** offline is the *normal* state, not an error — network failures degrade to local-only silently; auth failures (401) trigger one refresh then logout; sync-auth rejection closes the socket with a distinct code and does **not** reconnect-loop.
 - **State lifecycle risks:** concurrent same-card move (LWW keeps one, discards the other — acceptable, documented); column delete orphaning cards (reclaim bucket); short-id collision (repair-on-read); IndexedDB eviction (request `storage.persist()`, keep export as escape hatch); fractional-key growth (rebalance pass).
 - **API surface parity:** the unfurl and token-storage paths differ web vs desktop — a single platform switch (U5.2) keeps call sites identical. y-indexeddb is one code path on both.
@@ -735,6 +821,9 @@ sequenceDiagram
 | Argon2 native build fails under pnpm build-script gating | Allow the native build script (memory `tools/pnpm_node.md`); bcrypt(≥12) documented fallback. |
 | Playwright profile lock blocks screenshots | Use cached chrome-headless-shell (memory `tools/playwright_screenshot.md`); SPA needs a real browser (curl+grep won't see client-rendered UI). |
 | Desktop native verification can't complete headless overnight | Scoped out by decision — web fully verified; Tauri scaffolded/compiled; native launch is a user follow-up. |
+| Agent (REST/MCP) and UI surfaces drift apart | Both generated from one command catalog; parity tests assert identical doc state from client vs server contexts. |
+| Server-side command mutation corrupts a live board doc | Commands run through a Hocuspocus direct connection (same persist/broadcast path as clients); zod-validated inputs; authz (owner) checked before execution. |
+| MCP service token leaks → unauthorized board writes | Scoped service token, owner-checked per command; short-lived where feasible; never embedded in client bundles. |
 
 ## Documentation / Operational Notes
 
@@ -756,8 +845,10 @@ If a unit is genuinely blocked, leave it unchecked with a short note in the plan
 
 ### Sequencing / dependency shape
 - Phase 0 → 1 → 2 are a mostly-linear chain (each builds on the last).
-- Phase 3 depends on Phase 0 (server scaffold) and Phase 1.2 (provider) but is otherwise parallelizable against late Phase 2.
+- **Unit 1.7 (command layer) is foundational for agent-native parity — build it right after 1.2**, and route every UI mutation (1.3–1.6, all of Phase 2) through it rather than calling `packages/sync` directly.
+- Phase 3 depends on Phase 0 (server scaffold) and Phase 1.2 (provider) but is otherwise parallelizable against late Phase 2. The **agent interfaces (3.9 REST, 3.10 MCP)** depend on the command layer (1.7) + auth (3.3) + Hocuspocus (3.5), so they land after those.
 - Phase 4 depends on Phase 1–2 data model; Phase 5 depends on a built web app (0.4) and, for sync config, Phase 3.6.
+- **Agent-native verification (per the parity principle):** whenever a unit adds a user action, it must also be a command in the catalog, and a test must assert the command produces the same state as the UI path.
 
 ```mermaid
 flowchart TD
@@ -783,3 +874,4 @@ flowchart TD
 - Drizzle: orm.drizzle.team/docs/{migrations,drizzle-kit-migrate}
 - Auth: OWASP Password Storage Cheat Sheet; websocket.org auth/security guides
 - Testing: vitest.dev/guide/projects · playwright.dev/docs/test-webserver
+- MCP: modelcontextprotocol.io (server SDK, tool definitions) · agent-native parity principle (any UI action must be an agent-callable command)
