@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./react": "./src/use-y.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -13,6 +14,16 @@
   },
   "dependencies": {
     "@boardly/domain": "workspace:*",
+    "y-indexeddb": "9.0.12",
     "yjs": "13.6.31"
+  },
+  "peerDependencies": {
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   }
 }

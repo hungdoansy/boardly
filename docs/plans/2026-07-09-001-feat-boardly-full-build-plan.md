@@ -315,7 +315,7 @@ sequenceDiagram
 - Integration — delete a column in doc A while doc B adds a card to it; after merge the added card is an orphan surfaced by the reclaim selector (not lost, not duplicated).
   **Verification:** all schema/accessor tests pass, including the two merged-doc concurrency tests; no code path rewrites a whole ordered array.
 
-- [ ] **Unit 1.2: `packages/sync` — local persistence & React binding**
+- [x] **Unit 1.2: `packages/sync` — local persistence & React binding**
 
 **Goal:** offline persistence via y-indexeddb and a `useY` hook so React re-renders on Yjs changes.
 **Requirements:** R1, R2.

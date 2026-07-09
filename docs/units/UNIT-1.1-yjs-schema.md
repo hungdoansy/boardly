@@ -34,7 +34,7 @@ fractional ordering wired in. No React/DOM/network here (that's 1.2 / Phase 3).
   keys) with no duplicate — the card is a single map keyed by id.
 - **Deleting a column does NOT reparent its cards.** `archiveColumn` soft-deletes the column only;
   cards keep their `columnId`. `reclaimCards` surfaces any non-archived card whose `columnId` is not
-  a *live* column into an "Unsorted" bucket — so an orphan created concurrently with a column delete
+  a _live_ column into an "Unsorted" bucket — so an orphan created concurrently with a column delete
   is never lost or duplicated.
 - **Soft-delete everywhere** (`archived` + `deletedAt`); hard GC is deferred. Archived items stay in
   the map (needed for undo + clean merge) but drop out of selectors.
