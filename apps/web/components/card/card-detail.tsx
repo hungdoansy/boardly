@@ -6,6 +6,7 @@ import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
+import { DueDatePicker } from "./due-date";
 import { CardLabels } from "./labels";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
@@ -96,9 +97,7 @@ function CardDetailBody({
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
           <PropertyList card={card} actions={actions} />
-          <p className="text-xs text-fg-faint">
-            Status &amp; due-date controls arrive in Units 2.4 / 2.12.
-          </p>
+          <p className="text-xs text-fg-faint">Status control arrives in Unit 2.12.</p>
         </section>
       </div>
 
@@ -138,9 +137,7 @@ function PropertyList({
       <SeveritySelect value={card.severity} onChange={(s) => actions.setSeverity(card.id, s)} />
 
       <span className="text-fg-faint">Due</span>
-      <span className="text-fg">
-        {card.dueDate ? new Date(card.dueDate.at).toLocaleDateString() : "—"}
-      </span>
+      <DueDatePicker value={card.dueDate} onChange={(d) => actions.setDueDate(card.id, d)} />
     </div>
   );
 }

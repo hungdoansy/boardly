@@ -8,6 +8,7 @@ import {
   type Board,
   type Card,
   type Column,
+  type DueDate,
   type Label,
   type LinkProvider,
   type PriorityValue,
@@ -254,6 +255,25 @@ export function setCardSeverity(
 /** Set the workflow status (LWW key, independent of the column). */
 export function setCardStatus(doc: Y.Doc, cardId: string, status: Status, now: number): void {
   withCard(doc, cardId, (card) => card.set("status", status), now);
+}
+
+/** Set or clear the due date (stored as a nested Y.Map, never a JSON string). */
+export function setCardDueDate(doc: Y.Doc, cardId: string, due: DueDate | null, now: number): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      if (due === null) {
+        card.set("dueDate", null);
+        return;
+      }
+      const map = new Y.Map<unknown>();
+      map.set("at", due.at);
+      map.set("hasTime", due.hasTime);
+      card.set("dueDate", map);
+    },
+    now,
+  );
 }
 
 /**

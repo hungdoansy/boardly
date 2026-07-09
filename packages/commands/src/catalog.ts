@@ -10,6 +10,7 @@ import {
   moveCard,
   renameCard,
   setCardDescription,
+  setCardDueDate,
   setCardPriority,
   setCardSeverity,
 } from "./commands/card";
@@ -39,6 +40,7 @@ export const commands = [
   moveCard,
   renameCard,
   setCardDescription,
+  setCardDueDate,
   setCardPriority,
   setCardSeverity,
   archiveCard,

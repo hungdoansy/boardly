@@ -1,4 +1,5 @@
 // @boardly/domain — framework-agnostic types, enums, and pure helpers.
+export * from "./dates";
 export * from "./enums";
 export * from "./ids";
 export * from "./palette";

@@ -456,7 +456,7 @@ sequenceDiagram
 - Edge case — a card with no severity renders no severity badge.
   **Verification:** unit tests pass; badges visually correct in a screenshot.
 
-- [ ] **Unit 2.4: Due date field + relative/overdue display**
+- [x] **Unit 2.4: Due date field + relative/overdue display**
 
 **Goal:** set a due date; show a compact relative chip that turns amber near due and red when overdue.
 **Requirements:** R6, R7.

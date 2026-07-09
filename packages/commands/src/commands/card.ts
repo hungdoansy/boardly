@@ -4,6 +4,7 @@ import {
   getCard as syncGetCard,
   moveCard as syncMoveCard,
   setCardDescription as syncSetDescription,
+  setCardDueDate as syncSetDueDate,
   setCardPriority as syncSetPriority,
   setCardSeverity as syncSetSeverity,
   setCardTitle,
@@ -106,6 +107,21 @@ export const setCardDescription = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
     syncSetDescription(doc, input.cardId, input.description, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const setCardDueDate = defineCommand({
+  name: "setCardDueDate",
+  description: "Set or clear a card's due date. `at` is epoch ms; pass null to clear.",
+  input: z.object({
+    boardId: z.string(),
+    cardId: z.string(),
+    dueDate: z.object({ at: z.number(), hasTime: z.boolean() }).nullable(),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncSetDueDate(doc, input.cardId, input.dueDate, ctx.now());
     return syncGetCard(doc, input.cardId);
   },
 });

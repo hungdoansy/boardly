@@ -1,6 +1,6 @@
 "use client";
 
-import type { Card, Column, Label, PriorityValue, SeverityValue } from "@boardly/domain";
+import type { Card, Column, DueDate, Label, PriorityValue, SeverityValue } from "@boardly/domain";
 import {
   addColumn,
   archiveCard,
@@ -15,6 +15,7 @@ import {
   renameColumn,
   renameLabel,
   setCardDescription,
+  setCardDueDate,
   setCardPriority,
   setCardSeverity,
   unassignLabel,
@@ -136,6 +137,7 @@ export interface CardActions {
   setDescription(cardId: string, description: string): void;
   setPriority(cardId: string, priority: PriorityValue): void;
   setSeverity(cardId: string, severity: SeverityValue | null): void;
+  setDueDate(cardId: string, dueDate: DueDate | null): void;
   archive(cardId: string): void;
 }
 
@@ -170,13 +172,19 @@ export function useCardActions(boardId: string): CardActions {
     },
     [ctx, boardId],
   );
+  const setDueDate = useCallback(
+    (cardId: string, dueDate: DueDate | null) => {
+      execute(setCardDueDate, ctx, { boardId, cardId, dueDate });
+    },
+    [ctx, boardId],
+  );
   const archive = useCallback(
     (cardId: string) => {
       execute(archiveCard, ctx, { boardId, cardId });
     },
     [ctx, boardId],
   );
-  return { create, rename, setDescription, setPriority, setSeverity, archive };
+  return { create, rename, setDescription, setPriority, setSeverity, setDueDate, archive };
 }
 
 export function useColumnActions(boardId: string): ColumnActions {
