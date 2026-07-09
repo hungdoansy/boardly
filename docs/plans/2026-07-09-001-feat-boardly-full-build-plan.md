@@ -600,7 +600,7 @@ sequenceDiagram
 - Edge case — server exits with a clear error if `DATABASE_URL` is missing.
   **Verification:** Postgres container healthy; `/health` returns ok against it. _(Docker exercised here.)_
 
-- [ ] **Unit 3.2: Drizzle schema + migrations**
+- [x] **Unit 3.2: Drizzle schema + migrations** — done (`docs/units/UNIT-3.2-drizzle-migrations.md`). Drizzle pg schema (users/refresh_tokens/boards/yjs_documents/link_metadata_cache) + `bytea`↔`Uint8Array` customType; committed generated SQL; `generate`+`migrate` (not push); migrations run at boot before listen. Verified against the container: all tables created, idempotent re-run, bytea round-trip.
 
 **Goal:** the relational schema and a working generate→migrate flow, applied at server boot.
 **Requirements:** R3, R9.

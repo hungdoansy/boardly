@@ -1,4 +1,6 @@
 pnpm-lock.yaml
+# Drizzle-generated migrations + metadata (machine-authored; don't reformat).
+apps/server/drizzle/**
 **/dist/**
 **/.next/**
 **/out/**

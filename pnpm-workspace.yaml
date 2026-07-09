@@ -3,7 +3,8 @@ packages:
   - "apps/*"
 
 # sharp (pulled transitively by Next) is not required: the web app is a static
-# export with images.unoptimized=true. esbuild is allowed because `tsx` (the
-# @boardly/server dev runner) needs its platform binary installed post-download.
+# export with images.unoptimized=true. esbuild is allowed because `tsx` and
+# `drizzle-kit` (the @boardly/server dev tooling) need its platform binary
+# installed post-download.
 onlyBuiltDependencies:
   - esbuild
