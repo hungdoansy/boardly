@@ -1,0 +1,28 @@
+# Boardly local infrastructure. Bring up Postgres for the sync/API server:
+#   docker compose up -d db
+# The server itself runs on the host in dev (pnpm --filter @boardly/server dev)
+# and talks to this container over DATABASE_URL (see .env.example).
+services:
+  db:
+    # Defaults to Postgres 17; override with POSTGRES_IMAGE if that tag can't be
+    # pulled in a given environment (any modern Postgres works for this schema).
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    container_name: boardly-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-boardly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-boardly}
+      POSTGRES_DB: ${POSTGRES_DB:-boardly}
+    ports:
+      # Host port defaults to 5433 to avoid colliding with a local 5432.
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - boardly_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-boardly} -d ${POSTGRES_DB:-boardly}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  boardly_pgdata:

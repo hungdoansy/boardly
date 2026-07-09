@@ -2,7 +2,8 @@ packages:
   - "packages/*"
   - "apps/*"
 
-# No workspace dependency needs a native build script. sharp (pulled
-# transitively by Next) is not required: the web app is a static export with
-# images.unoptimized=true. Allow-list is empty so pnpm won't run any.
-onlyBuiltDependencies: []
+# sharp (pulled transitively by Next) is not required: the web app is a static
+# export with images.unoptimized=true. esbuild is allowed because `tsx` (the
+# @boardly/server dev runner) needs its platform binary installed post-download.
+onlyBuiltDependencies:
+  - esbuild

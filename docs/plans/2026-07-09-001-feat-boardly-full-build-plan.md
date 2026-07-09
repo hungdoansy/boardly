@@ -587,7 +587,7 @@ sequenceDiagram
 
 ### Phase 3 — Backend, auth, and sync
 
-- [ ] **Unit 3.1: Docker Postgres + `apps/server` (Fastify) scaffold**
+- [x] **Unit 3.1: Docker Postgres + `apps/server` (Fastify) scaffold** — done (`docs/units/UNIT-3.1-server-scaffold.md`). `docker-compose.yml` (postgres:17, healthcheck, named volume, host port 5433), Fastify `buildServer` + DB-backed `/health`, zod-validated config (required `DATABASE_URL`), `.env.example`. Tests: config unit + db-gated `/health` integration. esbuild allow-listed for tsx.
 
 **Goal:** a Dockerized Postgres and a running Fastify server skeleton with health check.
 **Requirements:** R3, R9.
