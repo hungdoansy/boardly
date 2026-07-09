@@ -1,9 +1,12 @@
 "use client";
 
 import type { Card, Label } from "@boardly/domain";
+import { Priority } from "@boardly/domain";
 import { Archive } from "lucide-react";
 
 import { LabelChip } from "./labels";
+import { PriorityBadge } from "./priority-badge";
+import { SeverityBadge } from "./severity-badge";
 
 interface CardFaceProps {
   card: Card;
@@ -43,7 +46,9 @@ export function CardFace({ card, labels, onOpen, onArchive }: CardFaceProps) {
         </div>
       ) : null}
 
-      <div className="mt-1.5 flex items-center gap-2">
+      <div className="mt-1.5 flex items-center gap-1.5">
+        {card.priority !== Priority.None ? <PriorityBadge priority={card.priority} /> : null}
+        {card.severity !== null ? <SeverityBadge severity={card.severity} /> : null}
         <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
       </div>
     </article>

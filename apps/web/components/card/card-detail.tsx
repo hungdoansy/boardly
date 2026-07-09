@@ -1,7 +1,6 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { PRIORITY_NAMES, SEVERITY_NAMES } from "@boardly/domain";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@boardly/ui";
 import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,6 +8,8 @@ import { useEffect, useState } from "react";
 import { useCardActions, useCardById } from "../../lib/use-board";
 import { CardLabels } from "./labels";
 import { MarkdownEditor } from "./markdown-editor";
+import { PrioritySelect } from "./priority-select";
+import { SeveritySelect } from "./severity-select";
 
 interface CardDetailProps {
   boardId: string;
@@ -94,9 +95,9 @@ function CardDetailBody({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
-          <PropertyList card={card} />
+          <PropertyList card={card} actions={actions} />
           <p className="text-xs text-fg-faint">
-            Status/priority/severity/due controls arrive in Units 2.3–2.4 / 2.12.
+            Status &amp; due-date controls arrive in Units 2.4 / 2.12.
           </p>
         </section>
       </div>
@@ -118,21 +119,28 @@ function CardDetailBody({
   );
 }
 
-function PropertyList({ card }: { card: Card }) {
-  const rows: [string, string][] = [
-    ["Status", card.status.replace(/_/g, " ")],
-    ["Priority", PRIORITY_NAMES[card.priority]],
-    ["Severity", card.severity ? SEVERITY_NAMES[card.severity] : "—"],
-    ["Due", card.dueDate ? new Date(card.dueDate.at).toLocaleDateString() : "—"],
-  ];
+function PropertyList({
+  card,
+  actions,
+}: {
+  card: Card;
+  actions: ReturnType<typeof useCardActions>;
+}) {
   return (
-    <dl className="grid grid-cols-[6rem_1fr] gap-x-4 gap-y-1.5 text-sm">
-      {rows.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-fg-faint">{label}</dt>
-          <dd className="capitalize text-fg">{value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="grid grid-cols-[6rem_1fr] items-center gap-x-4 gap-y-1 text-sm">
+      <span className="text-fg-faint">Status</span>
+      <span className="capitalize text-fg">{card.status.replace(/_/g, " ")}</span>
+
+      <span className="text-fg-faint">Priority</span>
+      <PrioritySelect value={card.priority} onChange={(p) => actions.setPriority(card.id, p)} />
+
+      <span className="text-fg-faint">Severity</span>
+      <SeveritySelect value={card.severity} onChange={(s) => actions.setSeverity(card.id, s)} />
+
+      <span className="text-fg-faint">Due</span>
+      <span className="text-fg">
+        {card.dueDate ? new Date(card.dueDate.at).toLocaleDateString() : "—"}
+      </span>
+    </div>
   );
 }

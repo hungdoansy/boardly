@@ -38,6 +38,23 @@ export const SEVERITY_NAMES: Record<SeverityValue, SeverityName> = {
   4: "S4",
 };
 
+/** Display name + color per priority level (DESIGN.md §2 encodings). */
+export const PRIORITY_META: Record<PriorityValue, { name: PriorityName; color: string }> = {
+  0: { name: "None", color: "#6B6F76" },
+  1: { name: "Low", color: "#8A8F98" },
+  2: { name: "Medium", color: "#4EA7FC" },
+  3: { name: "High", color: "#E2B341" },
+  4: { name: "Urgent", color: "#EB5757" },
+};
+
+/** Display name + color per severity (DESIGN.md §2 encodings). */
+export const SEVERITY_META: Record<SeverityValue, { name: SeverityName; color: string }> = {
+  1: { name: "S1", color: "#EB5757" },
+  2: { name: "S2", color: "#F2994A" },
+  3: { name: "S3", color: "#E2B341" },
+  4: { name: "S4", color: "#6B6F76" },
+};
+
 /**
  * Link provider ids. The full extensible provider registry (incl. GitHub PR /
  * issue) is built in Unit 2.7; this is the base set the domain helpers detect.

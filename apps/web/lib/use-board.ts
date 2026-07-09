@@ -1,6 +1,6 @@
 "use client";
 
-import type { Card, Column, Label } from "@boardly/domain";
+import type { Card, Column, Label, PriorityValue, SeverityValue } from "@boardly/domain";
 import {
   addColumn,
   archiveCard,
@@ -15,6 +15,8 @@ import {
   renameColumn,
   renameLabel,
   setCardDescription,
+  setCardPriority,
+  setCardSeverity,
   unassignLabel,
 } from "@boardly/commands";
 import {
@@ -132,6 +134,8 @@ export interface CardActions {
   create(columnId: string, title: string): string;
   rename(cardId: string, title: string): void;
   setDescription(cardId: string, description: string): void;
+  setPriority(cardId: string, priority: PriorityValue): void;
+  setSeverity(cardId: string, severity: SeverityValue | null): void;
   archive(cardId: string): void;
 }
 
@@ -154,13 +158,25 @@ export function useCardActions(boardId: string): CardActions {
     },
     [ctx, boardId],
   );
+  const setPriority = useCallback(
+    (cardId: string, priority: PriorityValue) => {
+      execute(setCardPriority, ctx, { boardId, cardId, priority });
+    },
+    [ctx, boardId],
+  );
+  const setSeverity = useCallback(
+    (cardId: string, severity: SeverityValue | null) => {
+      execute(setCardSeverity, ctx, { boardId, cardId, severity });
+    },
+    [ctx, boardId],
+  );
   const archive = useCallback(
     (cardId: string) => {
       execute(archiveCard, ctx, { boardId, cardId });
     },
     [ctx, boardId],
   );
-  return { create, rename, setDescription, archive };
+  return { create, rename, setDescription, setPriority, setSeverity, archive };
 }
 
 export function useColumnActions(boardId: string): ColumnActions {

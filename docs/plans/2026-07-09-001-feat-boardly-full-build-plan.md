@@ -443,7 +443,7 @@ sequenceDiagram
 - Edge case — deleting a label removes it from all cards' sets (no dangling ids in the UI).
   **Verification:** unit tests pass; label chips render correctly.
 
-- [ ] **Unit 2.3: Priority & severity fields + badges**
+- [x] **Unit 2.3: Priority & severity fields + badges**
 
 **Goal:** set priority and severity on a card; render their badges.
 **Requirements:** R6, R7.
