@@ -3,6 +3,7 @@
 The authoritative repo rules live in **`CLAUDE.md`** (repo root). Read it first.
 
 Quick summary for any coding agent working in this repo:
+
 - Write an intensive per-unit doc in `docs/units/UNIT-<id>-<slug>.md` for every task; docs-first is welcome and must be committed before continuing.
 - UI must look like **Linear**, **dark mode first**, using **shadcn/ui** primitives and the tokens in `docs/design/DESIGN.md`. Measured transitions only.
 - React + frontend best practices; all mutations via the `packages/commands` command layer (agent-native parity).

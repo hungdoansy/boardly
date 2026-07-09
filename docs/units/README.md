@@ -8,7 +8,7 @@ each unit's Definition of Done.
 ## Convention
 
 - **Filename:** `UNIT-<id>-<slug>.md` — e.g. `UNIT-1.1-yjs-schema.md`, `UNIT-3.10-mcp-server.md`.
-- **When:** write it *before or during* implementation (docs-first is encouraged). If written first,
+- **When:** write it _before or during_ implementation (docs-first is encouraged). If written first,
   **commit the doc before continuing** to code. The doc must be committed by the time the unit's
   plan checkbox is ticked.
 - **Depth:** intensive — a new contributor should understand what/why/how and how to verify from the
@@ -27,22 +27,28 @@ each unit's Definition of Done.
 - **Commit(s):** <hashes>
 
 ## What changed
+
 - Files created/modified/deleted (repo-relative) and the public surface (commands, components, APIs, schema) added or altered.
 
 ## Why (decisions)
+
 - Key decisions and rationale. Rejected alternatives when non-obvious.
 
 ## How it works
+
 - Mechanism, data flow, edge-case handling. Diagrams/sketches if useful.
 
 ## Design (UI units)
+
 - Tokens/components used (per DESIGN.md), transitions added and their durations/easing, dark-mode screenshot path/description, a11y notes.
 
 ## How to test / verify
+
 - Unit tests written (paths) and what they assert.
 - e2e/manual checks; for UI, what "correct" looks like vs DESIGN.md.
 - Commands to run (outcomes, not brittle recipes).
 
 ## Follow-ups / known gaps
+
 - Anything deferred or to revisit.
 ```

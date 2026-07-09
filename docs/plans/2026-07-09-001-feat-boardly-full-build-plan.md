@@ -34,7 +34,7 @@ The user likes the Obsidian kanban plugin's workflow but wants a dedicated, fast
 offline, syncs across their devices, and adopts the best of Linear's UX. No off-the-shelf tool
 combines Tauri + web + local-first CRDT sync + Linear-style UX (see origin `PLAN.md`;
 Focalboard was evaluated and rejected as a base — AGPL copyleft + opposite architecture — kept as
-a *reference only*). Boardly is that combination. Primary user: the author (single user, multiple
+a _reference only_). Boardly is that combination. Primary user: the author (single user, multiple
 devices) with room to add multi-user collaboration later.
 
 ## Requirements Trace
@@ -104,22 +104,22 @@ devices) with room to add multi-user collaboration later.
 - **Database:** Dockerized **Postgres 17**; **Drizzle** schema + `generate`/`migrate`; migrations run programmatically at server boot (gated before serving). Yjs document state stored as `bytea`.
 - **Auth:** email/password, argon2id (`@node-rs/argon2`), EdDSA JWT access token (in memory) + rotating opaque refresh token (httpOnly cookie on web; OS keychain on desktop). Rate-limited login, generic errors (no user enumeration), refresh-token rotation with family revocation.
 - **Link / integration provider registry:** links are an **extensible provider registry** in `packages/domain` — each provider declares a URL matcher, a bundled icon, and a short-label formatter. Ships with Slack message, Linear issue (`ABC-123`), GitHub PR + GitHub issue, Claude session, and generic; adding a provider is one small file. Title+favicon for generic links is fetched server-side (`/api/unfurl`, cached) on **web** and via native `@tauri-apps/plugin-http` on **desktop** (no CORS). Known-provider icons are bundled (no fetch).
-- **Agent-native command layer (`packages/commands`):** a single typed, zod-validated catalog of every mutation/query (create/move/update/set-status/add-link/search/…). Each command is `{name, description, input schema, run(ctx, input)}`. The **UI**, the **REST API**, and the **MCP server** all execute the *same* commands — the only difference is the `CommandContext` (client-local `Y.Doc` in the UI; a server-side Hocuspocus **direct connection** to the board doc for REST/MCP, so agent edits persist to Postgres and broadcast to connected clients). This is the agent-native seam that guarantees UI/agent parity.
+- **Agent-native command layer (`packages/commands`):** a single typed, zod-validated catalog of every mutation/query (create/move/update/set-status/add-link/search/…). Each command is `{name, description, input schema, run(ctx, input)}`. The **UI**, the **REST API**, and the **MCP server** all execute the _same_ commands — the only difference is the `CommandContext` (client-local `Y.Doc` in the UI; a server-side Hocuspocus **direct connection** to the board doc for REST/MCP, so agent edits persist to Postgres and broadcast to connected clients). This is the agent-native seam that guarantees UI/agent parity.
 - **Workflow status:** cards carry a `status` enum — Backlog / Todo / In Progress / In Review / Done / Canceled — grouped into categories (unstarted / started / completed / canceled) à la Linear, **independent of `columnId`**. A board can group/filter by status (giving status-as-columns on demand). Status is a plain LWW key on the card map; changes append to the activity log.
 - **Agent interfaces = REST + MCP (MCP wraps REST):** the Fastify server exposes the command catalog as authenticated HTTP endpoints; a separate `apps/mcp` MCP server is a thin wrapper that turns each command into an MCP tool (tool schema derived from the command's zod input) and calls the REST API with a service token. Claude/other agents connect to the MCP server; scripts can hit REST directly.
 - **Short IDs (`BRD-###`):** per-board counter in board `meta` incremented in a Yjs transaction; because a shared counter can collide under concurrent offline creates, a deterministic **repair-on-read** reassigns duplicates by `(createdAt, clientID)` — documented as an accepted CRDT limitation, not a blocker.
-- **Desktop verification posture:** the loop fully builds+e2e-verifies **web**; for Tauri it writes config/capabilities/plugins and confirms `frontendDist` (the web `out/`) builds and the Rust project compiles *if the toolchain is present*; otherwise it completes the scaffold and marks native launch verification as a user follow-up. (Reconciles "plan everything incl. desktop" with "web-first, scaffold desktop only".)
+- **Desktop verification posture:** the loop fully builds+e2e-verifies **web**; for Tauri it writes config/capabilities/plugins and confirms `frontendDist` (the web `out/`) builds and the Rust project compiles _if the toolchain is present_; otherwise it completes the scaffold and marks native launch verification as a user follow-up. (Reconciles "plan everything incl. desktop" with "web-first, scaffold desktop only".)
 
 ## Open Questions
 
 ### Resolved During Planning
 
-- *Framework swap Vite → Next.js:* resolved — Next.js 16.2.6 App Router, `output: 'export'`, static SPA that both deploys to web and is wrapped by Tauri.
-- *Sync backend (self-host vs managed; raw y-websocket vs Hocuspocus):* resolved — self-hosted **Hocuspocus** (auth + persistence hooks) over raw `@y/websocket-server`.
-- *Ordering representation:* resolved — fractional indexing, not array-of-IDs.
-- *Columns derived vs first-class:* resolved — first-class column entities.
-- *Auth depth for v1:* resolved — email/password with JWT + rotating refresh; OAuth deferred.
-- *Dynamic route `/board/[id]` under static export:* resolved — a single client-resolved route reading the board id from the URL (search param or hash); no per-id pre-render. Playwright serves with SPA fallback.
+- _Framework swap Vite → Next.js:_ resolved — Next.js 16.2.6 App Router, `output: 'export'`, static SPA that both deploys to web and is wrapped by Tauri.
+- _Sync backend (self-host vs managed; raw y-websocket vs Hocuspocus):_ resolved — self-hosted **Hocuspocus** (auth + persistence hooks) over raw `@y/websocket-server`.
+- _Ordering representation:_ resolved — fractional indexing, not array-of-IDs.
+- _Columns derived vs first-class:_ resolved — first-class column entities.
+- _Auth depth for v1:_ resolved — email/password with JWT + rotating refresh; OAuth deferred.
+- _Dynamic route `/board/[id]` under static export:_ resolved — a single client-resolved route reading the board id from the URL (search param or hash); no per-id pre-render. Playwright serves with SPA fallback.
 
 ### Deferred to Implementation
 
@@ -173,7 +173,7 @@ devices) with room to add multi-user collaboration later.
 
 ## High-Level Technical Design
 
-> *This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce.*
+> _This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce._
 
 **Data flow (offline-first, then sync):**
 
@@ -248,10 +248,10 @@ sequenceDiagram
 **Files:** Create `package.json`, `pnpm-workspace.yaml`, `turbo.json`, `.nvmrc`, `tsconfig.base.json`, `.gitignore`, per-package `package.json` + `tsconfig.json` stubs for `packages/{domain,sync,ui}` and `apps/{web,server,e2e}`.
 **Approach:** Workspace globs `packages/*`, `apps/*`. Root `engines.node >= 22`, `.nvmrc` = `22.17.1`. Turbo pipeline tasks: `build`, `lint`, `typecheck`, `test` with sensible `dependsOn`/`outputs`. Internal packages referenced by workspace protocol.
 **Patterns to follow:** Standard pnpm+Turborepo layout.
-**Test scenarios:** *Test expectation: none — scaffolding/config. Verified by build/graph outcomes below.*
+**Test scenarios:** _Test expectation: none — scaffolding/config. Verified by build/graph outcomes below._
 **Verification:** `pnpm install` succeeds under Node 22; `turbo run typecheck` resolves the graph across all workspaces with no missing-reference errors.
 
-- [ ] **Unit 0.2: Shared lint / format / test harness**
+- [x] **Unit 0.2: Shared lint / format / test harness**
 
 **Goal:** one ESLint (flat config) + Prettier setup and one Vitest root using `test.projects`.
 **Requirements:** R12.
@@ -271,12 +271,13 @@ sequenceDiagram
 **Approach:** Enums: `Priority` (None/Low/Medium/High/Urgent), `Severity` (S1–S4), `LinkProvider` (slack/linear/claude/generic). Types for Board/Column/Card/Label/DueDate/Link (plain TS mirrors of the Yjs shape). `ids.ts`: id generation + `formatShortId(prefix, seq)` + `parseShortId`. `links.ts`: `detectProvider(url)` + `shortLabelFor(url, provider)` (e.g. Linear → `ABC-123`, Slack → `#channel`/`msg →`, Claude → `session →`). `ordering.ts`: wrapper over `fractional-indexing` `generateKeyBetween` with a clientID tie-breaker + a `keyBetween(a,b,clientId)` and comparator.
 **Patterns to follow:** Focalboard lesson — reference options by id; keep values structured.
 **Test scenarios:**
+
 - Happy path — `detectProvider` maps a Slack archive URL, a `linear.app/.../issue/ABC-123` URL, and a `claude.ai/code/session_...` URL to the right providers and `generic` otherwise.
 - Happy path — `shortLabelFor` extracts `ABC-123` from a Linear issue URL.
 - Happy path — `formatShortId('BRD', 142)` → `BRD-142`; `parseShortId` round-trips.
 - Edge case — `keyBetween(null, null)` yields a valid first key; `keyBetween(k, k2)` produces a key that sorts strictly between; two clients calling with the same neighbors produce different keys (tie-breaker) and both sort between.
 - Edge case — malformed/relative URLs in `detectProvider` fall back to `generic` without throwing.
-**Verification:** all `packages/domain` unit tests pass; no dependency on React/DOM.
+  **Verification:** all `packages/domain` unit tests pass; no dependency on React/DOM.
 
 - [ ] **Unit 0.4: `apps/web` Next.js scaffold + Linear theme shell**
 
@@ -287,9 +288,10 @@ sequenceDiagram
 **Approach:** `next.config.mjs`: `output:'export'`, `images.unoptimized:true`, `trailingSlash:true`, `assetPrefix` set only in dev. Dark-first theme tokens (dense spacing, subtle borders, one accent). App shell: left board-list rail + main board area placeholder + top bar with a `⌘K` affordance. Guard all `window`/storage access to client.
 **Patterns to follow:** Linear-inspired preview chosen by the user (dark, dense, keyboard-centric).
 **Test scenarios:**
+
 - Happy path (e2e + screenshot) — `next build` produces `out/`; served with SPA fallback, the shell renders; screenshot matches the dark, dense Linear aesthetic (dark bg, subtle borders, accent).
 - Edge case — build emits no server-only feature errors (confirms static-export compatibility).
-**Verification:** `pnpm --filter web build` produces `out/`; Playwright loads the served shell; screenshot reviewed against the Linear style. *(User-facing → e2e + screenshot per DoD.)*
+  **Verification:** `pnpm --filter web build` produces `out/`; Playwright loads the served shell; screenshot reviewed against the Linear style. _(User-facing → e2e + screenshot per DoD.)_
 
 ### Phase 1 — Local-first core (offline, single-user, no network)
 
@@ -301,16 +303,17 @@ sequenceDiagram
 **Files:** Create `packages/sync/src/{schema.ts,board-doc.ts,workspace-doc.ts,index.ts}` + `*.test.ts`.
 **Approach:** Implement the doc shape from High-Level Technical Design. Accessors: `createBoard/renameColumn/addCard/moveCard/setCardField/archiveCard/…`, each a single Yjs transaction touching typed keys (never an opaque bag). `moveCard(cardId, toColumnId, beforeId, afterId)` sets `columnId` + a new `ord` via `packages/domain` ordering. Soft-delete sets `archived`+`deletedAt`. Selectors: `cardsInColumn(colId)` → filter by `columnId`, drop archived, sort by `(ord, clientTieBreak)` (memoizable).
 **Execution note:** Implement the ordering/move logic test-first — it is the highest-risk correctness area (concurrent moves, orphan handling).
-**Technical design:** *(directional)* moves are `columnId`+`ord` writes only; deleting a column does not reparent cards — a selector surfaces cards whose `columnId` has no live column into a reclaim ("Unsorted") bucket.
+**Technical design:** _(directional)_ moves are `columnId`+`ord` writes only; deleting a column does not reparent cards — a selector surfaces cards whose `columnId` has no live column into a reclaim ("Unsorted") bucket.
 **Patterns to follow:** Focalboard lessons (no array ordering, no JSON-string values, typed keys); Yjs move-duplication avoidance.
 **Test scenarios:**
+
 - Happy path — create board → add columns → add cards; selectors return cards grouped/sorted correctly.
 - Happy path — `moveCard` across columns updates `columnId` and produces an `ord` that sorts into the target position.
 - Edge case — reorder within a column places the card strictly between neighbors; repeated inserts into the same gap stay ordered (tie-breaker).
 - Edge case — archiving a card removes it from selectors but keeps it in the map.
-- Integration (concurrency, two docs merged) — two `Y.Doc`s each move the *same* card to different columns; after `applyUpdate` both, the card is in exactly one column (no duplicate) and both converge to identical state.
+- Integration (concurrency, two docs merged) — two `Y.Doc`s each move the _same_ card to different columns; after `applyUpdate` both, the card is in exactly one column (no duplicate) and both converge to identical state.
 - Integration — delete a column in doc A while doc B adds a card to it; after merge the added card is an orphan surfaced by the reclaim selector (not lost, not duplicated).
-**Verification:** all schema/accessor tests pass, including the two merged-doc concurrency tests; no code path rewrites a whole ordered array.
+  **Verification:** all schema/accessor tests pass, including the two merged-doc concurrency tests; no code path rewrites a whole ordered array.
 
 - [ ] **Unit 1.2: `packages/sync` — local persistence & React binding**
 
@@ -321,10 +324,11 @@ sequenceDiagram
 **Approach:** `getBoardDoc(boardId)` creates a `Y.Doc`, attaches `IndexeddbPersistence`, exposes `whenSynced`. `useY(yType, selector)` via `useSyncExternalStore` subscribing to the nearest observe; scope subscriptions to avoid whole-board re-renders. Request `navigator.storage.persist()` once. Network provider intentionally not attached here (Phase 3).
 **Execution note:** Yjs+IndexedDB behavior is unreliable in jsdom — use `fake-indexeddb` for unit tests and cover the real path in Playwright later.
 **Test scenarios:**
+
 - Happy path — write to a doc, `await whenSynced`, reload a fresh doc with the same id from `fake-indexeddb`, and observe the data persisted.
 - Happy path — `useY` re-renders a test component when the observed Y type changes and not when unrelated keys change.
 - Edge case — a doc with no prior state hydrates to empty without error; UI can render immediately.
-**Verification:** persistence round-trip test passes with fake-indexeddb; `useY` re-render scoping test passes.
+  **Verification:** persistence round-trip test passes with fake-indexeddb; `useY` re-render scoping test passes.
 
 - [ ] **Unit 1.3: Board list / workspace UI**
 
@@ -334,10 +338,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/board/board-list.tsx`, `apps/web/app/page.tsx` (board list), workspace-doc hooks; Test `apps/web/components/board/board-list.test.tsx`.
 **Approach:** Left rail lists boards from `WorkspaceDoc.boards` sorted by `ord`. Create board → new board id, register in workspace doc, initialize a board doc with default columns (To Do / Doing / Done). Rename inline; archive hides. Board is opened via a client-resolved route reading the id from the URL.
 **Test scenarios:**
+
 - Happy path — creating a board adds it to the rail and initializes 3 default columns; rename updates the label; archive removes it from the visible list.
 - Edge case — empty workspace shows an empty-state prompt; creating the first board works.
 - Integration (e2e) — create board, reload the page → board still present (offline persistence).
-**Verification:** unit tests pass; e2e create→reload persistence flow green (critical flow → e2e + screenshot).
+  **Verification:** unit tests pass; e2e create→reload persistence flow green (critical flow → e2e + screenshot).
 
 - [ ] **Unit 1.4: Columns UI (create / rename / reorder / delete)**
 
@@ -347,10 +352,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/board/board-view.tsx`, `column.tsx`, `add-column.tsx`; Test `column.test.tsx`.
 **Approach:** Horizontal column layout; add column (append `ord`), rename inline, delete (soft-delete; cards become reclaimable). Column order by `ord`.
 **Test scenarios:**
+
 - Happy path — add/rename/delete columns; order persists.
 - Edge case — deleting a column with cards moves those cards to the reclaim/"Unsorted" bucket rather than deleting them.
 - Edge case — a board must always render even with zero columns (shows add-column affordance).
-**Verification:** unit tests pass; columns render in `ord` order; delete preserves cards.
+  **Verification:** unit tests pass; columns render in `ord` order; delete preserves cards.
 
 - [ ] **Unit 1.5: Cards UI (create / edit title / archive) + card face**
 
@@ -360,10 +366,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/card.tsx`, `card-composer.tsx`; Test `card.test.tsx`.
 **Approach:** Card face shows title + (later) badge row. Quick-add composer at column bottom. Inline title edit. Archive from a card menu.
 **Test scenarios:**
+
 - Happy path — add a card to a column; it appears at the bottom; edit title inline; archive removes it from the board.
 - Edge case — empty title is rejected or trimmed; whitespace-only not created.
 - Edge case — many cards (e.g. 500) render and scroll smoothly within a column (perf sanity).
-**Verification:** unit tests pass; e2e add-card flow green + screenshot of a populated column in Linear style.
+  **Verification:** unit tests pass; e2e add-card flow green + screenshot of a populated column in Linear style.
 
 - [ ] **Unit 1.6: Drag-and-drop (cards + columns, keyboard-accessible)**
 
@@ -374,12 +381,13 @@ sequenceDiagram
 **Approach:** `@dnd-kit` with pointer + keyboard sensors. On drop, compute new `ord` from neighbors (and `columnId` for cross-column) and call `moveCard`/reorder-column. Optimistic (Yjs write is instant). Overlay for drag preview.
 **Execution note:** cover the drop→ord computation with unit tests (pure), then verify the interaction in e2e.
 **Test scenarios:**
+
 - Happy path — drag a card to another column updates `columnId` and position; reorder within a column changes order.
 - Happy path — keyboard: focus a card, pick up, move with arrows, drop — same result as pointer.
 - Edge case — dropping at list start/end computes a valid boundary `ord`.
 - Edge case — dropping a card back onto its original position is a no-op (no spurious `ord` churn).
 - Integration (e2e) — pointer drag across columns persists after reload.
-**Verification:** unit tests for ord computation pass; Playwright drag (pointer + keyboard) flows green; screenshot mid-drag/after-drop reviewed. *(Critical flow.)*
+  **Verification:** unit tests for ord computation pass; Playwright drag (pointer + keyboard) flows green; screenshot mid-drag/after-drop reviewed. _(Critical flow.)_
 
 - [ ] **Unit 1.7: Command layer & agent-native seam (`packages/commands`)**
 
@@ -392,10 +400,11 @@ sequenceDiagram
 **Execution note:** define the `CommandContext` interface and one command (e.g. `createCard`) test-first to lock the seam before the catalog grows.
 **Patterns to follow:** agent-native parity principle — no UI-only mutation path may bypass the catalog.
 **Test scenarios:**
+
 - Happy path — `createCard`, `moveCard`, `setCardStatus`, `addLink`, `renameColumn` each mutate the doc correctly via a client context; output is JSON-serializable.
 - Edge case — invalid input (missing or wrong-typed fields) is rejected by the zod schema with a clear error before any mutation.
 - Integration — a command run against a server-style context (mocked direct connection) produces the identical doc state as the same command run against a client context (parity proof).
-**Verification:** catalog unit tests pass; the parity test (client ctx vs server ctx → identical state) passes; no UI mutation call site bypasses the catalog (spot-checked in later units).
+  **Verification:** catalog unit tests pass; the parity test (client ctx vs server ctx → identical state) passes; no UI mutation call site bypasses the catalog (spot-checked in later units).
 
 ### Phase 2 — Card features & Linear UX
 
@@ -407,10 +416,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/card-detail.tsx`, `markdown-editor.tsx`; Test `card-detail.test.tsx`.
 **Approach:** Slide-over/dialog panel. Description edits write to the card's `Y.Text` (character-level merge-safe). Markdown rendered on blur/preview. Metadata fields wired to card keys.
 **Test scenarios:**
+
 - Happy path — open a card, type a description, close/reopen → description persists; markdown renders (bold, lists, links).
 - Edge case — concurrent description edits merged across two docs preserve both insertions (Y.Text merge) in a unit test.
 - Edge case — empty description renders an empty editor without error.
-**Verification:** unit + merge test pass; e2e open→edit→reopen persists; screenshot of the detail panel in Linear style.
+  **Verification:** unit + merge test pass; e2e open→edit→reopen persists; screenshot of the detail panel in Linear style.
 
 - [ ] **Unit 2.2: Labels (board palette + card assignment)**
 
@@ -420,10 +430,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/labels.tsx`, `apps/web/components/board/label-manager.tsx`; Test `labels.test.tsx`.
 **Approach:** `labels: Y.Map<labelId,{name,color,ord}>` on the board; card `labels: Y.Map<labelId,true>` set. Rename/recolor a label updates everywhere by id (Focalboard lesson).
 **Test scenarios:**
+
 - Happy path — create a label, assign to a card, chip shows the color; unassign removes it.
 - Happy path — rename/recolor a label reflects on all cards carrying it.
 - Edge case — deleting a label removes it from all cards' sets (no dangling ids in the UI).
-**Verification:** unit tests pass; label chips render correctly.
+  **Verification:** unit tests pass; label chips render correctly.
 
 - [ ] **Unit 2.3: Priority & severity fields + badges**
 
@@ -433,9 +444,10 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/priority-select.tsx`, `severity-select.tsx`, `packages/ui` badge variants; Test `priority-severity.test.tsx`.
 **Approach:** Enum selects (from `packages/domain`). Priority badge (icon/color per level), severity badge (`S1`–`S4`, color-coded). Sortable/filterable later.
 **Test scenarios:**
+
 - Happy path — set priority/severity; badges render with correct label/color; clearing sets None/null.
 - Edge case — a card with no severity renders no severity badge.
-**Verification:** unit tests pass; badges visually correct in a screenshot.
+  **Verification:** unit tests pass; badges visually correct in a screenshot.
 
 - [ ] **Unit 2.4: Due date field + relative/overdue display**
 
@@ -445,11 +457,12 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/due-date.tsx`, date helpers in `packages/domain`; Test `due-date.test.tsx`.
 **Approach:** Store as nested `Y.Map{at, hasTime}` (not a JSON string). Chip shows `Jul 12` / relative `2d` / `Overdue`. Color thresholds via pure helper so it is unit-testable with a fixed "now".
 **Test scenarios:**
+
 - Happy path — set a date → chip shows the formatted/relative value.
 - Edge case — date today/tomorrow/overdue produce correct label + color given a fixed `now`.
 - Edge case — clearing the date removes the chip.
 - Edge case — `hasTime=false` shows date only; `true` shows time.
-**Verification:** unit tests (with injected `now`) pass across today/near/overdue.
+  **Verification:** unit tests (with injected `now`) pass across today/near/overdue.
 
 - [ ] **Unit 2.5: Checklist / sub-tasks**
 
@@ -459,9 +472,10 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/checklist.tsx`; Test `checklist.test.tsx`.
 **Approach:** `checklist: Y.Map<itemId,{text,done,ord}>`; add/edit/toggle/delete/reorder (fractional `ord`); progress count (n/m).
 **Test scenarios:**
+
 - Happy path — add items, toggle done, progress count updates; reorder persists.
 - Edge case — deleting an item updates the count; empty checklist hides the progress indicator.
-**Verification:** unit tests pass.
+  **Verification:** unit tests pass.
 
 - [ ] **Unit 2.6: Highlighted badge row (per-board config)**
 
@@ -471,10 +485,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/badge-row.tsx`, `apps/web/components/board/badge-config.tsx`; Test `badge-row.test.tsx`.
 **Approach:** `meta.badgeConfig: string[]` (ordered field keys, e.g. `['severity','dueDate','labels','links']`). `badge-row` renders only configured, present fields in shortened form. Config UI reorders/toggles.
 **Test scenarios:**
+
 - Happy path — with `['severity','dueDate']`, a card showing S2 + a due date renders exactly those two badges in that order.
 - Edge case — a configured field absent on a card renders nothing (no empty placeholder).
 - Edge case — reordering `badgeConfig` reorders badges on all cards.
-**Verification:** unit tests pass; screenshot of a card face with a realistic badge row in Linear style.
+  **Verification:** unit tests pass; screenshot of a card face with a realistic badge row in Linear style.
 
 - [ ] **Unit 2.7: Smart link chips + extensible provider registry + unfurl**
 
@@ -483,14 +498,15 @@ sequenceDiagram
 **Dependencies:** 2.6, 0.3, 1.7.
 **Files:** Create `packages/domain/src/links/{registry.ts,providers/{slack,linear,github-pr,github-issue,claude,generic}.ts}` (+ tests), `apps/web/components/card/links.tsx`, `apps/web/lib/unfurl-client.ts`; Test `links.test.tsx`. (Server endpoint in U3.7; desktop native fetch in U5.2.)
 **Approach:** A **provider registry**: each provider is `{ id, match(url), icon, shortLabel(url) }`. The card add-link flow runs the URL through the registry (first match wins, `generic` last). Ships with: **Slack** message (`#channel` / `msg →`), **Linear** issue (`ABC-123`), **GitHub PR** (`owner/repo#123`), **GitHub issue** (`owner/repo#123`), **Claude** session (`session →`), and **generic**. Known providers use **bundled** icons + label (no fetch); generic links call `unfurl-client` → `/api/unfurl` (web). Adding a new provider = one file + registry entry (this is the "lots of other things" extensibility). Adding a link is a `addLink` command (U1.7). Clicking opens the link (new tab on web).
-**Patterns to follow:** the domain provider registry is the single source of truth used by card chips *and* the command layer.
+**Patterns to follow:** the domain provider registry is the single source of truth used by card chips _and_ the command layer.
 **Test scenarios:**
+
 - Happy path — a Linear issue URL → Linear icon + `ABC-123`; a Slack archive URL → Slack + short label; a GitHub PR URL (`github.com/o/r/pull/123`) → GitHub + `o/r#123`; a GitHub issue URL (`/issues/123`) → GitHub + `o/r#123`; a Claude session URL → Claude + `session →`.
 - Happy path — a generic URL renders hostname + favicon; when unfurl returns a title, the chip shows it.
 - Edge case — GitHub PR vs issue disambiguated by path (`/pull/` vs `/issues/`); order of registry matchers puts `generic` last so it never shadows a specific provider.
 - Edge case — an unreachable/failed unfurl falls back to hostname without breaking the card.
 - Edge case — duplicate URL add is de-duplicated by normalized URL.
-**Verification:** provider-registry unit tests pass for every shipped provider incl. GitHub PR/issue disambiguation; e2e adding a Linear + GitHub PR + generic link shows correct chips; screenshot reviewed. *(User-facing.)*
+  **Verification:** provider-registry unit tests pass for every shipped provider incl. GitHub PR/issue disambiguation; e2e adding a Linear + GitHub PR + generic link shows correct chips; screenshot reviewed. _(User-facing.)_
 
 - [ ] **Unit 2.8: Short card IDs (`BRD-###`)**
 
@@ -500,9 +516,10 @@ sequenceDiagram
 **Files:** Modify `packages/sync/src/board-doc.ts` (assign shortId on create; repair-on-read), `packages/domain/src/ids.ts`; Test `short-ids.test.ts`.
 **Approach:** `meta.shortIdPrefix` (default `BRD`) + `meta.shortIdSeq` incremented in the create transaction. Repair pass: if two cards share a shortId (concurrent increment merged), reassign the later one by `(createdAt, clientID)` order.
 **Test scenarios:**
+
 - Happy path — sequential creates yield `BRD-1`, `BRD-2`, …; ids show on the card and detail.
 - Integration (merged docs) — two docs each create a card offline (both grab the same seq); after merge the repair assigns distinct ids deterministically (stable across both replicas).
-**Verification:** unit + merged-doc repair test pass.
+  **Verification:** unit + merged-doc repair test pass.
 
 - [ ] **Unit 2.9: Command palette (⌘K)**
 
@@ -512,10 +529,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/command-palette/palette.tsx` (using `cmdk`), action registry; Test `palette.test.tsx`.
 **Approach:** ⌘K/Ctrl-K opens; commands: create card, jump to board, set priority/severity on the focused card, assign label, toggle theme, search. Fuzzy-filter commands.
 **Test scenarios:**
+
 - Happy path — ⌘K opens; typing filters commands; running "create card" adds a card; Esc closes.
 - Edge case — palette works with no board open (global commands only).
 - Edge case — focus returns to the prior element on close.
-**Verification:** unit tests pass; e2e ⌘K→create-card flow green + screenshot of the open palette. *(User-facing.)*
+  **Verification:** unit tests pass; e2e ⌘K→create-card flow green + screenshot of the open palette. _(User-facing.)_
 
 - [ ] **Unit 2.10: Keyboard-first navigation**
 
@@ -525,9 +543,10 @@ sequenceDiagram
 **Files:** Create `apps/web/components/board/keyboard-nav.tsx` (focus model + shortcut map); Test `keyboard-nav.test.tsx`.
 **Approach:** Arrow keys move focus between cards/columns; Enter opens the focused card; shortcuts for new card (`c`), archive (`e`), priority (`p`), assign, move (integrates dnd-kit keyboard sensor from 1.6). Visible focus ring consistent with the theme.
 **Test scenarios:**
+
 - Happy path — arrow navigation moves focus predictably across cards and columns; Enter opens; `c` creates.
 - Edge case — navigation wraps/stops sensibly at edges; shortcuts are ignored while typing in an input.
-**Verification:** unit tests for the focus/shortcut logic pass; e2e keyboard-only create+move sequence green.
+  **Verification:** unit tests for the focus/shortcut logic pass; e2e keyboard-only create+move sequence green.
 
 - [ ] **Unit 2.11: Instant fuzzy search**
 
@@ -537,10 +556,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/search/search.tsx`, an in-memory index; Test `search.test.tsx`.
 **Approach:** Fuzzy match over card title, description text, shortId, labels across loaded boards; integrate as a palette mode and a standalone view. Debounced; results ranked.
 **Test scenarios:**
+
 - Happy path — query matches by title, by shortId (`BRD-142`), and by label; selecting a result opens the card.
 - Edge case — empty query shows recents/empty state; no matches shows an empty state.
 - Edge case — search updates as underlying cards change.
-**Verification:** unit tests pass; e2e search→open flow green.
+  **Verification:** unit tests pass; e2e search→open flow green.
 
 - [ ] **Unit 2.12: Workflow status field**
 
@@ -551,11 +571,12 @@ sequenceDiagram
 **Approach:** `Status` enum: Backlog / Todo / In Progress / In Review / Done / Canceled, grouped into categories (unstarted / started / completed / canceled) with per-status color/icon. Default new cards to Todo. `status` is a plain LWW key on the card map (not tied to `columnId`). `setCardStatus` command appends an activity entry (U4.3). Status is available as a badge (via badge-config U2.6), a group-by axis (U4.2), a filter field (U4.1), a command-palette action (U2.9), and an MCP/REST operation. Done/Canceled optionally strike/dim the card face.
 **Patterns to follow:** enum-with-categories like Linear workflow states; mutation goes through the command layer.
 **Test scenarios:**
+
 - Happy path — set a card to In Progress → status badge updates; set to Done → card shows done styling; default new card is Todo.
 - Happy path — `setCardStatus` command changes status and appends a correctly-typed activity entry.
 - Edge case — status is independent of column: moving a card between columns does not change its status, and setting status does not move the card.
 - Edge case — grouping the board by status places each card in its status lane; filtering by `status = In Review` shows only those.
-**Verification:** unit tests pass (enum/categories, command + activity, independence from column); e2e set-status flow green + screenshot of status badges across a board.
+  **Verification:** unit tests pass (enum/categories, command + activity, independence from column); e2e set-status flow green + screenshot of status badges across a board.
 
 ### Phase 3 — Backend, auth, and sync
 
@@ -567,9 +588,10 @@ sequenceDiagram
 **Files:** Create `docker-compose.yml` (postgres:17, healthcheck, volume, env), `apps/server/src/index.ts`, `apps/server/package.json`, `.env.example`.
 **Approach:** Compose service `db` with `pg_isready` healthcheck + named volume. Fastify boots, exposes `/health`, reads `DATABASE_URL` from env. Server itself may run outside Docker in dev (talks to Dockerized db).
 **Test scenarios:**
+
 - Happy path — `docker compose up -d db` becomes healthy; server `/health` returns ok and connects to the db.
 - Edge case — server exits with a clear error if `DATABASE_URL` is missing.
-**Verification:** Postgres container healthy; `/health` returns ok against it. *(Docker exercised here.)*
+  **Verification:** Postgres container healthy; `/health` returns ok against it. _(Docker exercised here.)_
 
 - [ ] **Unit 3.2: Drizzle schema + migrations**
 
@@ -580,9 +602,10 @@ sequenceDiagram
 **Approach:** Tables: `users(id,email unique,password_hash,created_at)`, `refresh_tokens(id,user_id,token_hash,family_id,expires_at,revoked_at,created_at)`, `boards(id,owner_id,title,created_at,updated_at,archived)`, `yjs_documents(doc_name pk,state bytea,updated_at)`, `link_metadata_cache(url pk,title,icon_url,fetched_at)`. Define a `bytea` `customType` for Yjs state. `migrate.ts` runs `migrate()` before serving; called from boot.
 **Approach note:** commit generated SQL; use `generate`+`migrate` (not `push`) so migrations are auditable and re-runnable ("do your own migrations" requirement).
 **Test scenarios:**
+
 - Happy path (integration, real db) — running migrations on an empty Dockerized db creates all tables; re-running is a no-op (idempotent by hash).
 - Edge case — `bytea` round-trips a `Uint8Array` (write Yjs update, read identical bytes).
-**Verification:** migrations apply cleanly to the container db and are idempotent on re-run; bytea round-trip test passes.
+  **Verification:** migrations apply cleanly to the container db and are idempotent on re-run; bytea round-trip test passes.
 
 - [ ] **Unit 3.3: Auth API (signup / login / logout / refresh)**
 
@@ -593,12 +616,13 @@ sequenceDiagram
 **Approach:** `@node-rs/argon2` (m=19 MiB,t=2,p=1, tuned). EdDSA JWT access (short TTL) + opaque refresh token (hashed at rest, rotation with family revocation). Endpoints: `POST /auth/signup|login|logout|refresh`. Web sets refresh as httpOnly `SameSite=Lax` cookie; a `Bearer` path supports desktop. Rate-limit login; generic `invalid email or password`; no user-enumeration on signup.
 **Execution note:** implement token rotation + reuse-detection test-first (security-critical).
 **Test scenarios:**
+
 - Happy path — signup → login returns an access token and sets/returns a refresh token; `/refresh` issues a new access token.
 - Happy path — refresh rotation: using a refresh token returns a new one and invalidates the old.
 - Error path — wrong password and unknown email both return the same generic error; login is rate-limited after N attempts.
 - Error path — reusing a rotated-out refresh token revokes the whole token family (reuse detection).
 - Edge case — password verify is constant-time via the library; hashes are argon2id; JWT verification rejects `alg:none` and bad `exp`/`iss`/`aud`.
-**Verification:** all auth tests pass against the container db, including rotation + reuse-detection + generic-error cases.
+  **Verification:** all auth tests pass against the container db, including rotation + reuse-detection + generic-error cases.
 
 - [ ] **Unit 3.4: Web auth UI + session wiring**
 
@@ -608,10 +632,11 @@ sequenceDiagram
 **Files:** Create `apps/web/app/{login/page.tsx,signup/page.tsx}`, `apps/web/lib/{api-client.ts,auth-store.ts}`, route guard; Test `apps/web/lib/auth-store.test.ts`.
 **Approach:** Access token in memory (`auth-store`); on load/reload, silently `/refresh` via the httpOnly cookie to re-obtain access. `react-hook-form` + `zod` forms. Unauthenticated users see login; authenticated users see the board app. API client attaches `Bearer` and auto-refreshes on 401 once.
 **Test scenarios:**
+
 - Happy path — login stores access in memory and reveals the app; reload silently refreshes and stays logged in.
 - Error path — invalid credentials show the generic error; logout clears memory + cookie and returns to login.
 - Edge case — a 401 mid-session triggers exactly one refresh+retry, then logout if it still fails.
-**Verification:** unit tests for auth-store/refresh logic pass; e2e signup→login→reload→logout flow green + screenshots of login/signup in Linear style. *(Critical flow.)*
+  **Verification:** unit tests for auth-store/refresh logic pass; e2e signup→login→reload→logout flow green + screenshots of login/signup in Linear style. _(Critical flow.)_
 
 - [ ] **Unit 3.5: Hocuspocus sync server (auth + Postgres persistence)**
 
@@ -622,10 +647,11 @@ sequenceDiagram
 **Approach:** Hocuspocus with `onAuthenticate` validating a one-time WS ticket and enforcing `board.ownerId === userId` for `documentName = boardId` (and the workspace room for the owner). Persistence extension loads/stores doc state as `bytea` in Postgres (snapshot or append+compact — decide against the live API). Reject unauthorized with a distinct close code (no reconnect storm). Validate `Origin`.
 **Execution note:** cover authz (accept owner, reject non-owner/expired ticket) test-first.
 **Test scenarios:**
+
 - Happy path — a valid ticket for an owned board authenticates; a client syncs and state persists to Postgres; a second client loads the persisted state.
 - Error path — expired/invalid ticket is rejected before sync; non-owner is rejected; bad `Origin` rejected.
 - Integration — two authorized clients on the same board converge; server persists the merged state.
-**Verification:** authz + persistence tests pass against the container db; unauthorized connections are closed pre-sync.
+  **Verification:** authz + persistence tests pass against the container db; unauthorized connections are closed pre-sync.
 
 - [ ] **Unit 3.6: WS-ticket endpoint + client network provider wiring**
 
@@ -635,10 +661,11 @@ sequenceDiagram
 **Files:** Create `apps/server/src/routes/ticket.ts`, extend `packages/sync/src/provider.ts` (attach WebsocketProvider with `params:{ticket}` after `whenSynced`), reconnect/awareness; Test `packages/sync/src/provider.test.ts` (mocked WS).
 **Approach:** `POST /sync/ticket` (auth'd) returns a 30–60s single-use ticket bound to `{userId,boardId}`. Client: local `whenSynced` → render → request ticket → open WS with `?ticket=`. On reconnect, re-mint ticket. Basic awareness (who's viewing).
 **Test scenarios:**
+
 - Happy path — provider attaches only after local sync (no content flash); a change on one client appears on another (integration/e2e with a live server + db).
 - Error path — a rejected ticket does not enter a reconnect loop; the app stays usable offline.
 - Edge case — going offline then online backfills via state-vector exchange (no data loss, no dupes).
-**Verification:** provider unit tests (mocked) pass; a two-client e2e (two browser contexts) shows a card created in one appearing in the other; offline→online backfill verified. *(Critical flow — the core promise.)*
+  **Verification:** provider unit tests (mocked) pass; a two-client e2e (two browser contexts) shows a card created in one appearing in the other; offline→online backfill verified. _(Critical flow — the core promise.)_
 
 - [ ] **Unit 3.7: Link-unfurl endpoint (web)**
 
@@ -648,10 +675,11 @@ sequenceDiagram
 **Files:** Create `apps/server/src/routes/unfurl.ts` (fetch + parse OpenGraph/title/favicon, cache in `link_metadata_cache`); Test `unfurl.test.ts`.
 **Approach:** `GET /api/unfurl?url=` validates+normalizes the URL, fetches server-side (bypasses browser CORS), parses title + favicon, caches by URL. Timeout + size cap; SSRF guard (block private/loopback ranges).
 **Test scenarios:**
+
 - Happy path — a valid page URL returns `{title, iconUrl}`; a second call is served from cache.
 - Error path — unreachable/timeout returns a graceful fallback (hostname), not a 500 that breaks the card.
 - Edge case (security) — URLs targeting localhost/private IPs are rejected (SSRF guard).
-**Verification:** unit tests (mocked fetch) pass incl. SSRF rejection; web generic chips populate titles.
+  **Verification:** unit tests (mocked fetch) pass incl. SSRF rejection; web generic chips populate titles.
 
 - [ ] **Unit 3.8: Board ownership registry reconciliation**
 
@@ -661,10 +689,11 @@ sequenceDiagram
 **Files:** Create `apps/server/src/routes/boards.ts` (create/list/archive board ownership rows), client hook to register a board on creation; Test `boards.test.ts`.
 **Approach:** On board create, the authenticated client calls `POST /boards` to insert a `boards` ownership row (id chosen client-side = the Yjs room). Hocuspocus authz reads this table. List/archive reconcile the workspace doc with server rows on login.
 **Test scenarios:**
+
 - Happy path — creating a board registers ownership; the owner can then open the board's sync room; listing returns the user's boards.
 - Error path — a client cannot register a board id already owned by another user; cannot open a room for a board it does not own (ties to U3.5 authz).
 - Edge case — offline-created boards register on next connection (queued reconciliation).
-**Verification:** unit/integration tests pass; end-to-end a newly created board syncs across two clients of the same user.
+  **Verification:** unit/integration tests pass; end-to-end a newly created board syncs across two clients of the same user.
 
 - [ ] **Unit 3.9: REST command API (agent write path)**
 
@@ -675,11 +704,12 @@ sequenceDiagram
 **Approach:** `GET /api/commands` lists the catalog (name, description, JSON schema of input — derived from each command's zod schema). `POST /api/commands/:name` validates input against the schema, resolves the target board, opens a Hocuspocus direct connection to that board doc, runs the command via `packages/commands` with a server context, and returns the JSON result; the mutation persists to Postgres and broadcasts to connected clients. Auth: user Bearer token (reusing U3.3) **or** a scoped service token (for the MCP server). Authorization reuses the board-owner check (U3.5/U3.8). Idempotency-friendly where feasible.
 **Execution note:** cover authz (a user cannot run a command against a board they don't own) test-first.
 **Test scenarios:**
+
 - Happy path — `POST /api/commands/createCard` on an owned board creates the card; a connected WS client receives it; the state persists (reload from Postgres shows it).
 - Happy path — `GET /api/commands` returns every catalog command with a valid JSON input schema.
 - Error path — invalid input → 400 with the validation error; a command against a non-owned board → 403; unknown command → 404.
 - Integration — a command issued via REST and the same command issued in the UI produce identical doc state (server/UI parity end-to-end).
-**Verification:** REST command tests pass against the container db + live sync; authz + validation enforced; a REST-created card appears in a second connected client.
+  **Verification:** REST command tests pass against the container db + live sync; authz + validation enforced; a REST-created card appears in a second connected client.
 
 - [ ] **Unit 3.10: MCP server (`apps/mcp`)**
 
@@ -690,11 +720,12 @@ sequenceDiagram
 **Approach:** On startup, fetch `GET /api/commands` and register one MCP tool per command, mapping each command's JSON input schema to the tool's input schema and forwarding calls to `POST /api/commands/:name` with a configured service token (or a user token). Tool descriptions come from the command metadata so the catalog is self-documenting to the agent. Support the read commands (list boards, get board, search) as tools too, so an agent can orient before acting. Ship a short README on configuring the server in an MCP client.
 **Execution note:** verify the tool surface is generated from the live catalog (not hand-maintained) so it can never drift from REST.
 **Test scenarios:**
+
 - Happy path — the server lists tools matching the command catalog; invoking the `createCard` tool creates a card (verified via REST/DB) and returns the result to the caller.
 - Happy path — a read tool (`search` / `listBoards`) returns data an agent can act on.
 - Error path — a tool call with invalid args surfaces the validation error as an MCP tool error; an unauthorized token yields an auth error, not a crash.
 - Integration — end-to-end: an MCP tool call creates a card that appears in a connected web client (agent→MCP→REST→command→sync).
-**Verification:** tool-generation + invocation tests pass; an MCP `createCard`/`setCardStatus`/`addLink` call is reflected in a live client; tools mirror the catalog exactly.
+  **Verification:** tool-generation + invocation tests pass; an MCP `createCard`/`setCardStatus`/`addLink` call is reflected in a live client; tools mirror the catalog exactly.
 
 ### Phase 4 — Views, filters, activity, interop
 
@@ -706,10 +737,11 @@ sequenceDiagram
 **Files:** Create `apps/web/components/board/views.tsx`, `filter-builder.tsx`, filter model in `packages/domain`; Test `filters.test.ts`.
 **Approach:** Filter model: nestable `{op:'and'|'or', clauses:[{field,condition,values}]}` evaluated by a pure function (unit-testable). Views stored in `meta`/`views` on the board doc: `{name,filter,sort,groupBy,visibleBadges}`. Presets: "My cards", "Due this week", "High priority".
 **Test scenarios:**
+
 - Happy path — a filter (priority=High AND label=bug) shows only matching cards; saving/reselecting a view reapplies it.
 - Edge case — empty filter shows all; `isEmpty`/`isSet` conditions behave correctly; combining and/or groups works.
 - Edge case — a filter referencing a deleted label degrades gracefully (no crash).
-**Verification:** pure filter-evaluation unit tests pass across conditions; e2e apply-view flow green.
+  **Verification:** pure filter-evaluation unit tests pass across conditions; e2e apply-view flow green.
 
 - [ ] **Unit 4.2: Grouping / swimlanes + WIP limits**
 
@@ -719,9 +751,10 @@ sequenceDiagram
 **Files:** Create `apps/web/components/board/swimlanes.tsx`, WIP indicator in `column.tsx`; Test `swimlanes.test.tsx`.
 **Approach:** GroupBy renders horizontal lanes; ungrouped lane for missing values. `column.wipLimit` shows count/limit and an over-limit warning style (soft, non-blocking).
 **Test scenarios:**
+
 - Happy path — group by priority creates a lane per priority; cards fall into the right lane; ungrouped lane holds cards without the field.
 - Edge case — a column at/over its WIP limit shows the warning state; no hard block on adding.
-**Verification:** unit tests pass; screenshot of a grouped board.
+  **Verification:** unit tests pass; screenshot of a grouped board.
 
 - [ ] **Unit 4.3: Activity / history log per card**
 
@@ -731,9 +764,10 @@ sequenceDiagram
 **Files:** Create `apps/web/components/card/activity.tsx`, activity writes in `packages/sync`; Test `activity.test.ts`.
 **Approach:** `activity: Y.Array<{cardId,type,ts,userId,data}>` appended on meaningful mutations (created, moved, field changed, archived). Detail panel shows the card's entries newest-first.
 **Test scenarios:**
+
 - Happy path — moving a card and changing priority append correctly-typed entries shown in the timeline.
 - Edge case — high-volume changes don't unbounded-grow the UI (paginate/limit render); appends are append-only (no rewrite).
-**Verification:** unit tests pass; timeline renders in the detail panel.
+  **Verification:** unit tests pass; timeline renders in the detail panel.
 
 - [ ] **Unit 4.4: Import / export (JSON, Markdown, Obsidian-kanban)**
 
@@ -743,10 +777,11 @@ sequenceDiagram
 **Files:** Create `packages/domain/src/io/{json.ts,markdown.ts,obsidian.ts}`, `apps/web/components/board/import-export.tsx`; Test `io/*.test.ts`.
 **Approach:** JSON = full-fidelity board snapshot (columns, cards, fields, labels, order) — round-trippable. Markdown export = readable board outline. Obsidian-kanban import maps its `## Column` / `- [ ] card` markdown into columns+cards.
 **Test scenarios:**
+
 - Happy path — export a board to JSON and re-import into a new board reproduces columns, cards, order, labels, fields (round-trip equality).
 - Happy path — an Obsidian-kanban markdown sample imports into the right columns/cards.
 - Edge case — malformed import surfaces a clear error and imports nothing (atomic), rather than a partial board.
-**Verification:** round-trip + Obsidian-import unit tests pass; e2e export→import flow green.
+  **Verification:** round-trip + Obsidian-import unit tests pass; e2e export→import flow green.
 
 ### Phase 5 — Desktop (Tauri) + polish
 
@@ -757,7 +792,7 @@ sequenceDiagram
 **Dependencies:** 0.4 (and ideally 3.6 for sync config).
 **Files:** Create `apps/desktop/src-tauri/{tauri.conf.json,Cargo.toml,src/main.rs,build.rs}`, `apps/desktop/src-tauri/capabilities/default.json`.
 **Approach:** `build.frontendDist = "../../web/out"`, `devUrl` = web dev server, `beforeBuildCommand` builds web. `app.windows[].useHttpsScheme = true` (stable IndexedDB origin across OSes). `app.security.csp.connect-src` allows the `wss://` sync host + `https://` API. Window titled "Boardly", dark titlebar.
-**Test scenarios:** *Test expectation: config/scaffold — validated by build outcomes (no runtime feature-bearing logic here).*
+**Test scenarios:** _Test expectation: config/scaffold — validated by build outcomes (no runtime feature-bearing logic here)._
 **Verification:** `tauri.conf.json` validates; `frontendDist` (web `out/`) builds; if the Rust toolchain is present, `cargo check`/`tauri build` compiles. Native launch verification is a documented **user follow-up** (per scope).
 
 - [ ] **Unit 5.2: Tauri plugins (http, notification, deep-link, updater, keyring)**
@@ -768,9 +803,10 @@ sequenceDiagram
 **Files:** Modify `apps/desktop/src-tauri/{Cargo.toml,src/main.rs,tauri.conf.json,capabilities/default.json}`; add a platform switch in `apps/web/lib/unfurl-client.ts` and `auth-store.ts` to use Tauri APIs when running under Tauri.
 **Approach:** `@tauri-apps/plugin-http` `fetch` for unfurl on desktop (scoped `allow` list). `plugin-notification` for due-date reminders (gate on permission). `plugin-deep-link` scheme `boardly` (+ single-instance). `plugin-updater` config (keys/endpoints; operating the release server is out of scope). `tauri-plugin-keyring` stores the refresh token on desktop (not Stronghold). Capabilities files grant only what's used.
 **Test scenarios:**
+
 - Happy path (unit, platform-switched) — the unfurl client selects the Tauri `fetch` path when a Tauri global is present and the web `/api/unfurl` path otherwise (mock the environment).
 - Edge case — auth-store selects keychain storage under Tauri and cookie/memory on web.
-**Verification:** platform-switch unit tests pass; capabilities include http/notification/deep-link/updater/keyring; config compiles if toolchain present. Native runtime checks deferred to user.
+  **Verification:** platform-switch unit tests pass; capabilities include http/notification/deep-link/updater/keyring; config compiles if toolchain present. Native runtime checks deferred to user.
 
 - [ ] **Unit 5.3: Theme polish + light theme + responsive pass**
 
@@ -780,9 +816,10 @@ sequenceDiagram
 **Files:** Modify `packages/ui/src/theme.css`, add a theme toggle, responsive tweaks across board/card/detail components; Test `packages/ui` snapshot/interaction where meaningful.
 **Approach:** Finalize tokens (contrast, density, focus rings). Light theme via `prefers-color-scheme` + a manual toggle (persisted). Responsive: columns scroll horizontally on narrow widths; detail panel becomes full-screen on small screens.
 **Test scenarios:**
+
 - Happy path — toggling theme switches tokens and persists across reload; both themes meet basic contrast.
 - Edge case (responsive) — at a narrow viewport the board scrolls and the detail panel is usable.
-**Verification:** theme toggle e2e green; screenshots in dark + light, wide + narrow, reviewed against the aesthetic.
+  **Verification:** theme toggle e2e green; screenshots in dark + light, wide + narrow, reviewed against the aesthetic.
 
 - [ ] **Unit 5.4: E2E consolidation, screenshot baselines, a11y pass**
 
@@ -792,16 +829,17 @@ sequenceDiagram
 **Files:** Create `apps/e2e/playwright.config.ts`, `apps/e2e/tests/{board.spec.ts,card.spec.ts,auth.spec.ts,sync.spec.ts,search.spec.ts}`, baseline screenshots.
 **Approach:** Playwright serves the built web `out/` with SPA fallback; the sync spec runs against a live server + Dockerized db. Cover the critical journeys end-to-end. Basic a11y: focus order, ARIA on interactive elements, keyboard reachability. Use the cached chrome-headless-shell path if the default profile is locked (see memory `tools/playwright_screenshot.md`).
 **Test scenarios:**
+
 - Happy path — full journeys: signup→login; create board→columns→cards→drag; card detail edits; ⌘K create; search; two-client sync.
 - Edge case (a11y) — every primary action is reachable and operable by keyboard; focus rings visible in both themes.
 - Perf sanity — a board with hundreds of cards scrolls and drags without jank.
-**Verification:** the e2e suite is green against the served build + live server; screenshot baselines match the Linear aesthetic; a11y checks pass.
+  **Verification:** the e2e suite is green against the served build + live server; screenshot baselines match the Linear aesthetic; a11y checks pass.
 
 ## System-Wide Impact
 
 - **Interaction graph:** the **command layer (`packages/commands`)** is the single write path — the UI, REST, and MCP all call it; it wraps `packages/sync` accessors, which are the only code that mutates Y types. No UI-only mutation path may bypass the catalog (agent-native parity). The network provider (U3.6) observes the same doc the UI already renders — attaching it must not restructure state, only merge. Auth-store gates the API client and the WS-ticket request.
 - **Agent parity & drift prevention:** REST tool schemas and MCP tools are **generated from the command catalog**, not hand-maintained, so the agent surface cannot drift from the UI. Server-side commands run against a Hocuspocus direct connection so agent edits persist + broadcast identically to UI edits — proven by the client-ctx-vs-server-ctx parity tests (U1.7, U3.9).
-- **Error propagation:** offline is the *normal* state, not an error — network failures degrade to local-only silently; auth failures (401) trigger one refresh then logout; sync-auth rejection closes the socket with a distinct code and does **not** reconnect-loop.
+- **Error propagation:** offline is the _normal_ state, not an error — network failures degrade to local-only silently; auth failures (401) trigger one refresh then logout; sync-auth rejection closes the socket with a distinct code and does **not** reconnect-loop.
 - **State lifecycle risks:** concurrent same-card move (LWW keeps one, discards the other — acceptable, documented); column delete orphaning cards (reclaim bucket); short-id collision (repair-on-read); IndexedDB eviction (request `storage.persist()`, keep export as escape hatch); fractional-key growth (rebalance pass).
 - **API surface parity:** the unfurl and token-storage paths differ web vs desktop — a single platform switch (U5.2) keeps call sites identical. y-indexeddb is one code path on both.
 - **Integration coverage (mocks won't prove):** two-client convergence, offline→online backfill, migration idempotency, ticket→onAuthenticate→persist round-trip, refresh-token rotation/reuse — all covered by integration/e2e against a live server + Dockerized db, not unit mocks.
@@ -809,25 +847,26 @@ sequenceDiagram
 
 ## Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| Next 16 static export can't serve unknown `/board/[id]` | Single client-resolved route reading id from URL; Playwright serves with SPA fallback (`serve -s`). |
-| y-websocket 3.x server split breaks old tutorials | Use `@y/websocket-server` / **Hocuspocus**; pin `y-websocket@^3` client. |
-| Tauri Windows http-origin resets IndexedDB (data loss) | Pin `useHttpsScheme: true`; never change scheme after release. |
-| CSP silently blocks the sync WebSocket in packaged app | Explicit `connect-src` for `wss://` + API host; e2e covers web; documented desktop check. |
-| Concurrent moves / column deletes / short-id collisions (CRDT gaps) | LWW accepted + documented; reclaim bucket for orphans; deterministic short-id repair; all covered by merged-doc tests. |
-| Fractional-index collisions / key growth | ClientID tie-breaker; occasional rebalance; unit-tested boundaries. |
-| Migrations run by multiple boots race | Single server now; `migrate()` gated before serving; idempotent by hash; multi-replica → separate one-shot job (future). |
-| Argon2 native build fails under pnpm build-script gating | Allow the native build script (memory `tools/pnpm_node.md`); bcrypt(≥12) documented fallback. |
-| Playwright profile lock blocks screenshots | Use cached chrome-headless-shell (memory `tools/playwright_screenshot.md`); SPA needs a real browser (curl+grep won't see client-rendered UI). |
-| Desktop native verification can't complete headless overnight | Scoped out by decision — web fully verified; Tauri scaffolded/compiled; native launch is a user follow-up. |
-| Agent (REST/MCP) and UI surfaces drift apart | Both generated from one command catalog; parity tests assert identical doc state from client vs server contexts. |
-| Server-side command mutation corrupts a live board doc | Commands run through a Hocuspocus direct connection (same persist/broadcast path as clients); zod-validated inputs; authz (owner) checked before execution. |
-| MCP service token leaks → unauthorized board writes | Scoped service token, owner-checked per command; short-lived where feasible; never embedded in client bundles. |
+| Risk                                                                | Mitigation                                                                                                                                                  |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next 16 static export can't serve unknown `/board/[id]`             | Single client-resolved route reading id from URL; Playwright serves with SPA fallback (`serve -s`).                                                         |
+| y-websocket 3.x server split breaks old tutorials                   | Use `@y/websocket-server` / **Hocuspocus**; pin `y-websocket@^3` client.                                                                                    |
+| Tauri Windows http-origin resets IndexedDB (data loss)              | Pin `useHttpsScheme: true`; never change scheme after release.                                                                                              |
+| CSP silently blocks the sync WebSocket in packaged app              | Explicit `connect-src` for `wss://` + API host; e2e covers web; documented desktop check.                                                                   |
+| Concurrent moves / column deletes / short-id collisions (CRDT gaps) | LWW accepted + documented; reclaim bucket for orphans; deterministic short-id repair; all covered by merged-doc tests.                                      |
+| Fractional-index collisions / key growth                            | ClientID tie-breaker; occasional rebalance; unit-tested boundaries.                                                                                         |
+| Migrations run by multiple boots race                               | Single server now; `migrate()` gated before serving; idempotent by hash; multi-replica → separate one-shot job (future).                                    |
+| Argon2 native build fails under pnpm build-script gating            | Allow the native build script (memory `tools/pnpm_node.md`); bcrypt(≥12) documented fallback.                                                               |
+| Playwright profile lock blocks screenshots                          | Use cached chrome-headless-shell (memory `tools/playwright_screenshot.md`); SPA needs a real browser (curl+grep won't see client-rendered UI).              |
+| Desktop native verification can't complete headless overnight       | Scoped out by decision — web fully verified; Tauri scaffolded/compiled; native launch is a user follow-up.                                                  |
+| Agent (REST/MCP) and UI surfaces drift apart                        | Both generated from one command catalog; parity tests assert identical doc state from client vs server contexts.                                            |
+| Server-side command mutation corrupts a live board doc              | Commands run through a Hocuspocus direct connection (same persist/broadcast path as clients); zod-validated inputs; authz (owner) checked before execution. |
+| MCP service token leaks → unauthorized board writes                 | Scoped service token, owner-checked per command; short-lived where feasible; never embedded in client bundles.                                              |
 
 ## Documentation / Operational Notes
 
 ### Working conventions & repo rules (binding — see `CLAUDE.md`)
+
 - **Repo rules:** `CLAUDE.md` (and `AGENTS.md` pointer) is authoritative for docs, design, engineering, versioning, and git conventions. Read it before each unit.
 - **Per-unit docs (required):** every unit produces an intensive doc `docs/units/UNIT-<id>-<slug>.md` (template + convention in `docs/units/README.md`) covering what changed, why, how it works, and how to verify. **Docs-first is welcome** — if a design/approach note before coding helps, write it and **commit it before continuing**. The doc must be committed before the unit's checkbox is ticked.
 - **Design (binding):** all UI follows `docs/design/DESIGN.md` — Linear-like, **dark mode first**, built on **shadcn/ui** primitives, using the design tokens (no ad-hoc colors/px). **Transitions are measured** per DESIGN.md §6 (add where they aid comprehension, never gratuitous; respect reduced-motion).
@@ -835,12 +874,15 @@ sequenceDiagram
 - **Dependencies:** every `package.json` pins **exact versions** (no `^`/`~`); commit `pnpm-lock.yaml`; Node `22.17.1`, Next `16.2.6`.
 
 ### Execution environment (apply on every step)
+
 - **Node 22.17.1 must front every pnpm/turbo/node command.** The machine default is **v24.15.0** and `nvm use` does **not** persist across separate shell invocations, so prefix each command with the pinned toolchain, e.g. `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"` (v22.17.1 is already installed). Set `.nvmrc` (22.17.1) + `engines`. (v24 would technically run Next ≥20.9, but the pin is for reproducibility.)
 - **Docker** required from U3.1 onward (`docker compose up -d db`); server runs `migrate()` at boot against it.
 - **Playwright**: `npx playwright install` once; serve the built web `out/` (not `next start`); for screenshots prefer the cached chrome-headless-shell if the default profile is locked (memory `tools/playwright_screenshot.md`, `tools/playwright_mcp.md`).
 
 ### Overnight-loop Definition of Done (per unit) — "Balanced" bar
+
 Advance a unit's checkbox only when all hold (do not re-state per unit):
+
 1. Typecheck + ESLint clean for touched packages.
 2. `turbo run build` succeeds for affected packages (web `next build` static export must stay valid).
 3. Unit tests written and green (scenarios enumerated in the unit).
@@ -854,6 +896,7 @@ Advance a unit's checkbox only when all hold (do not re-state per unit):
 If a unit is genuinely blocked, leave it unchecked with a short note in the plan and proceed to the next independent unit rather than stopping.
 
 ### Sequencing / dependency shape
+
 - Phase 0 → 1 → 2 are a mostly-linear chain (each builds on the last).
 - **Unit 1.7 (command layer) is foundational for agent-native parity — build it right after 1.2**, and route every UI mutation (1.3–1.6, all of Phase 2) through it rather than calling `packages/sync` directly.
 - Phase 3 depends on Phase 0 (server scaffold) and Phase 1.2 (provider) but is otherwise parallelizable against late Phase 2. The **agent interfaces (3.9 REST, 3.10 MCP)** depend on the command layer (1.7) + auth (3.3) + Hocuspocus (3.5), so they land after those.

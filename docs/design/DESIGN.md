@@ -28,58 +28,64 @@ Defined as CSS variables on `:root` (dark is default). Expose to Tailwind v4 via
 tokens (`--background`, `--foreground`, `--primary`, `--border`, `--ring`, …) map onto these.
 
 ### Surfaces (elevation ladder — darker is lower)
-| Token | Hex | Use |
-|---|---|---|
-| `--bg-base` | `#08090A` | App background (deepest) |
-| `--bg-surface` | `#0E0F11` | Columns, rails, panels |
-| `--bg-elevated` | `#161719` | Cards, popovers, inputs |
-| `--bg-overlay` | `#1C1D21` | Hover state, menus, dialogs |
+
+| Token           | Hex                     | Use                                     |
+| --------------- | ----------------------- | --------------------------------------- |
+| `--bg-base`     | `#08090A`               | App background (deepest)                |
+| `--bg-surface`  | `#0E0F11`               | Columns, rails, panels                  |
+| `--bg-elevated` | `#161719`               | Cards, popovers, inputs                 |
+| `--bg-overlay`  | `#1C1D21`               | Hover state, menus, dialogs             |
 | `--bg-selected` | `rgba(94,106,210,0.14)` | Selected row/card tint (accent-derived) |
 
 ### Borders (low-alpha white — chrome must stay quiet)
-| Token | Value | Use |
-|---|---|---|
-| `--border-subtle` | `rgba(255,255,255,0.06)` | Card/column dividers |
+
+| Token              | Value                    | Use                    |
+| ------------------ | ------------------------ | ---------------------- |
+| `--border-subtle`  | `rgba(255,255,255,0.06)` | Card/column dividers   |
 | `--border-default` | `rgba(255,255,255,0.10)` | Inputs, buttons, cards |
-| `--border-strong` | `rgba(255,255,255,0.16)` | Hover/active borders |
+| `--border-strong`  | `rgba(255,255,255,0.16)` | Hover/active borders   |
 
 ### Text
-| Token | Hex | Use |
-|---|---|---|
-| `--text-primary` | `#F7F8F8` | Titles, primary content |
-| `--text-secondary` | `#9CA0A8` | Secondary/meta text |
-| `--text-tertiary` | `#6B6F76` | Placeholders, hints, disabled labels |
-| `--text-disabled` | `#4A4D54` | Disabled |
+
+| Token              | Hex       | Use                                  |
+| ------------------ | --------- | ------------------------------------ |
+| `--text-primary`   | `#F7F8F8` | Titles, primary content              |
+| `--text-secondary` | `#9CA0A8` | Secondary/meta text                  |
+| `--text-tertiary`  | `#6B6F76` | Placeholders, hints, disabled labels |
+| `--text-disabled`  | `#4A4D54` | Disabled                             |
 
 ### Accent (single, indigo — Linear-like)
-| Token | Hex | Use |
-|---|---|---|
-| `--accent` | `#5E6AD2` | Primary buttons, selection, focus ring, links |
-| `--accent-hover` | `#6E79DE` | Accent hover |
-| `--accent-active` | `#505BC4` | Accent pressed |
-| `--accent-fg` | `#FFFFFF` | Text/icon on accent |
+
+| Token             | Hex       | Use                                           |
+| ----------------- | --------- | --------------------------------------------- |
+| `--accent`        | `#5E6AD2` | Primary buttons, selection, focus ring, links |
+| `--accent-hover`  | `#6E79DE` | Accent hover                                  |
+| `--accent-active` | `#505BC4` | Accent pressed                                |
+| `--accent-fg`     | `#FFFFFF` | Text/icon on accent                           |
 
 ### Semantic
-| Token | Hex |
-|---|---|
+
+| Token       | Hex       |
+| ----------- | --------- |
 | `--success` | `#4CB782` |
 | `--warning` | `#E2B341` |
-| `--danger` | `#EB5757` |
-| `--info` | `#4EA7FC` |
+| `--danger`  | `#EB5757` |
+| `--info`    | `#4EA7FC` |
 
 Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fills.
 
 ### Encodings (meaning via color)
 
 **Workflow status** (see plan R14):
-| Status | Color | Note |
-|---|---|---|
-| Backlog | `--text-tertiary` `#6B6F76` | dashed/muted icon |
-| Todo | `#9CA0A8` | empty-circle icon |
-| In Progress | `#E2B341` | half-filled icon |
-| In Review | `#5E6AD2` | accent |
-| Done | `#4CB782` | filled check |
-| Canceled | `#6B6F76` | crossed; card face dims + title strikethrough |
+
+| Status      | Color                       | Note                                          |
+| ----------- | --------------------------- | --------------------------------------------- |
+| Backlog     | `--text-tertiary` `#6B6F76` | dashed/muted icon                             |
+| Todo        | `#9CA0A8`                   | empty-circle icon                             |
+| In Progress | `#E2B341`                   | half-filled icon                              |
+| In Review   | `#5E6AD2`                   | accent                                        |
+| Done        | `#4CB782`                   | filled check                                  |
+| Canceled    | `#6B6F76`                   | crossed; card face dims + title strikethrough |
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
 
@@ -93,14 +99,14 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 
 - **Font:** `Inter` (variable) with system fallback (`ui-sans-serif, -apple-system, Segoe UI, …`). Monospace `ui-monospace, "SF Mono", …` for short IDs / code.
 - **Base size 13px** (Linear-dense). Scale:
-  | Token | px / line-height | Use |
-  |---|---|---|
-  | `text-xs` | 11 / 16 | badges, meta, counts |
-  | `text-sm` | 12 / 18 | secondary UI text |
-  | `text-base` | 13 / 20 | body, card titles, inputs |
-  | `text-md` | 14 / 20 | section headers |
-  | `text-lg` | 16 / 24 | panel titles |
-  | `text-xl` | 20 / 28 | page/board title |
+  | Token       | px / line-height | Use                       |
+  | ----------- | ---------------- | ------------------------- |
+  | `text-xs`   | 11 / 16          | badges, meta, counts      |
+  | `text-sm`   | 12 / 18          | secondary UI text         |
+  | `text-base` | 13 / 20          | body, card titles, inputs |
+  | `text-md`   | 14 / 20          | section headers           |
+  | `text-lg`   | 16 / 24          | panel titles              |
+  | `text-xl`   | 20 / 28          | page/board title          |
 - **Weights:** 400 body, 500 UI/medium (default for most interactive text), 600 headings. Avoid 700.
 - **Tracking:** headings `-0.01em` to `-0.02em` (tight, Linear-like); body normal.
 - Short IDs (`BRD-142`) in monospace, `text-xs`, `--text-tertiary`.
@@ -138,6 +144,7 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 **Easing:** enter `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out, snappy); exit `cubic-bezier(0.4, 0, 1, 1)`; standard `cubic-bezier(0.4, 0, 0.2, 1)`.
 
 **Animate these (they aid comprehension):**
+
 - Hover/pressed background + border color changes (fast).
 - Popover / dropdown / tooltip / context-menu enter (fade + 2–4px slide or 98%→100% scale, base).
 - Dialog / sheet enter-exit (backdrop fade + panel slide/scale, slow).
@@ -145,6 +152,7 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 - Drag: lifted card gets slight scale (1.02) + shadow + reduced opacity on the source; drop settles instantly (dnd-kit). Keep drag feedback lightweight.
 
 **Do NOT animate:**
+
 - Board/list-wide reflows, column reordering of many items, or anything that animates layout (`top/left/width/height`) on large lists — use `transform`/`opacity` only, and prefer instant for bulk changes.
 - Route/page transitions (keep instant — speed pillar).
 - Color of large background areas, or long/looping/decorative motion.
@@ -157,22 +165,22 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 
 Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 
-| Boardly UI | shadcn/ui base | Notes |
-|---|---|---|
-| Buttons (primary/ghost/outline/danger) | `button` | Primary = accent; ghost is the default for dense toolbars |
-| Card detail panel | `sheet` (right side) | Full-screen on narrow viewports |
-| Modals (confirm, board create) | `dialog` | slow enter, backdrop fade |
-| Command palette (⌘K) | `command` (cmdk) | keyboard hub; fuzzy filter |
-| Menus (card `⋯`, board actions) | `dropdown-menu`, `context-menu` | right-click card → context-menu |
-| Selects (status, priority, assignee) | `popover` + `command`, or `select` | status/priority use a searchable popover list |
-| Labels / due / severity pickers | `popover` | |
-| Tooltips (icon buttons, truncated text) | `tooltip` | base duration; delay ~300ms |
-| Inputs / textareas | `input`, `textarea` | 30px height; subtle border → accent ring on focus |
-| Checkbox (checklist) | `checkbox` | animated check |
-| Avatars (assignee) | `avatar` | 20–24px on card face |
-| Tabs (views/settings) | `tabs` | |
-| Long lists | `scroll-area` | virtualize if perf demands |
-| Toasts (sync/errors) | `sonner` | bottom-right, quiet |
+| Boardly UI                              | shadcn/ui base                     | Notes                                                     |
+| --------------------------------------- | ---------------------------------- | --------------------------------------------------------- |
+| Buttons (primary/ghost/outline/danger)  | `button`                           | Primary = accent; ghost is the default for dense toolbars |
+| Card detail panel                       | `sheet` (right side)               | Full-screen on narrow viewports                           |
+| Modals (confirm, board create)          | `dialog`                           | slow enter, backdrop fade                                 |
+| Command palette (⌘K)                    | `command` (cmdk)                   | keyboard hub; fuzzy filter                                |
+| Menus (card `⋯`, board actions)         | `dropdown-menu`, `context-menu`    | right-click card → context-menu                           |
+| Selects (status, priority, assignee)    | `popover` + `command`, or `select` | status/priority use a searchable popover list             |
+| Labels / due / severity pickers         | `popover`                          |                                                           |
+| Tooltips (icon buttons, truncated text) | `tooltip`                          | base duration; delay ~300ms                               |
+| Inputs / textareas                      | `input`, `textarea`                | 30px height; subtle border → accent ring on focus         |
+| Checkbox (checklist)                    | `checkbox`                         | animated check                                            |
+| Avatars (assignee)                      | `avatar`                           | 20–24px on card face                                      |
+| Tabs (views/settings)                   | `tabs`                             |                                                           |
+| Long lists                              | `scroll-area`                      | virtualize if perf demands                                |
+| Toasts (sync/errors)                    | `sonner`                           | bottom-right, quiet                                       |
 
 Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Provider icons (Slack/Linear/GitHub/Claude) are **bundled SVGs**, not fetched.
 

@@ -22,19 +22,19 @@ changes sync across devices when online.
 
 ## Tech stack (locked)
 
-| Layer | Choice | Notes |
-|---|---|---|
-| Language | TypeScript | |
-| UI framework | **Next.js 16.2.6** (React 19) | App Router; **`output: 'export'` (static)** so the same build runs in the browser and inside Tauri |
-| Desktop shell | **Tauri** (Rust) | Bundles the Next.js static export; small binary, low memory, fast; no exotic native APIs needed |
-| Sync | **Yjs** (CRDT), self-hosted | Local-first; `y-websocket` relay |
-| Local persistence | IndexedDB (web) / SQLite (desktop) | Offline-first |
-| Backend | Node `y-websocket` server + Postgres | Durable snapshots + auth + link-metadata endpoint |
-| Build/monorepo | pnpm workspaces + Turborepo | |
+| Layer             | Choice                               | Notes                                                                                              |
+| ----------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Language          | TypeScript                           |                                                                                                    |
+| UI framework      | **Next.js 16.2.6** (React 19)        | App Router; **`output: 'export'` (static)** so the same build runs in the browser and inside Tauri |
+| Desktop shell     | **Tauri** (Rust)                     | Bundles the Next.js static export; small binary, low memory, fast; no exotic native APIs needed    |
+| Sync              | **Yjs** (CRDT), self-hosted          | Local-first; `y-websocket` relay                                                                   |
+| Local persistence | IndexedDB (web) / SQLite (desktop)   | Offline-first                                                                                      |
+| Backend           | Node `y-websocket` server + Postgres | Durable snapshots + auth + link-metadata endpoint                                                  |
+| Build/monorepo    | pnpm workspaces + Turborepo          |                                                                                                    |
 
 > **Next.js + Tauri constraint:** Tauri bundles static assets, so the app builds with
 > `output: 'export'` — a fully client-side app. No runtime SSR, API routes, or server actions
-> in the *desktop* build. This is fine: our backend is the separate Yjs sync server. On the web
+> in the _desktop_ build. This is fine: our backend is the separate Yjs sync server. On the web
 > deploy we could opt into server features, but we keep the app static-export-compatible so one
 > build serves both targets. See the link-metadata note under Core features for how this affects
 > URL enrichment.
@@ -59,6 +59,7 @@ boardly/
 ## Feature set
 
 ### Core (MVP)
+
 - Boards: create / rename / delete
 - Columns: add / rename / reorder / delete
 - Cards: title + markdown description; drag-and-drop within/across columns; reorder columns
@@ -66,10 +67,11 @@ boardly/
 - **Link attachments** — paste a URL → auto-fetch title + favicon, rendered as a rich chip.
   Metadata fetch: **desktop** does it natively in Rust (no CORS, no server needed); **web** routes
   through the Node server's link-metadata endpoint.
-- **Highlighted card fields** — a compact badge row on the card *face* (shortened form) surfacing
+- **Highlighted card fields** — a compact badge row on the card _face_ (shortened form) surfacing
   the fields that matter at a glance. See "Highlighted fields" below.
 
 ### Card details
+
 - Checklists / sub-tasks
 - Due dates
 - Labels / tags (colored)
@@ -87,18 +89,20 @@ detail view. Which fields show (and their order) is **configurable per board**.
 Two kinds of highlighted field:
 
 **1. Structured fields** (typed, first-class)
-| Field | Card-face form | Behavior |
-|---|---|---|
-| Severity | `S1`–`S4` or colored dot | Sortable/filterable; color-coded |
+
+| Field    | Card-face form           | Behavior                               |
+| -------- | ------------------------ | -------------------------------------- |
+| Severity | `S1`–`S4` or colored dot | Sortable/filterable; color-coded       |
 | Deadline | `Jul 12` / `2d` relative | Turns amber near due, red when overdue |
 
 **2. Smart link fields** (URL → provider-aware chip with icon + shortened label)
-| Provider | Detected from | Chip renders |
-|---|---|---|
-| Slack message | `*.slack.com/archives/...` | Slack icon + `#channel` or `msg →` |
-| Linear ticket | `linear.app/.../issue/ABC-123` | Linear icon + `ABC-123` |
-| Claude session | `claude.ai/code/session_...` | Claude icon + `session →` |
-| Generic URL | any other link | Favicon + site title (the Link-attachment behavior) |
+
+| Provider       | Detected from                  | Chip renders                                        |
+| -------------- | ------------------------------ | --------------------------------------------------- |
+| Slack message  | `*.slack.com/archives/...`     | Slack icon + `#channel` or `msg →`                  |
+| Linear ticket  | `linear.app/.../issue/ABC-123` | Linear icon + `ABC-123`                             |
+| Claude session | `claude.ai/code/session_...`   | Claude icon + `session →`                           |
+| Generic URL    | any other link                 | Favicon + site title (the Link-attachment behavior) |
 
 - Provider detection is a small set of URL matchers with per-provider icon + label formatter;
   falls back to the generic favicon+title chip. Easy to extend with new providers later.
@@ -107,6 +111,7 @@ Two kinds of highlighted field:
 - Clicking a chip opens the link (external browser on desktop, new tab on web).
 
 ### Linear-inspired
+
 - Command palette (Cmd+K) for every action
 - Keyboard-first navigation (no mouse required)
 - Short card IDs (e.g. `BRD-142`)
@@ -117,15 +122,18 @@ Two kinds of highlighted field:
 - Instant fuzzy search across all boards
 
 ### Board-level
+
 - Swimlanes / grouping (by assignee, label, priority)
 - WIP limits per column
 - Board templates
 
 ### Data & sync
+
 - Import / export (Markdown, JSON, Trello / Obsidian-kanban interop)
 - Conflict-free multi-device sync
 
 ### Later
+
 - Multi-user real-time collaboration
 - Roadmap / timeline view
 - Plugin system

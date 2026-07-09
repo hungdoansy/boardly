@@ -5,6 +5,7 @@ autonomous build loop). When something here conflicts with a task prompt, **stop
 do not silently deviate.
 
 Pointers:
+
 - Product/architecture overview: `PLAN.md`
 - Detailed build plan (source of truth for the loop): `docs/plans/2026-07-09-001-feat-boardly-full-build-plan.md`
 - Design system (binding for all UI): `docs/design/DESIGN.md`
@@ -16,13 +17,14 @@ Pointers:
 
 **Every task/subtask (implementation unit) gets an intensive, standalone doc** in `docs/units/`,
 named `UNIT-<id>-<slug>.md` (e.g. `UNIT-1.1-yjs-schema.md`). It must cover:
+
 - **What changed** — files, modules, data shapes, public APIs/commands added or altered.
 - **Why** — the decisions and their rationale (and rejected alternatives when non-obvious).
 - **How it works** — enough detail that a new contributor understands the mechanism without reading every line.
 - **How to test/verify** — the exact tests written and how to run them; the manual/e2e checks; for UI, what "correct" looks like (reference `DESIGN.md`).
 - **Follow-ups / known gaps** — anything deferred.
 
-**Docs-first is welcome and encouraged.** If writing the doc (or a design note) *before* implementing
+**Docs-first is welcome and encouraged.** If writing the doc (or a design note) _before_ implementing
 clarifies the work, do that — **and commit the doc before continuing** to implementation. A unit's
 doc must exist and be committed by the time its checkbox is ticked (see the plan's Definition of Done).
 
@@ -40,14 +42,16 @@ Keep `PLAN.md`, the plan file, and `DESIGN.md` current when a change invalidates
 ## 3. Engineering standards
 
 **React best practices**
+
 - Function components + hooks only. Obey the rules of hooks; stable, complete dependency arrays.
-- **Derive, don't synchronize** — compute from state/props during render instead of mirroring into extra state via effects. Effects are for *external* synchronization only (subscriptions, DOM, network), not data flow.
+- **Derive, don't synchronize** — compute from state/props during render instead of mirroring into extra state via effects. Effects are for _external_ synchronization only (subscriptions, DOM, network), not data flow.
 - Keep the Yjs↔React binding (`useY`) subscriptions **scoped** so a change re-renders only what depends on it. Memoize selectors; give lists stable keys (entity ids, never array index).
 - Colocate state at the lowest sensible level; lift only when shared. No prop-drilling beyond ~2 levels — use context sparingly and deliberately.
 - All mutations go through the **command layer** (`packages/commands`) — never mutate Yjs types directly from components (agent-native parity, see plan R13).
 - Static export constraints (see plan): no runtime SSR/route-handlers/server-actions; guard `window`/`localStorage`/IndexedDB to the client.
 
 **Frontend best practices**
+
 - Semantic HTML; accessible by default — labels, roles, `aria-*`, focus management, `focus-visible` rings. Everything reachable and operable by keyboard (this is a product goal, not just a11y).
 - No unnecessary layout shift; virtualize or window long card lists if they threaten scroll/drag performance (perf is a pillar — R2).
 - Prefer CSS (Tailwind v4 tokens) over JS for styling and simple animation; use transforms/opacity for motion (compositor-friendly), not layout properties.
