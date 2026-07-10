@@ -1,17 +1,24 @@
 ---
 title: "feat: Boardly — local-first kanban (web + desktop) full build"
 type: feat
-status: complete
+status: active
 date: 2026-07-09
-completed: 2026-07-10
+v1_completed: 2026-07-10
 origin: PLAN.md
 ---
 
-> **Build complete (2026-07-10).** All 41 implementation units are checked; each has a
-> `docs/units/UNIT-*.md` doc and a per-unit commit. Web is fully verified (unit + e2e +
+> **v1 build complete (2026-07-10).** All 41 v1 implementation units (Phases 0–5) are checked; each
+> has a `docs/units/UNIT-*.md` doc and a per-unit commit. Web is fully verified (unit + e2e +
 > dark/light screenshots); the server + sync run against Dockerized Postgres; the Tauri desktop
 > shell + native plugins are scaffolded and `cargo check`-clean, with native launch/signing left
 > as the documented user follow-up. Remaining polish is tracked in each unit doc's "Follow-ups".
+>
+> **v2 round 1 appended (2026-07-10).** Plan reopened to `active`. **Phase 6** adds a **list view**
+> and **Linear-style filtering** (units V1.1–V1.4) so Boardly works as a cross-workspace / personal
+> **ticket tracker**, not just a board. This merges the former standalone plan
+> `2026-07-10-002` into this file (the single source of truth). Round 2 (multi-workspace
+> Connections, link-only) and the desktop native-glue pass are sequenced after it — see
+> **v2 sequencing** at the end.
 
 # feat: Boardly — local-first kanban (web + desktop) full build
 
@@ -61,6 +68,12 @@ devices) with room to add multi-user collaboration later.
 - **R13 — Agent-native parity:** every board/card action is defined once in a shared, typed **command layer** and exposed through both a **REST API** and an **MCP server**, so an AI agent can do anything a user can do in the UI. The UI itself invokes the same commands — the interfaces cannot drift.
 - **R14 — Workflow status:** every card has a first-class workflow **status** (Backlog / Todo / In Progress / In Review / Done / Canceled) independent of its column; boards can group/filter by status; status changes are logged to activity; agents can set status directly.
 
+_v2 round 1 (Phase 6):_
+
+- **R15 — One view model, two lenses:** board and list render from a single `{ filter, sort, groupBy, layout }` model; a **saved view** restores all of it. No forked logic between the two lenses.
+- **R16 — Filtering parity with Linear:** nestable `AND`/`OR` across every card field (status, priority, severity, label, assignee, dueDate, title) with per-field operators, edited via a chip/add-filter bar; empty filter = everything.
+- **R17 — List ergonomics:** dense, keyboard-navigable rows; group sections with counts; sortable; a row opens the card detail. Perf: virtualize/window when a list exceeds a threshold (extends R2).
+
 ## Scope Boundaries
 
 - **Single-user, multi-device** now. No multi-user real-time collaboration on the same board (schema leaves room for it).
@@ -74,6 +87,12 @@ devices) with room to add multi-user collaboration later.
 - **Multi-user collaboration, presence cursors beyond basic awareness, comments/mentions:** later iteration.
 - **Card relations (blocks / relates-to / parent-child), cycles/sprints, roadmap/timeline view, natural-language quick-add, board templates, insights/charts, plugin system:** later iterations — explicitly out of this build to keep the overnight run focused.
 - **Production release infrastructure** (code-signing certs, updater release server, app store): config is written; operating it is out of scope.
+
+_v2 (sequenced after Phase 6 — see **v2 sequencing** below):_
+
+- **Round 2 — multi-workspace Connections (link-only):** Connections settings, per-link workspace tag, and a provider badge (workspace **initial + color**, shown only when >1 connection of that provider). Separate effort; **link-only first** (no OAuth/tokens).
+- **Connected mode:** per-workspace API tokens, Linear status sync, optional Slack posting — deferred behind link-only.
+- **Desktop native-glue + package/sign pass:** the same web bundle already runs under Tauri (Units 5.1/5.2), so this is a focused pass — desktop keychain auth handshake, deep-link routing, due-date notifications, a global quick-capture hotkey, then build/sign. Every Phase 6 / round-2 feature is in the desktop for free.
 
 ## Context & Research
 
@@ -849,6 +868,92 @@ sequenceDiagram
 - Perf sanity — a board with hundreds of cards scrolls and drags without jank.
   **Verification:** the e2e suite is green against the served build + live server; screenshot baselines match the Linear aesthetic; a11y checks pass.
 
+### Phase 6 — v2 round 1: list view + Linear-style filtering
+
+> Merged from the former standalone plan `docs/plans/2026-07-10-002-feat-list-view-filtering.md`
+> (now superseded by this file). The filter **engine** already exists from Unit 4.1 (nestable
+> `Filter` with `AND`/`OR`, `evaluateFilter`, `sortCards`, `groupCards`/`groupLabel`, `SavedView`
+> already holding `filter`/`sort`/`groupBy`/`visibleBadges`, and presets). This phase is mostly
+> **new UI + wiring** over that model — no new architecture. Board and list are two lenses over
+> **one shared view model** (R15). Same per-unit Definition of Done applies (see Overnight-loop DoD).
+
+- [ ] **Unit V1.1: Shared view model (`filter + sort + group + layout`)**
+
+**Goal:** one source of truth for a "view" that both board and list consume; saved views round-trip it.
+**Requirements:** R15.
+**Dependencies:** 4.1, 4.2 (done).
+**Files:**
+
+- Modify: `packages/domain/src/filters.ts` (add `layout?: "board" | "list"` to `SavedView`; add a pure `applyView` helper), `apps/web/components/board/views.tsx` (`ActiveView` gains `sort` + `layout`), `apps/web/lib/use-views.ts`, `apps/web/components/app/workspace-app.tsx`.
+- Test: `packages/domain/src/filters.test.ts`.
+
+**Approach:** Add `layout?: "board" | "list"` to `SavedView` (default `"board"`). Add a pure `applyView(cards, { filter, sort, groupBy }, ctx)` that composes the existing `evaluateFilter`→`sortCards`→`groupCards` into a single result (`{ grouped: CardGroup[] } | { flat: Card[] }`), so board/list never re-implement the pipeline. Extend the web `ActiveView` to `{ filter, sort, groupBy, layout, view }` and persist all of it when saving a view.
+**Execution note:** implement `applyView` test-first — it is the seam both lenses depend on.
+**Patterns to follow:** existing `evaluateFilter`/`sortCards`/`groupCards` in `packages/domain/src/filters.ts`; keep the helper pure and framework-agnostic (no React/DOM).
+**Test scenarios:**
+
+- Happy path — `applyView` filters, then sorts, then groups; ungrouped returns a stable flat sort.
+- Edge case — empty filter + no sort returns all cards in board order.
+- Edge case — a saved view restores filter+sort+group+layout exactly (serialize→parse round-trip), with `layout` defaulting to `"board"` when absent (back-compat with existing saved views).
+  **Verification:** domain unit tests for `applyView` + `SavedView` round-trip pass; `packages/domain` still has no React/DOM dependency.
+
+- [ ] **Unit V1.2: Linear-style filter builder (AND/OR, all fields + operators)**
+
+**Goal:** replace the AND-only builder with a chip-based, nestable filter editor covering every field.
+**Requirements:** R16.
+**Dependencies:** V1.1.
+**Files:**
+
+- Modify: `apps/web/components/board/filter-builder.tsx` (rewrite), `apps/web/components/board/views.tsx`.
+- Test: `apps/web/components/board/filter-builder.test.tsx`.
+
+**Approach:** A filter **chip bar**: "+ Filter" → pick field → operator (scoped to the field) → value(s) (multi-select for enums/labels/assignee; text for title; window for dueDate). Support an `AND`/`OR` toggle per group and **one level** of nested groups (the model allows deeper; UI caps at one nest for clarity). Operators map to what `evaluateFilter` already supports (`is`/`isNot`/`hasAny`/`hasAll`/`contains`/`isSet`/`isEmpty`/`isWithin`). Each active clause renders as a removable chip; empty builder = no filter. Reuse shadcn `Popover`/`Command` primitives + design tokens (no ad-hoc styling).
+**Patterns to follow:** shadcn/ui primitives already used elsewhere; the domain provider/enum vocabularies for field/operator/value options; DESIGN.md tokens.
+**Test scenarios:**
+
+- Happy path — build `priority is High OR (label hasAny [bug] AND status isNot Done)`; the emitted `Filter` matches the intended cards via `evaluateFilter`.
+- Edge case — removing the last clause clears the filter (matches all).
+- Edge case — switching a group AND↔OR re-evaluates; an enum field offers only its valid operators.
+  **Verification:** component tests build filters and assert the produced model + rendered chips; dark + light screenshots of the filter bar reviewed vs `DESIGN.md`.
+
+- [ ] **Unit V1.3: List view**
+
+**Goal:** a dense, keyboard-navigable list lens over the same cards, grouped/sorted per the view.
+**Requirements:** R15, R17, R2.
+**Dependencies:** V1.1.
+**Files:**
+
+- Create: `apps/web/components/board/list-view.tsx` (+ a `ListRow`).
+- Modify: wire into the board container.
+- Test: `apps/web/components/board/list-view.test.tsx`.
+
+**Approach:** Render `applyView` output as rows: group section headers (with count, via `groupLabel`) when `groupBy` is set, else a flat sorted list. Each row shows status icon, title, `shortId`, the badge row (reuse `BadgeRow`), due chip, and assignee; hover affordances match the board. Click or `Enter` opens the card detail (reuse `CardDetail` + `useSelectedCard`); `↑/↓` move row focus (reuse the keyboard-nav conventions). Window the list (simple virtualization) past a threshold so hundreds of rows stay smooth. No new mutations — editing/reordering still go through the command layer via the detail panel and existing row actions (archive).
+**Patterns to follow:** `BadgeRow`, `StatusIcon`, `CardDetail`, `useSelectedCard`; keyboard-nav conventions from the board; DESIGN.md density/motion rules.
+**Test scenarios:**
+
+- Happy path — a filtered+sorted list shows the right rows in order; grouped mode shows sections with correct counts; clicking a row opens its detail.
+- Edge case — empty result shows an empty state.
+- Edge case — keyboard `↑/↓` + `Enter` opens a card; terminal cards render dimmed/struck like the board.
+  **Verification:** component tests (rows, grouping, open-on-click/Enter) pass; dark + light screenshots (flat and grouped) reviewed vs `DESIGN.md`.
+
+- [ ] **Unit V1.4: View toolbar — layout switch, sort/group controls, saved views**
+
+**Goal:** switch Board↔List, choose sort + grouping, and save/restore the whole view.
+**Requirements:** R15, R16.
+**Dependencies:** V1.2, V1.3.
+**Files:**
+
+- Modify: `apps/web/components/board/views.tsx` (toolbar: layout segmented control + Sort + Group menus, consolidating the existing group-by selector), `apps/web/components/app/workspace-app.tsx` (render board or list by `activeView.layout`).
+- Test: `apps/e2e/tests/list.spec.ts`.
+
+**Approach:** A compact toolbar next to the existing Filter menu: **Board | List** segmented switch; a **Sort** menu (field + asc/desc); a **Group by** menu (reuse V1.1). Persist `layout`/`sort`/`groupBy` into the active view and into saved views, so applying a saved view restores the exact lens. Board and list both call `applyView` — one write path, two renderers.
+**Patterns to follow:** the existing views/filter toolbar and saved-view persistence; shadcn segmented/menu primitives; DESIGN.md.
+**Test scenarios:**
+
+- Happy path (e2e) — create cards; filter to a subset; sort by priority; group by status; switch to List and back — content stays consistent; save as a view, change things, re-apply the view → filter+sort+group+layout all restored.
+- Edge case — a preset view renders in list mode; switching layout preserves the active filter.
+  **Verification:** Playwright e2e green against the served build + live server; dark + light screenshots of the list (grouped) and the layout switch, reviewed vs `DESIGN.md`. _(User-facing/critical flow → e2e + screenshot per DoD.)_
+
 ## System-Wide Impact
 
 - **Interaction graph:** the **command layer (`packages/commands`)** is the single write path — the UI, REST, and MCP all call it; it wraps `packages/sync` accessors, which are the only code that mutates Y types. No UI-only mutation path may bypass the catalog (agent-native parity). The network provider (U3.6) observes the same doc the UI already renders — attaching it must not restructure state, only merge. Auth-store gates the API client and the WS-ticket request.
@@ -915,6 +1020,7 @@ If a unit is genuinely blocked, leave it unchecked with a short note in the plan
 - **Unit 1.7 (command layer) is foundational for agent-native parity — build it right after 1.2**, and route every UI mutation (1.3–1.6, all of Phase 2) through it rather than calling `packages/sync` directly.
 - Phase 3 depends on Phase 0 (server scaffold) and Phase 1.2 (provider) but is otherwise parallelizable against late Phase 2. The **agent interfaces (3.9 REST, 3.10 MCP)** depend on the command layer (1.7) + auth (3.3) + Hocuspocus (3.5), so they land after those.
 - Phase 4 depends on Phase 1–2 data model; Phase 5 depends on a built web app (0.4) and, for sync config, Phase 3.6.
+- **Phase 6 (v2 round 1)** depends on Phase 4's filter engine (4.1/4.2) and the existing card UI; it is a pure-UI layer over local Yjs data and needs no new backend. Internal order: V1.1 → (V1.2, V1.3 in parallel) → V1.4.
 - **Agent-native verification (per the parity principle):** whenever a unit adds a user action, it must also be a command in the catalog, and a test must assert the command produces the same state as the UI path.
 
 ```mermaid
@@ -927,7 +1033,22 @@ flowchart TD
   P1 --> P4
   P0 --> P5[Phase 5: Desktop + polish]
   P3 --> P5
+  P4 --> P6[Phase 6: v2 round 1 — list view + filtering]
 ```
+
+### v2 sequencing (after Phase 6)
+
+1. **Round 1 — Phase 6 (this plan):** list view + Linear-style filtering (units V1.1–V1.4).
+2. **Round 2 — multi-workspace Connections (link-only):** Connections settings, per-link workspace
+   tag, and the provider badge (workspace **initial + color**, shown only when >1 connection of that
+   provider). Reuses the existing `packages/domain` link provider registry; stays **link-only** (no
+   OAuth/tokens) so the download-and-self-host story stays trivial. To be planned as its own phase.
+   Open questions to settle first: (a) attach/open Slack links only, or also **post** to Slack from a
+   card? (b) link-only vs **Connected** (Linear API status sync).
+3. **Desktop native-glue + package/sign pass (reuse-first):** the same web bundle already runs under
+   Tauri (Units 5.1/5.2), so this is a focused native-glue pass — desktop keychain auth handshake,
+   deep-link routing, due-date notifications, a global **quick-capture hotkey**, then build/sign.
+   Every round-1/round-2 feature is already in the desktop for free. To be planned as its own phase.
 
 ## Sources & References
 
