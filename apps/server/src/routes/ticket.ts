@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
-import { type TokenKeys, verifyAccessToken } from "../auth/tokens";
+import { authenticateBearer } from "../auth/bearer";
+import type { TokenKeys } from "../auth/tokens";
 import type { Database } from "../db/client";
 import { boards } from "../db/schema";
 import { parseDocumentName } from "../sync/authz";
@@ -27,16 +28,8 @@ export async function ticketRoutes(app: FastifyInstance, opts: TicketRoutesOptio
   const { db, ticketStore, keys } = opts;
 
   app.post("/sync/ticket", async (request, reply) => {
-    const auth = request.headers.authorization;
-    if (!auth?.startsWith("Bearer ")) {
-      return reply.status(401).send({ error: "unauthorized" });
-    }
-    let userId: string;
-    try {
-      ({ sub: userId } = await verifyAccessToken(keys, auth.slice("Bearer ".length)));
-    } catch {
-      return reply.status(401).send({ error: "unauthorized" });
-    }
+    const userId = await authenticateBearer(request, keys);
+    if (!userId) return reply.status(401).send({ error: "unauthorized" });
 
     const parsed = bodySchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: "invalid request" });

@@ -103,6 +103,35 @@ export function createApiClient(options: ApiClientOptions = {}) {
       }
     },
 
+    /**
+     * Register (or re-affirm) ownership of a board so its sync room authorizes.
+     * Fire-and-forget and offline-tolerant: never throws (a failed attempt is
+     * retried by SyncBridge's reconciliation on the next connection).
+     */
+    async registerBoard(id: string, title: string): Promise<void> {
+      try {
+        await client.authFetch("/boards", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id, title }),
+        });
+      } catch {
+        // offline / server down → reconciled later
+      }
+    },
+
+    /** The user's non-archived boards registered server-side. */
+    async listBoards(): Promise<Array<{ id: string; title: string }>> {
+      try {
+        const res = await client.authFetch("/boards");
+        if (!res.ok) return [];
+        const data = (await res.json()) as { boards?: Array<{ id: string; title: string }> };
+        return data.boards ?? [];
+      } catch {
+        return [];
+      }
+    },
+
     /** Mint a single-use WS ticket for a sync document (auto-refreshes on 401). */
     async getSyncTicket(documentName: string): Promise<string> {
       const res = await client.authFetch("/sync/ticket", {

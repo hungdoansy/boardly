@@ -7,6 +7,7 @@ import type { AuthService } from "./auth/service";
 import type { TokenKeys } from "./auth/tokens";
 import type { ServerConfig } from "./config";
 import type { Database } from "./db/client";
+import { boardRoutes } from "./routes/boards";
 import { ticketRoutes } from "./routes/ticket";
 import { unfurlRoutes } from "./routes/unfurl";
 import type { TicketStore } from "./sync/ticket-store";
@@ -84,6 +85,10 @@ export function buildServer({
 
   if (database && ticketStore && keys) {
     void app.register(ticketRoutes, { db: database, ticketStore, keys });
+  }
+
+  if (database && keys) {
+    void app.register(boardRoutes, { db: database, keys });
   }
 
   if (database) {

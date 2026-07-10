@@ -688,7 +688,7 @@ sequenceDiagram
 - Edge case (security) — URLs targeting localhost/private IPs are rejected (SSRF guard).
   **Verification:** unit tests (mocked fetch) pass incl. SSRF rejection; web generic chips populate titles.
 
-- [ ] **Unit 3.8: Board ownership registry reconciliation**
+- [x] **Unit 3.8: Board ownership registry reconciliation** — done (`docs/units/UNIT-3.8-board-registry.md`). `POST/GET /boards` + `/boards/:id/archive` (Bearer-auth, id=Yjs room, idempotent, 409 on cross-user claim); client registers on create + SyncBridge reconciles all local boards on login and syncs the open board's content doc. Unblocks board-content sync (3.6). 65 server tests; e2e: created board's columns+card restored from server after a local wipe.
 
 **Goal:** creating a board registers ownership server-side so sync authorization works.
 **Requirements:** R3, R9.

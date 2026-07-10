@@ -6,6 +6,7 @@ import { listBoards, workspaceBoards } from "@boardly/sync";
 import { useY } from "@boardly/sync/react";
 import { useCallback, useEffect, useState } from "react";
 
+import { apiClient } from "./api-client";
 import { useBoardlyContext } from "./boardly-context";
 
 /** Columns every new board starts with. */
@@ -32,6 +33,9 @@ export function useBoardActions(): BoardActions {
       for (const columnTitle of DEFAULT_COLUMNS) {
         execute(addColumn, ctx, { boardId: board.id, title: columnTitle });
       }
+      // Register ownership server-side so the board's sync room authorizes
+      // (Unit 3.8). Fire-and-forget; offline creates reconcile later (SyncBridge).
+      void apiClient.registerBoard(board.id, title);
       return board.id;
     },
     [ctx],
