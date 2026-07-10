@@ -1,0 +1,5 @@
+# Playwright run artifacts (baselines under snapshots/ ARE committed)
+/test-results
+/playwright-report
+/blob-report
+/.cache

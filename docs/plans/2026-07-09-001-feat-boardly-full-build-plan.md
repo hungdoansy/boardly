@@ -828,7 +828,7 @@ sequenceDiagram
 - Edge case (responsive) — at a narrow viewport the board scrolls and the detail panel is usable.
   **Verification:** theme toggle e2e green; screenshots in dark + light, wide + narrow, reviewed against the aesthetic.
 
-- [ ] **Unit 5.4: E2E consolidation, screenshot baselines, a11y pass**
+- [x] **Unit 5.4: E2E consolidation, screenshot baselines, a11y pass** — done (`docs/units/UNIT-5.4-e2e-a11y.md`). Playwright suite in `apps/e2e` (`@playwright/test` pinned 1.59.1 — cached browser) run against the served `out/` + live server + Dockerized Postgres: `auth`/`board`/`card`/`search`/`a11y`/`sync` specs, a dark visual baseline (`toHaveScreenshot`), and keyboard/a11y checks (accessible names, Enter/Escape card open/close, theme-toggle persistence). Two-client live-sync spec covers ownership→ticket→Hocuspocus→Yjs convergence. **12/12 pass** (~9s); config serves multi-page/hash-routed app (no `-s`), lifts login rate limit for e2e. typecheck/lint/format green. Follow-ups: chromium-only, perf-at-scale + drag e2e, CI wiring.
 
 **Goal:** a coherent Playwright suite, screenshot baselines vs the Linear style, and a keyboard/a11y sweep.
 **Requirements:** R12, R2, R8.
