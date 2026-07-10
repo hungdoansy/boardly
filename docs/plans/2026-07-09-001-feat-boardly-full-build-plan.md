@@ -936,7 +936,7 @@ sequenceDiagram
 - Edge case — keyboard `↑/↓` + `Enter` opens a card; terminal cards render dimmed/struck like the board.
   **Verification:** component tests (rows, grouping, open-on-click/Enter) pass; dark + light screenshots (flat and grouped) reviewed vs `DESIGN.md`.
 
-- [ ] **Unit V1.4: View toolbar — layout switch, sort/group controls, saved views**
+- [x] **Unit V1.4: View toolbar — layout switch, sort/group controls, saved views**
 
 **Goal:** switch Board↔List, choose sort + grouping, and save/restore the whole view.
 **Requirements:** R15, R16.

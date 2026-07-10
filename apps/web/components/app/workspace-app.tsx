@@ -24,7 +24,7 @@ import { BoardView } from "../board/board-view";
 import { ImportExportMenu } from "../board/import-export";
 import { ListView } from "../board/list-view";
 import { LabelManager } from "../board/label-manager";
-import { type ActiveView, ViewsMenu } from "../board/views";
+import { type ActiveView, GroupMenu, SortMenu, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
 import { SearchDialog } from "../search/search";
 import { SyncBridge } from "../sync/sync-bridge";
@@ -152,7 +152,19 @@ function MainArea() {
           {active ? (
             <LayoutSwitch
               layout={activeView.layout}
-              onChange={(layout) => setActiveView((v) => ({ ...v, layout }))}
+              onChange={(layout) => setActiveView((v) => ({ ...v, layout, view: null }))}
+            />
+          ) : null}
+          {active ? (
+            <GroupMenu
+              groupBy={activeView.groupBy}
+              onChange={(groupBy) => setActiveView((v) => ({ ...v, groupBy, view: null }))}
+            />
+          ) : null}
+          {active ? (
+            <SortMenu
+              sort={activeView.sort}
+              onChange={(sort) => setActiveView((v) => ({ ...v, sort, view: null }))}
             />
           ) : null}
           {active ? (

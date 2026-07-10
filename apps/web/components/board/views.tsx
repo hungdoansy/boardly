@@ -5,12 +5,13 @@ import {
   type GroupByField,
   type SavedView,
   type Sort,
+  type SortField,
   type ViewLayout,
   isEmptyFilter,
   PRESET_VIEWS,
 } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
-import { Check, ListFilter, Trash2 } from "lucide-react";
+import { ArrowDownUp, ArrowDown, ArrowUp, Check, Layers, ListFilter, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { useLabels } from "../../lib/use-board";
@@ -36,6 +37,166 @@ const GROUP_OPTIONS: { value: GroupByField | null; label: string }[] = [
   { value: "assignee", label: "Assignee" },
 ];
 
+const SORT_OPTIONS: { value: SortField; label: string }[] = [
+  { value: "priority", label: "Priority" },
+  { value: "dueDate", label: "Due date" },
+  { value: "status", label: "Status" },
+  { value: "title", label: "Title" },
+  { value: "createdAt", label: "Created" },
+  { value: "updatedAt", label: "Updated" },
+];
+
+/** Toolbar menu: group cards into swimlanes (board) / sections (list). */
+export function GroupMenu({
+  groupBy,
+  onChange,
+}: {
+  groupBy: GroupByField | null;
+  onChange: (groupBy: GroupByField | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = GROUP_OPTIONS.find((o) => o.value === groupBy);
+  const active = groupBy !== null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Group by"
+          className={active ? "text-fg" : "text-fg-muted"}
+        >
+          <Layers className="size-3.5" />
+          {active ? current?.label : "Group"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent aria-label="Group by menu" align="end" className="flex w-44 flex-col gap-0.5">
+        {GROUP_OPTIONS.map((opt) => (
+          <MenuRow
+            key={opt.value ?? "none"}
+            label={opt.label}
+            selected={groupBy === opt.value}
+            onClick={() => {
+              onChange(opt.value);
+              setOpen(false);
+            }}
+          />
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Toolbar menu: field + direction sort (applied by the list; board stays ord-ordered). */
+export function SortMenu({
+  sort,
+  onChange,
+}: {
+  sort: Sort | null;
+  onChange: (sort: Sort | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = SORT_OPTIONS.find((o) => o.value === sort?.field);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Sort"
+          className={sort ? "text-fg" : "text-fg-muted"}
+        >
+          <ArrowDownUp className="size-3.5" />
+          {sort ? current?.label : "Sort"}
+          {sort ? (
+            sort.direction === "asc" ? (
+              <ArrowUp className="size-3 text-fg-faint" />
+            ) : (
+              <ArrowDown className="size-3 text-fg-faint" />
+            )
+          ) : null}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent aria-label="Sort menu" align="end" className="flex w-44 flex-col gap-0.5">
+        <MenuRow
+          label="No sorting"
+          selected={!sort}
+          onClick={() => {
+            onChange(null);
+            setOpen(false);
+          }}
+        />
+        <div className="my-0.5 border-t border-line-subtle" />
+        {SORT_OPTIONS.map((opt) => (
+          <MenuRow
+            key={opt.value}
+            label={opt.label}
+            selected={sort?.field === opt.value}
+            onClick={() => {
+              onChange({ field: opt.value, direction: sort?.direction ?? "asc" });
+              setOpen(false);
+            }}
+          />
+        ))}
+        {sort ? (
+          <>
+            <div className="my-0.5 border-t border-line-subtle" />
+            <div className="flex gap-1 px-1 pt-0.5">
+              {(["asc", "desc"] as const).map((dir) => (
+                <button
+                  key={dir}
+                  type="button"
+                  aria-pressed={sort.direction === dir}
+                  onClick={() => onChange({ field: sort.field, direction: dir })}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                    sort.direction === dir
+                      ? "bg-overlay text-fg"
+                      : "text-fg-muted hover:bg-overlay/60"
+                  }`}
+                >
+                  {dir === "asc" ? (
+                    <ArrowUp className="size-3" />
+                  ) : (
+                    <ArrowDown className="size-3" />
+                  )}
+                  {dir === "asc" ? "Asc" : "Desc"}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function MenuRow({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-left text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+        selected ? "text-fg" : "text-fg-muted"
+      }`}
+    >
+      <Check
+        className={selected ? "size-3 text-[var(--accent)]" : "size-3 text-transparent"}
+        aria-hidden
+      />
+      {label}
+    </button>
+  );
+}
+
 export function ViewsMenu({
   boardId,
   active,
@@ -60,10 +221,10 @@ export function ViewsMenu({
       layout: view.layout ?? "board",
     });
   const setFilter = (filter: Filter): void => onChange({ ...active, filter, view: null });
-  const setGroupBy = (groupBy: GroupByField | null): void =>
-    onChange({ ...active, groupBy, view: null });
   const filtered = !isEmptyFilter(active.filter);
-  const customized = filtered || active.groupBy !== null;
+  // "Customized" = any lens dimension differs from the board default.
+  const customized =
+    filtered || active.groupBy !== null || active.sort !== null || active.layout !== "board";
 
   const saveCurrent = (): void => {
     const trimmed = name.trim();
@@ -90,12 +251,17 @@ export function ViewsMenu({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={customized ? "text-fg" : "text-fg-muted"}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Views and filters"
+          className={customized ? "text-fg" : "text-fg-muted"}
+        >
           <ListFilter className="size-3.5" />
-          {active.view ? active.view.name : customized ? "Filtered" : "Filter"}
+          {active.view ? active.view.name : filtered ? "Filtered" : "Filter"}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="flex w-96 flex-col gap-3">
+      <PopoverContent aria-label="Views menu" align="end" className="flex w-96 flex-col gap-3">
         <div className="flex flex-col gap-1">
           <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
             Views
@@ -124,29 +290,6 @@ export function ViewsMenu({
                     }}
                   />
                 )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1 border-t border-line-subtle pt-2">
-          <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
-            Group by
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {GROUP_OPTIONS.map((opt) => (
-              <button
-                key={opt.value ?? "none"}
-                type="button"
-                onClick={() => setGroupBy(opt.value)}
-                className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
-                  active.groupBy === opt.value ? "bg-overlay text-fg" : "text-fg-muted"
-                }`}
-              >
-                {active.groupBy === opt.value ? (
-                  <Check className="size-3 text-[var(--accent)]" />
-                ) : null}
-                {opt.label}
               </button>
             ))}
           </div>
