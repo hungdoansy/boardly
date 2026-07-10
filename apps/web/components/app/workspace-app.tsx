@@ -113,10 +113,18 @@ function MainArea() {
     filter: emptyFilter(),
     view: null,
     groupBy: null,
+    sort: null,
+    layout: "board",
   });
   // Reset the applied view when switching boards (views are per-board).
   useEffect(() => {
-    setActiveView({ filter: emptyFilter(), view: null, groupBy: null });
+    setActiveView({
+      filter: emptyFilter(),
+      view: null,
+      groupBy: null,
+      sort: null,
+      layout: "board",
+    });
   }, [selected]);
   const filter = isEmptyFilter(activeView.filter) ? undefined : activeView.filter;
 

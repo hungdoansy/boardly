@@ -4,11 +4,14 @@ import { Priority, Severity } from "./enums";
 import {
   type Filter,
   PRESET_VIEWS,
+  type ResolvedView,
+  type SavedView,
   emptyFilter,
   evaluateFilter,
   groupCards,
   groupLabel,
   isEmptyFilter,
+  resolveView,
   sortCards,
 } from "./filters";
 import { Status } from "./status";
@@ -226,5 +229,105 @@ describe("preset views", () => {
     expect(evaluateFilter(card({ priority: Priority.Urgent }), preset.filter, ctx)).toBe(true);
     expect(evaluateFilter(card({ priority: Priority.High }), preset.filter, ctx)).toBe(true);
     expect(evaluateFilter(card({ priority: Priority.Medium }), preset.filter, ctx)).toBe(false);
+  });
+});
+
+describe("resolveView", () => {
+  const asFlat = (r: ResolvedView): Card[] => {
+    if (!("flat" in r)) throw new Error("expected a flat result");
+    return r.flat;
+  };
+
+  it("filters, then sorts, then groups (grouped result)", () => {
+    const cards = [
+      card({ id: "a", priority: Priority.Low, status: Status.Todo }),
+      card({ id: "b", priority: Priority.Urgent, status: Status.Todo }),
+      card({ id: "c", priority: Priority.High, status: Status.Done }),
+      card({ id: "d", priority: Priority.Medium, status: Status.Todo }),
+    ];
+    const r = resolveView(
+      cards,
+      {
+        filter: and({ field: "status", condition: "is", values: [Status.Todo] }),
+        sort: { field: "priority", direction: "desc" },
+        groupBy: "priority",
+      },
+      ctx,
+    );
+    if (!("grouped" in r)) throw new Error("expected grouped");
+    // "c" is filtered out (Done); remaining sorted desc then grouped by priority.
+    expect(r.grouped.map((g) => g.key)).toEqual([
+      String(Priority.Urgent),
+      String(Priority.Medium),
+      String(Priority.Low),
+    ]);
+    expect(r.grouped.flatMap((g) => g.cards.map((c) => c.id))).toEqual(["b", "d", "a"]);
+  });
+
+  it("ungrouped returns a stable flat sort", () => {
+    const cards = [
+      card({ id: "low", priority: Priority.Low }),
+      card({ id: "urgent", priority: Priority.Urgent }),
+      card({ id: "med", priority: Priority.Medium }),
+    ];
+    const r = resolveView(cards, { sort: { field: "priority", direction: "desc" } }, ctx);
+    expect(asFlat(r).map((c) => c.id)).toEqual(["urgent", "med", "low"]);
+  });
+
+  it("empty filter + no sort returns all cards in input (board) order", () => {
+    const cards = [card({ id: "x" }), card({ id: "y" }), card({ id: "z" })];
+    expect(asFlat(resolveView(cards, {}, ctx)).map((c) => c.id)).toEqual(["x", "y", "z"]);
+    expect(asFlat(resolveView(cards, { filter: emptyFilter() }, ctx)).map((c) => c.id)).toEqual([
+      "x",
+      "y",
+      "z",
+    ]);
+  });
+
+  it("does not mutate the input cards array", () => {
+    const cards = [
+      card({ id: "low", priority: Priority.Low }),
+      card({ id: "urgent", priority: Priority.Urgent }),
+    ];
+    resolveView(cards, { sort: { field: "priority", direction: "desc" } }, ctx);
+    expect(cards.map((c) => c.id)).toEqual(["low", "urgent"]);
+  });
+});
+
+describe("SavedView round-trip", () => {
+  it("restores filter + sort + groupBy + layout exactly through JSON", () => {
+    const view: SavedView = {
+      id: "v1",
+      name: "Open bugs, list",
+      filter: or(
+        { field: "priority", condition: "is", values: [Priority.High] },
+        and(
+          { field: "label", condition: "hasAny", values: ["bug"] },
+          { field: "status", condition: "isNot", values: [Status.Done] },
+        ),
+      ),
+      sort: { field: "priority", direction: "desc" },
+      groupBy: "status",
+      layout: "list",
+      visibleBadges: ["severity", "dueDate"],
+    };
+    const restored = JSON.parse(JSON.stringify(view)) as SavedView;
+    expect(restored).toEqual(view);
+    // The restored lens drives resolveView identically.
+    const cards = [
+      card({ id: "hi", priority: Priority.High, status: Status.Todo }),
+      card({ id: "done", priority: Priority.High, status: Status.Done }),
+    ];
+    const from = (v: SavedView): unknown =>
+      resolveView(cards, { filter: v.filter, sort: v.sort, groupBy: v.groupBy }, ctx);
+    expect(from(restored)).toEqual(from(view));
+  });
+
+  it("layout is optional and defaults to undefined (back-compat with pre-V1.1 views)", () => {
+    const legacy: SavedView = { id: "v0", name: "Legacy", filter: emptyFilter() };
+    const restored = JSON.parse(JSON.stringify(legacy)) as SavedView;
+    expect(restored.layout).toBeUndefined();
+    // Callers treat absent layout as "board".
+    expect(restored.layout ?? "board").toBe("board");
   });
 });

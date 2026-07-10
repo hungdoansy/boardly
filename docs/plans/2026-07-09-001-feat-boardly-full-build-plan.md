@@ -877,7 +877,7 @@ sequenceDiagram
 > **new UI + wiring** over that model — no new architecture. Board and list are two lenses over
 > **one shared view model** (R15). Same per-unit Definition of Done applies (see Overnight-loop DoD).
 
-- [ ] **Unit V1.1: Shared view model (`filter + sort + group + layout`)**
+- [x] **Unit V1.1: Shared view model (`filter + sort + group + layout`)**
 
 **Goal:** one source of truth for a "view" that both board and list consume; saved views round-trip it.
 **Requirements:** R15.

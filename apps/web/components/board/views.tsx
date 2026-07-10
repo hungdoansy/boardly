@@ -4,6 +4,8 @@ import {
   type Filter,
   type GroupByField,
   type SavedView,
+  type Sort,
+  type ViewLayout,
   isEmptyFilter,
   PRESET_VIEWS,
 } from "@boardly/domain";
@@ -18,6 +20,10 @@ export interface ActiveView {
   filter: Filter;
   view: SavedView | null;
   groupBy: GroupByField | null;
+  /** Sort applied by both lenses; null → board/input order (V1.1; UI in V1.4). */
+  sort: Sort | null;
+  /** Board vs list rendering (V1.1; toolbar switch in V1.4). */
+  layout: ViewLayout;
 }
 
 const GROUP_OPTIONS: { value: GroupByField | null; label: string }[] = [
@@ -42,12 +48,18 @@ export function ViewsMenu({
   const actions = useViewActions(boardId);
   const [name, setName] = useState("");
 
+  // Applying a saved view restores its full lens (filter + sort + group + layout).
   const applyView = (view: SavedView): void =>
-    onChange({ filter: view.filter, view, groupBy: view.groupBy ?? null });
-  const setFilter = (filter: Filter): void =>
-    onChange({ filter, view: null, groupBy: active.groupBy });
+    onChange({
+      filter: view.filter,
+      view,
+      groupBy: view.groupBy ?? null,
+      sort: view.sort ?? null,
+      layout: view.layout ?? "board",
+    });
+  const setFilter = (filter: Filter): void => onChange({ ...active, filter, view: null });
   const setGroupBy = (groupBy: GroupByField | null): void =>
-    onChange({ filter: active.filter, view: null, groupBy });
+    onChange({ ...active, groupBy, view: null });
   const filtered = !isEmptyFilter(active.filter);
   const customized = filtered || active.groupBy !== null;
 
@@ -59,10 +71,18 @@ export function ViewsMenu({
       name: trimmed,
       filter: active.filter,
       groupBy: active.groupBy,
+      sort: active.sort ?? undefined,
+      layout: active.layout,
     };
     actions.save(view);
     setName("");
-    onChange({ filter: view.filter, view, groupBy: view.groupBy ?? null });
+    onChange({
+      filter: view.filter,
+      view,
+      groupBy: view.groupBy ?? null,
+      sort: view.sort ?? null,
+      layout: view.layout ?? "board",
+    });
   };
 
   return (
@@ -98,8 +118,7 @@ export function ViewsMenu({
                     onClick={(e) => {
                       e.stopPropagation();
                       actions.remove(view.id);
-                      if (active.view?.id === view.id)
-                        onChange({ filter: active.filter, view: null, groupBy: active.groupBy });
+                      if (active.view?.id === view.id) onChange({ ...active, view: null });
                     }}
                   />
                 )}

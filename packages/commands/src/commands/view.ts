@@ -38,6 +38,7 @@ const viewSchema = z.object({
   filter: groupSchema,
   sort: sortSchema.optional(),
   groupBy: z.enum(["status", "priority", "severity", "label", "assignee"]).nullable().optional(),
+  layout: z.enum(["board", "list"]).optional(),
   visibleBadges: z.array(z.string()).optional(),
 });
 

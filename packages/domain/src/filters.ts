@@ -279,6 +279,39 @@ export function groupLabel(
   }
 }
 
+// ----- View resolution (one model, two lenses — Unit V1.1) -----
+
+/** How a view renders: the kanban board or the dense list. Absent → "board". */
+export type ViewLayout = "board" | "list";
+
+/**
+ * The lens applied to a set of cards, independent of how it renders. Board and
+ * list both feed the same `{ filter, sort, groupBy }` through `resolveView` so
+ * the two views never re-implement the filter→sort→group pipeline.
+ */
+export interface ViewLens {
+  filter?: Filter;
+  sort?: Sort | null;
+  groupBy?: GroupByField | null;
+}
+
+/** Result of `resolveView`: grouped lanes when `groupBy` is set, else a flat list. */
+export type ResolvedView = { grouped: CardGroup[] } | { flat: Card[] };
+
+/**
+ * Pure composition of the existing pipeline: filter (empty/absent → all cards),
+ * then stable sort (absent → input/board order), then optional grouping. When
+ * `groupBy` is set the result is `{ grouped }`; otherwise `{ flat }`. Lanes are
+ * internally sorted because grouping runs after sorting.
+ */
+export function resolveView(cards: Card[], lens: ViewLens, ctx: FilterContext): ResolvedView {
+  const { filter, sort, groupBy } = lens;
+  const filtered =
+    filter && !isEmptyFilter(filter) ? cards.filter((c) => evaluateFilter(c, filter, ctx)) : cards;
+  const sorted = sort ? sortCards(filtered, sort) : filtered;
+  return groupBy ? { grouped: groupCards(sorted, groupBy) } : { flat: sorted };
+}
+
 // ----- Saved views -----
 
 export interface SavedView {
@@ -288,6 +321,8 @@ export interface SavedView {
   sort?: Sort;
   /** Swimlane grouping (Unit 4.2); null/undefined → ungrouped columns. */
   groupBy?: GroupByField | null;
+  /** Board vs list rendering (Unit V1.1); absent → "board" for back-compat. */
+  layout?: ViewLayout;
   /** Overrides the board badge row when set (Unit 2.6). */
   visibleBadges?: string[];
 }
