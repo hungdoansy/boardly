@@ -1,10 +1,17 @@
 ---
 title: "feat: Boardly — local-first kanban (web + desktop) full build"
 type: feat
-status: active
+status: complete
 date: 2026-07-09
+completed: 2026-07-10
 origin: PLAN.md
 ---
+
+> **Build complete (2026-07-10).** All 41 implementation units are checked; each has a
+> `docs/units/UNIT-*.md` doc and a per-unit commit. Web is fully verified (unit + e2e +
+> dark/light screenshots); the server + sync run against Dockerized Postgres; the Tauri desktop
+> shell + native plugins are scaffolded and `cargo check`-clean, with native launch/signing left
+> as the documented user follow-up. Remaining polish is tracked in each unit doc's "Follow-ups".
 
 # feat: Boardly — local-first kanban (web + desktop) full build
 
