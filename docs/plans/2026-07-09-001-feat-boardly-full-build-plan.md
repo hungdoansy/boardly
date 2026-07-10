@@ -1,9 +1,10 @@
 ---
 title: "feat: Boardly — local-first kanban (web + desktop) full build"
 type: feat
-status: active
+status: complete
 date: 2026-07-09
 v1_completed: 2026-07-10
+v2_round1_completed: 2026-07-10
 origin: PLAN.md
 ---
 
@@ -13,12 +14,15 @@ origin: PLAN.md
 > shell + native plugins are scaffolded and `cargo check`-clean, with native launch/signing left
 > as the documented user follow-up. Remaining polish is tracked in each unit doc's "Follow-ups".
 >
-> **v2 round 1 appended (2026-07-10).** Plan reopened to `active`. **Phase 6** adds a **list view**
-> and **Linear-style filtering** (units V1.1–V1.4) so Boardly works as a cross-workspace / personal
-> **ticket tracker**, not just a board. This merges the former standalone plan
-> `2026-07-10-002` into this file (the single source of truth). Round 2 (multi-workspace
-> Connections, link-only) and the desktop native-glue pass are sequenced after it — see
-> **v2 sequencing** at the end.
+> **v2 round 1 complete (2026-07-10).** **Phase 6** added a **list view** and **Linear-style
+> filtering** (units V1.1–V1.4, all checked; each has a `docs/units/UNIT-V1.*.md` doc + per-unit
+> commit) so Boardly works as a cross-workspace / personal **ticket tracker**, not just a board:
+> a shared `resolveView` model, a chip-based AND/OR filter builder, a dense keyboard-navigable list
+> lens, and a Board\|List + Sort + Group toolbar whose saved views round-trip the whole lens. Verified
+> by unit tests (web 131) + the `apps/e2e/tests/list.spec.ts` e2e (14 passed) + a dark grouped-list
+> screenshot baseline. This merged the former standalone plan `2026-07-10-002` into this file (the
+> single source of truth). Round 2 (multi-workspace Connections, link-only) and the desktop
+> native-glue pass are sequenced next — see **v2 sequencing** at the end.
 
 # feat: Boardly — local-first kanban (web + desktop) full build
 
