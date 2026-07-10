@@ -1,6 +1,9 @@
 pnpm-lock.yaml
 # Drizzle-generated migrations + metadata (machine-authored; don't reformat).
 apps/server/drizzle/**
+# Tauri build output + generated schemas/assets (machine-authored, git-ignored).
+apps/desktop/src-tauri/target/**
+apps/desktop/src-tauri/gen/**
 **/dist/**
 **/.next/**
 **/out/**

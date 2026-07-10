@@ -1,4 +1,4 @@
-import { exportJson, parseJson, parseObsidian, Priority, Severity, Status } from "@boardly/domain";
+import { exportJson, parseJson, parseObsidian, Priority, Severity } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 

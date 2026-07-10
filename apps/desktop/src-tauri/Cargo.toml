@@ -1,0 +1,28 @@
+[package]
+name = "boardly"
+version = "0.0.0"
+description = "Boardly — local-first kanban desktop shell"
+authors = ["Boardly"]
+edition = "2021"
+rust-version = "1.77"
+
+# The desktop binary. Tauri v2's mobile targets are out of scope (see plan), so
+# no lib/mobile entry point — a plain binary crate wrapping the web export.
+[[bin]]
+name = "boardly"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

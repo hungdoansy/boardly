@@ -792,7 +792,7 @@ sequenceDiagram
 
 ### Phase 5 — Desktop (Tauri) + polish
 
-- [ ] **Unit 5.1: Tauri v2 shell wrapping the web export**
+- [x] **Unit 5.1: Tauri v2 shell wrapping the web export** — done (`docs/units/UNIT-5.1-tauri-shell.md`). New `apps/desktop` Tauri v2 project: `tauri.conf.json` (`frontendDist=../../web/out`, devUrl, before-dev/build web commands, window "Boardly" + `useHttpsScheme:true`, sync-permitting CSP `connect-src`), `Cargo.toml`/`build.rs`/`src/main.rs` (plain binary, no plugins yet), `capabilities/default.json` (`core:default`), generated icon set. `@tauri-apps/cli` pinned `2.9.2`; no `build` npm script so the JS pipeline stays web-only. Verified: `cargo check` compiles (Rust 1.88), web `out/` builds, all repo gates green (typecheck/lint/format + mcp 6/domain 60/ui 2/sync 38/commands 9/server 71/web 99). No new screenshot (wraps the identical web UI); native launch is a documented user follow-up. Deferred: plugins (5.2), CSP host hardening, code signing.
 
 **Goal:** a Tauri desktop project that loads the Next.js static export with stable storage origin and a sync-permitting CSP.
 **Requirements:** R4, R1.
