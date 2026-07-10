@@ -59,7 +59,8 @@ describe("CardDetail", () => {
       "href",
       "https://example.com",
     );
-    expect(screen.getByRole("listitem")).toHaveTextContent("item");
+    const item = screen.getByText("item");
+    expect(item.closest("li")).toBeInTheDocument();
   });
 
   it("renders an empty editor without error", () => {

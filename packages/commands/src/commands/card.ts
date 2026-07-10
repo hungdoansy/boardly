@@ -35,6 +35,7 @@ export const createCard = defineCommand({
       title: input.title,
       now: ctx.now(),
       clientId: ctx.clientId,
+      createdBy: ctx.userId,
     });
     return syncGetCard(doc, id);
   },
@@ -59,6 +60,7 @@ export const moveCard = defineCommand({
       { afterId: input.afterId ?? null, beforeId: input.beforeId ?? null },
       ctx.clientId,
       ctx.now(),
+      ctx.userId ?? ctx.clientId,
     );
     return syncGetCard(doc, input.cardId);
   },
@@ -70,7 +72,7 @@ export const renameCard = defineCommand({
   input: z.object({ boardId: z.string(), cardId: z.string(), title: z.string().min(1) }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
-    setCardTitle(doc, input.cardId, input.title, ctx.now());
+    setCardTitle(doc, input.cardId, input.title, ctx.now(), ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });
@@ -85,7 +87,7 @@ export const setCardPriority = defineCommand({
   }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
-    syncSetPriority(doc, input.cardId, input.priority, ctx.now());
+    syncSetPriority(doc, input.cardId, input.priority, ctx.now(), ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });
@@ -100,7 +102,7 @@ export const setCardSeverity = defineCommand({
   }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
-    syncSetSeverity(doc, input.cardId, input.severity, ctx.now());
+    syncSetSeverity(doc, input.cardId, input.severity, ctx.now(), ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });
@@ -126,7 +128,7 @@ export const setCardDueDate = defineCommand({
   }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
-    syncSetDueDate(doc, input.cardId, input.dueDate, ctx.now());
+    syncSetDueDate(doc, input.cardId, input.dueDate, ctx.now(), ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });
@@ -220,7 +222,12 @@ export const archiveCard = defineCommand({
   description: "Archive a card.",
   input: z.object({ boardId: z.string(), cardId: z.string() }),
   run: (ctx, input) => {
-    syncArchiveCard(ctx.getBoardDoc(input.boardId), input.cardId, ctx.now());
+    syncArchiveCard(
+      ctx.getBoardDoc(input.boardId),
+      input.cardId,
+      ctx.now(),
+      ctx.userId ?? ctx.clientId,
+    );
     return { id: input.cardId, archived: true };
   },
 });

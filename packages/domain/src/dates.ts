@@ -55,3 +55,22 @@ export function describeDueDate(due: DueDate, now: number): DueDisplay {
   const tone: DueTone = overdue ? "overdue" : daysUntil <= 2 ? "soon" : "normal";
   return { label, tone };
 }
+
+/**
+ * Compact relative timestamp for activity/history feeds: "now", "5m", "3h",
+ * "2d", then an absolute `Jul 12` (or `Jul 12, 2025` in a prior year). `now` is
+ * injected so it is deterministically testable.
+ */
+export function formatRelativeTime(at: number, now: number): string {
+  const diff = now - at;
+  if (diff < 45_000) return "now";
+  const mins = Math.round(diff / 60_000);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.round(diff / 3_600_000);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.round(diff / 86_400_000);
+  if (days < 7) return `${days}d`;
+  const d = new Date(at);
+  const base = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return d.getFullYear() === new Date(now).getFullYear() ? base : `${base}, ${d.getFullYear()}`;
+}

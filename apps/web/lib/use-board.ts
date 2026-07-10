@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  ActivityEntry,
   Card,
   Column,
   DueDate,
@@ -47,6 +48,7 @@ import {
   boardColumns,
   boardLabels,
   boardMeta,
+  cardActivity,
   cardsInColumn,
   getBoard,
   getCard,
@@ -178,6 +180,12 @@ export function useAllCards(boardId: string): Card[] {
 export function useCardById(boardId: string, cardId: string | null): Card | null {
   const doc = useBoardlyContext().getBoardDoc(boardId);
   return useYDoc(doc, () => (cardId ? getCard(doc, cardId) : null), { deps: [cardId] });
+}
+
+/** A card's activity timeline, newest-first (Unit 4.3). Empty when no card. */
+export function useCardActivity(boardId: string, cardId: string | null): ActivityEntry[] {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useYDoc(doc, () => (cardId ? cardActivity(doc, cardId) : []), { deps: [cardId] });
 }
 
 export interface CardActions {

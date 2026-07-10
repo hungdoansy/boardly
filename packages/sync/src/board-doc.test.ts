@@ -135,9 +135,9 @@ describe("workflow status", () => {
 
     expect(getCard(doc, a)?.status).toBe(Status.InProgress);
     expect(getCard(doc, a)?.columnId).toBe(c1);
-    const log = listActivity(doc);
-    expect(log).toHaveLength(1);
-    expect(log[0]).toMatchObject({
+    const statusLog = listActivity(doc).filter((e) => e.type === "status");
+    expect(statusLog).toHaveLength(1);
+    expect(statusLog[0]).toMatchObject({
       type: "status",
       cardId: a,
       from: DEFAULT_STATUS,
@@ -146,11 +146,11 @@ describe("workflow status", () => {
     });
   });
 
-  it("no-ops (no activity) when the status is unchanged", () => {
+  it("no-ops (no status activity) when the status is unchanged", () => {
     const { doc, c1 } = setup();
     const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
     setCardStatus(doc, a, DEFAULT_STATUS, NOW + 1);
-    expect(listActivity(doc)).toHaveLength(0);
+    expect(listActivity(doc).filter((e) => e.type === "status")).toHaveLength(0);
   });
 
   it("is independent of the column: moving a card does not change its status", () => {
@@ -162,7 +162,7 @@ describe("workflow status", () => {
     expect(getCard(doc, a)?.columnId).toBe(c2);
     expect(getCard(doc, a)?.status).toBe(Status.InReview);
     // The move added no status activity.
-    expect(listActivity(doc)).toHaveLength(1);
+    expect(listActivity(doc).filter((e) => e.type === "status")).toHaveLength(1);
   });
 });
 

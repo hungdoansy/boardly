@@ -763,7 +763,7 @@ sequenceDiagram
 - Edge case — a column at/over its WIP limit shows the warning state; no hard block on adding.
   **Verification:** unit tests pass; screenshot of a grouped board.
 
-- [ ] **Unit 4.3: Activity / history log per card**
+- [x] **Unit 4.3: Activity / history log per card** — done (`docs/units/UNIT-4.3-activity-log.md`). Widened the 2.12 append-only `activity` Y.Array into a typed union (`created`/`moved`/`renamed`/`status`/`priority`/`severity`/`due`/`archived`); sync mutations append within their transaction, change-gated (no-ops and pure reordering log nothing); `cardActivity` (newest-first) + `useCardActivity`; `CardActivity` timeline (icon + description + relative time, paginated at 30) in the detail panel; actor threaded from commands (REST/MCP parity); `formatRelativeTime` domain helper. 34 sync / 50 domain / 99 web / 70 server tests; dark e2e screenshot of the timeline. Deferred: actor-name display, description-edit + label events, board-level feed.
 
 **Goal:** record and display a per-card activity timeline.
 **Requirements:** R8.

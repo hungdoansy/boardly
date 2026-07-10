@@ -6,6 +6,7 @@ import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
+import { CardActivity } from "./activity";
 import { Checklist } from "./checklist";
 import { DueDatePicker } from "./due-date";
 import { CardLabels } from "./labels";
@@ -110,6 +111,11 @@ function CardDetailBody({
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
           <PropertyList card={card} actions={actions} />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Activity</h3>
+          <CardActivity boardId={boardId} cardId={card.id} />
         </section>
       </div>
 

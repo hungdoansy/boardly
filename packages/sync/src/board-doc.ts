@@ -278,6 +278,12 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     if (params.createdBy !== undefined) card.set("createdBy", params.createdBy);
     cards.set(id, card);
     meta.set("updatedAt", params.now);
+    appendActivity(doc, {
+      type: "created",
+      cardId: id,
+      at: params.now,
+      actor: params.createdBy ?? params.clientId,
+    });
   });
   return id;
 }
@@ -292,8 +298,23 @@ function withCard(doc: Y.Doc, cardId: string, mutate: (card: YCard) => void, now
   });
 }
 
-export function setCardTitle(doc: Y.Doc, cardId: string, title: string, now: number): void {
-  withCard(doc, cardId, (card) => card.set("title", title), now);
+export function setCardTitle(
+  doc: Y.Doc,
+  cardId: string,
+  title: string,
+  now: number,
+  actor?: string,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      if (getString(card, "title") === title) return;
+      card.set("title", title);
+      appendActivity(doc, { type: "renamed", cardId, to: title, at: now, actor });
+    },
+    now,
+  );
 }
 
 export function setCardPriority(
@@ -301,8 +322,19 @@ export function setCardPriority(
   cardId: string,
   priority: PriorityValue,
   now: number,
+  actor?: string,
 ): void {
-  withCard(doc, cardId, (card) => card.set("priority", priority), now);
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const from = (card.get("priority") as PriorityValue | undefined) ?? Priority.None;
+      if (from === priority) return;
+      card.set("priority", priority);
+      appendActivity(doc, { type: "priority", cardId, from, to: priority, at: now, actor });
+    },
+    now,
+  );
 }
 
 export function setCardSeverity(
@@ -310,8 +342,19 @@ export function setCardSeverity(
   cardId: string,
   severity: SeverityValue | null,
   now: number,
+  actor?: string,
 ): void {
-  withCard(doc, cardId, (card) => card.set("severity", severity), now);
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const from = (card.get("severity") as SeverityValue | undefined) ?? null;
+      if (from === severity) return;
+      card.set("severity", severity);
+      appendActivity(doc, { type: "severity", cardId, from, to: severity, at: now, actor });
+    },
+    now,
+  );
 }
 
 /**
@@ -337,8 +380,18 @@ export function setCardStatus(
   });
 }
 
-/** Append an activity entry (append-only Y.Array of plain-ish Y.Maps). */
-export function appendActivity(doc: Y.Doc, entry: Omit<ActivityEntry, "id">): void {
+/** `Omit` distributed across the ActivityEntry union (preserves per-kind fields). */
+type NewActivityEntry = ActivityEntry extends infer T
+  ? T extends ActivityEntry
+    ? Omit<T, "id">
+    : never
+  : never;
+
+/**
+ * Append an activity entry (append-only Y.Array of plain-ish Y.Maps). Must run
+ * inside an existing transaction (every caller already wraps in `doc.transact`).
+ */
+export function appendActivity(doc: Y.Doc, entry: NewActivityEntry): void {
   const row = new Y.Map<unknown>();
   row.set("id", newId());
   for (const [key, value] of Object.entries(entry)) {
@@ -347,40 +400,107 @@ export function appendActivity(doc: Y.Doc, entry: Omit<ActivityEntry, "id">): vo
   boardActivity(doc).push([row]);
 }
 
-/** Read the activity log, oldest → newest. */
+/** Reconstruct a typed activity entry from its stored Y.Map (null if unknown). */
+function rowToActivity(row: Y.Map<unknown>): ActivityEntry | null {
+  const type = getString(row, "type") as ActivityEntry["type"];
+  const base = {
+    id: getString(row, "id"),
+    cardId: getString(row, "cardId"),
+    at: getNumber(row, "at"),
+  };
+  const actorRaw = row.get("actor");
+  const actor = typeof actorRaw === "string" ? actorRaw : undefined;
+  const withActor = <T extends ActivityEntry>(e: T): T => (actor ? { ...e, actor } : e);
+  switch (type) {
+    case "created":
+      return withActor({ ...base, type: "created" });
+    case "archived":
+      return withActor({ ...base, type: "archived" });
+    case "moved":
+      return withActor({
+        ...base,
+        type: "moved",
+        from: (row.get("from") as string | undefined) ?? null,
+        to: getString(row, "to"),
+      });
+    case "renamed":
+      return withActor({ ...base, type: "renamed", to: getString(row, "to") });
+    case "status":
+      return withActor({
+        ...base,
+        type: "status",
+        from: (row.get("from") as Status | undefined) ?? null,
+        to: getString(row, "to", DEFAULT_STATUS) as Status,
+      });
+    case "priority":
+      return withActor({
+        ...base,
+        type: "priority",
+        from: (row.get("from") as PriorityValue | undefined) ?? Priority.None,
+        to: (row.get("to") as PriorityValue | undefined) ?? Priority.None,
+      });
+    case "severity":
+      return withActor({
+        ...base,
+        type: "severity",
+        from: (row.get("from") as SeverityValue | undefined) ?? null,
+        to: (row.get("to") as SeverityValue | undefined) ?? null,
+      });
+    case "due":
+      return withActor({
+        ...base,
+        type: "due",
+        to: (row.get("to") as number | undefined) ?? null,
+      });
+    default:
+      return null;
+  }
+}
+
+/** Read the whole board activity log, oldest → newest. */
 export function listActivity(doc: Y.Doc): ActivityEntry[] {
   return boardActivity(doc)
     .toArray()
     .filter((row): row is Y.Map<unknown> => row instanceof Y.Map)
-    .map((row) => {
-      const entry: ActivityEntry = {
-        id: getString(row, "id"),
-        type: "status",
-        cardId: getString(row, "cardId"),
-        from: (row.get("from") as Status | undefined) ?? null,
-        to: getString(row, "to", DEFAULT_STATUS) as Status,
-        at: getNumber(row, "at"),
-      };
-      const actor = row.get("actor");
-      if (typeof actor === "string") entry.actor = actor;
-      return entry;
-    });
+    .map(rowToActivity)
+    .filter((e): e is ActivityEntry => e !== null);
+}
+
+/** A single card's activity, newest → oldest (for the detail-panel timeline). */
+export function cardActivity(doc: Y.Doc, cardId: string): ActivityEntry[] {
+  return listActivity(doc)
+    .filter((e) => e.cardId === cardId)
+    .reverse();
 }
 
 /** Set or clear the due date (stored as a nested Y.Map, never a JSON string). */
-export function setCardDueDate(doc: Y.Doc, cardId: string, due: DueDate | null, now: number): void {
+export function setCardDueDate(
+  doc: Y.Doc,
+  cardId: string,
+  due: DueDate | null,
+  now: number,
+  actor?: string,
+): void {
   withCard(
     doc,
     cardId,
     (card) => {
+      const prev = card.get("dueDate");
+      const prevAt =
+        prev instanceof Y.Map ? ((prev.get("at") as number | undefined) ?? null) : null;
       if (due === null) {
+        if (prevAt === null) return; // already clear
         card.set("dueDate", null);
+        appendActivity(doc, { type: "due", cardId, to: null, at: now, actor });
         return;
       }
       const map = new Y.Map<unknown>();
       map.set("at", due.at);
       map.set("hasTime", due.hasTime);
       card.set("dueDate", map);
+      if (prevAt !== due.at) {
+        appendActivity(doc, { type: "due", cardId, to: due.at, at: now, actor });
+      }
     },
     now,
   );
@@ -589,27 +709,42 @@ export function moveCard(
   neighbors: Neighbors,
   clientId: string,
   now: number,
+  actor?: string,
 ): void {
   doc.transact(() => {
     const card = boardCards(doc).get(cardId);
     if (!(card instanceof Y.Map)) return;
+    const from = getString(card, "columnId");
     const afterOrd = neighbors.afterId ? ordOfCard(doc, neighbors.afterId) : null;
     const beforeOrd = neighbors.beforeId ? ordOfCard(doc, neighbors.beforeId) : null;
     card.set("columnId", toColumnId);
     card.set("ord", keyBetween(afterOrd, beforeOrd, clientId));
     card.set("updatedAt", now);
     boardMeta(doc).set("updatedAt", now);
+    // Only a column change is a "move" worth logging; pure reordering is not.
+    if (from !== toColumnId) {
+      appendActivity(doc, {
+        type: "moved",
+        cardId,
+        from: from || null,
+        to: toColumnId,
+        at: now,
+        actor: actor ?? clientId,
+      });
+    }
   });
 }
 
 /** Soft-delete a card: removed from selectors, kept in the map (for undo/sync). */
-export function archiveCard(doc: Y.Doc, cardId: string, now: number): void {
+export function archiveCard(doc: Y.Doc, cardId: string, now: number, actor?: string): void {
   withCard(
     doc,
     cardId,
     (card) => {
+      if (getBool(card, "archived")) return;
       card.set("archived", true);
       card.set("deletedAt", now);
+      appendActivity(doc, { type: "archived", cardId, at: now, actor });
     },
     now,
   );
