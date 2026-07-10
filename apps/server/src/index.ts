@@ -6,6 +6,8 @@ import { generateTokenKeys } from "./auth/tokens";
 import { loadConfig } from "./config";
 import { createDb } from "./db/client";
 import { runMigrations } from "./db/migrate";
+import { attachSyncServer, createSyncServer } from "./sync/hocuspocus";
+import { createTicketStore } from "./sync/ticket-store";
 
 async function main(): Promise<void> {
   let config;
@@ -32,10 +34,17 @@ async function main(): Promise<void> {
   const keys = await generateTokenKeys();
   const authService = createAuthService({ db, keys, config });
 
+  // Yjs sync server (Unit 3.5): shares the ticket store with the (Unit 3.6)
+  // ticket endpoint and rides the same HTTP server on /sync.
+  const ticketStore = createTicketStore();
+  const hocuspocus = createSyncServer({ db, ticketStore, config });
+
   const app = buildServer({ config, pool, authService });
+  let detachSync: (() => Promise<void>) | undefined;
   try {
     const address = await app.listen({ port: config.PORT, host: config.HOST });
-    console.log(`[boardly-server] listening on ${address}`);
+    detachSync = attachSyncServer(app.server, hocuspocus);
+    console.log(`[boardly-server] listening on ${address} (sync on /sync)`);
   } catch (error) {
     console.error("[boardly-server] failed to start:", error);
     await app.close();
@@ -45,10 +54,12 @@ async function main(): Promise<void> {
 
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {
-      void app
-        .close()
-        .then(() => pool.end())
-        .then(() => process.exit(0));
+      void (async () => {
+        await detachSync?.();
+        await app.close();
+        await pool.end();
+        process.exit(0);
+      })();
     });
   }
 }

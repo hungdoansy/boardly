@@ -17,15 +17,20 @@
     "@fastify/cookie": "11.1.0",
     "@fastify/cors": "11.3.0",
     "@fastify/rate-limit": "11.1.0",
+    "@hocuspocus/extension-database": "4.3.0",
+    "@hocuspocus/server": "4.3.0",
     "@node-rs/argon2": "2.0.2",
     "drizzle-orm": "0.45.2",
     "fastify": "5.10.0",
     "jose": "6.2.3",
     "pg": "8.22.0",
+    "ws": "8.21.0",
+    "yjs": "13.6.31",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/pg": "8.20.0",
+    "@types/ws": "8.18.1",
     "drizzle-kit": "0.31.10",
     "tsx": "4.23.0"
   }

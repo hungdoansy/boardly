@@ -645,7 +645,7 @@ sequenceDiagram
 - Edge case — a 401 mid-session triggers exactly one refresh+retry, then logout if it still fails.
   **Verification:** unit tests for auth-store/refresh logic pass; e2e signup→login→reload→logout flow green + screenshots of login/signup in Linear style. _(Critical flow.)_
 
-- [ ] **Unit 3.5: Hocuspocus sync server (auth + Postgres persistence)**
+- [x] **Unit 3.5: Hocuspocus sync server (auth + Postgres persistence)** — done (`docs/units/UNIT-3.5-hocuspocus-sync.md`). Hocuspocus on `/sync` co-hosted with Fastify; `onAuthenticate` = origin allow-list + one-time WS ticket + `board.ownerId===userId` (throws 4403 pre-sync); Postgres `bytea` snapshot persistence over `yjs_documents`. 40 server tests pass vs the container db (authz accept/reject, expired ticket, bad origin, workspace room, persistence + two-client convergence); live WS smoke confirms `/sync` upgrade + non-sync path rejection.
 
 **Goal:** an authorized, persistent Yjs sync server co-hosted with the API.
 **Requirements:** R3, R9.
