@@ -802,7 +802,7 @@ sequenceDiagram
 **Test scenarios:** _Test expectation: config/scaffold — validated by build outcomes (no runtime feature-bearing logic here)._
 **Verification:** `tauri.conf.json` validates; `frontendDist` (web `out/`) builds; if the Rust toolchain is present, `cargo check`/`tauri build` compiles. Native launch verification is a documented **user follow-up** (per scope).
 
-- [ ] **Unit 5.2: Tauri plugins (http, notification, deep-link, updater, keyring)**
+- [x] **Unit 5.2: Tauri plugins (http, notification, deep-link, updater, keyring)** — done (`docs/units/UNIT-5.2-tauri-plugins.md`). Web platform switches (`isTauri()`): unfurl (native `plugin-http` fetch + pure `parseUnfurl` on desktop, server `/api/unfurl` on web), `refresh-token-store` (OS keychain via `keyring_*` invoke on desktop, no-op cookie on web) wired into `api-client`, `notify` (plugin-notification vs Notifications API). Rust: `tauri-plugin-{http,notification,deep-link,updater}` + single-instance + `keyring` crate with `keyring_set/get/delete` commands; `tauri.conf.json` deep-link scheme `boardly` + updater endpoint/pubkey; capabilities grant the four plugin permissions (http scoped). Exact-pinned JS deps; `notify-rust` pinned 4.17 for rustc 1.88. Verified: `cargo check` compiles, web build, 113 web tests (+14) / full suite green. No new UI (native runtime = user follow-up). Deviation: `keyring` crate + app commands instead of a community plugin (same intent). Deferred: desktop auth server body-token, deep-link routing, cross-platform keyring, real release infra.
 
 **Goal:** wire desktop-native capabilities: CORS-free unfurl, due-date notifications, `boardly://` deep links, updater config, keychain token storage.
 **Requirements:** R7, R9.

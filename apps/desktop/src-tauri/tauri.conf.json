@@ -35,5 +35,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["boardly"]
+      }
+    },
+    "updater": {
+      "endpoints": ["https://releases.boardly.app/{{target}}/{{arch}}/{{current_version}}"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVBRTc2RkNBRUUyQTY3RTEKUldUaFp5cnV5bS9uNmtFWEVaR0xESnNpT01Mb3hKY2MzamJtQWFFU2JlbzZXYUgxVThIZVdqUTkK"
+    }
   }
 }

@@ -119,3 +119,58 @@ describe("api client session logic", () => {
     expect(store.getSnapshot().status).toBe("anonymous");
   });
 });
+
+describe("desktop refresh-token wiring (injected keychain store)", () => {
+  const memStore = () => {
+    let v: string | null = null;
+    return {
+      save: vi.fn(async (t: string) => {
+        v = t;
+      }),
+      load: vi.fn(async () => v),
+      clear: vi.fn(async () => {
+        v = null;
+      }),
+    };
+  };
+
+  it("login stashes a body refresh token; refresh loads + sends it and rotates", async () => {
+    const refreshStore = memStore();
+    const seen: Array<{ path: string; body: unknown }> = [];
+    const fetchMock = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const path = String(url);
+      seen.push({ path, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      if (path.endsWith("/auth/login"))
+        return jsonResponse(200, { accessToken: fakeJwt("u1"), refreshToken: "R1" });
+      if (path.endsWith("/auth/refresh"))
+        return jsonResponse(200, { accessToken: fakeJwt("u1"), refreshToken: "R2" });
+      return jsonResponse(200, {});
+    });
+    const client = createApiClient({
+      baseUrl: "http://api.test",
+      fetch: fetchMock as unknown as typeof fetch,
+      store: createAuthStore(),
+      refreshStore,
+    });
+
+    await client.login("a@b.com", "password1");
+    expect(refreshStore.save).toHaveBeenCalledWith("R1");
+
+    await client.refresh();
+    const refreshCall = seen.find((s) => s.path.endsWith("/auth/refresh"));
+    expect(refreshCall?.body).toEqual({ refreshToken: "R1" }); // loaded from the store
+    expect(refreshStore.save).toHaveBeenLastCalledWith("R2"); // rotation persisted
+  });
+
+  it("logout clears the keychain entry", async () => {
+    const refreshStore = memStore();
+    const client = createApiClient({
+      baseUrl: "http://api.test",
+      fetch: vi.fn().mockResolvedValue(jsonResponse(200, {})) as unknown as typeof fetch,
+      store: createAuthStore(),
+      refreshStore,
+    });
+    await client.logout();
+    expect(refreshStore.clear).toHaveBeenCalled();
+  });
+});

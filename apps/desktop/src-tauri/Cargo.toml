@@ -20,6 +20,21 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# Native capabilities (Unit 5.2).
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-updater = "2"
+
+# Refresh-token storage in the OS keychain (Keychain / Credential Manager /
+# libsecret) — not Stronghold. `keyring` v3 with the platform-native backends.
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+
+# Single-instance (desktop only) so `boardly://` deep links reach the running
+# app rather than spawning a second instance.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+
 [profile.release]
 codegen-units = 1
 lto = true

@@ -1,6 +1,7 @@
 "use client";
 
 import { authStore, type AuthStore } from "./auth-store";
+import { refreshTokenStore, type RefreshTokenStore } from "./refresh-token-store";
 
 /** Static-export friendly: the API origin is baked in at build via env. */
 export const API_BASE_URL =
@@ -21,6 +22,8 @@ export interface ApiClientOptions {
   baseUrl?: string;
   fetch?: FetchLike;
   store?: AuthStore;
+  /** Where the refresh token persists (web: no-op cookie; desktop: keychain). */
+  refreshStore?: RefreshTokenStore;
 }
 
 const GENERIC_ERROR = "invalid email or password";
@@ -30,6 +33,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
   const baseUrl = (options.baseUrl ?? API_BASE_URL).replace(/\/$/, "");
   const doFetch: FetchLike = options.fetch ?? ((...args) => globalThis.fetch(...args));
   const store = options.store ?? authStore;
+  const refreshTokens = options.refreshStore ?? refreshTokenStore;
 
   const post = (path: string, body?: unknown, token?: string | null): Promise<Response> =>
     doFetch(`${baseUrl}${path}`, {
@@ -68,20 +72,29 @@ export function createApiClient(options: ApiClientOptions = {}) {
         return { ok: false, error: NETWORK_ERROR };
       }
       if (!res.ok) return { ok: false, error: GENERIC_ERROR };
-      const data = (await res.json()) as { accessToken?: string };
+      const data = (await res.json()) as { accessToken?: string; refreshToken?: string };
       if (!data.accessToken) return { ok: false, error: GENERIC_ERROR };
       store.setAccessToken(data.accessToken);
+      // Desktop: the server returns the refresh token in the body (no cookie
+      // across the native origin) → stash it in the OS keychain. Web: absent.
+      if (data.refreshToken) await refreshTokens.save(data.refreshToken);
       return { ok: true };
     },
 
-    /** Silent refresh via the httpOnly cookie. Returns whether a token was obtained. */
+    /**
+     * Silent refresh. Web sends the httpOnly cookie (credentials: include);
+     * desktop loads the refresh token from the keychain and sends it in the
+     * body. Returns whether a token was obtained.
+     */
     async refresh(): Promise<boolean> {
       try {
-        const res = await post("/auth/refresh");
+        const stored = await refreshTokens.load();
+        const res = await post("/auth/refresh", stored ? { refreshToken: stored } : undefined);
         if (!res.ok) return false;
-        const data = (await res.json()) as { accessToken?: string };
+        const data = (await res.json()) as { accessToken?: string; refreshToken?: string };
         if (!data.accessToken) return false;
         store.setAccessToken(data.accessToken);
+        if (data.refreshToken) await refreshTokens.save(data.refreshToken); // rotation
         return true;
       } catch {
         // Network error (e.g. server down) → treat as not authenticated.
@@ -100,6 +113,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         await post("/auth/logout");
       } finally {
         store.clear();
+        await refreshTokens.clear(); // desktop: drop the keychain entry
       }
     },
 

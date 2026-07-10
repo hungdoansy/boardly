@@ -1,7 +1,16 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Base capability for the Boardly main window (Unit 5.1 — core only).",
+  "description": "Capabilities for the Boardly main window (Unit 5.2).",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://*" }, { "url": "http://*" }]
+    },
+    "notification:default",
+    "deep-link:default",
+    "updater:default"
+  ]
 }

@@ -1,0 +1,64 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { parseUnfurl, unfurl } from "./unfurl-client";
+
+const tauriFetch = vi.fn();
+vi.mock("@tauri-apps/plugin-http", () => ({ fetch: (...args: unknown[]) => tauriFetch(...args) }));
+
+afterEach(() => {
+  delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
+  tauriFetch.mockReset();
+  vi.restoreAllMocks();
+});
+
+describe("parseUnfurl", () => {
+  it("extracts <title> (entity-decoded) and resolves a relative favicon", () => {
+    const u = parseUnfurl(
+      '<html><head><title>Hello &amp; Bye</title><link rel="icon" href="/fav.png"></head></html>',
+      "https://example.com/page",
+    );
+    expect(u.title).toBe("Hello & Bye");
+    expect(u.iconUrl).toBe("https://example.com/fav.png");
+  });
+
+  it("prefers og:title and defaults the favicon to /favicon.ico", () => {
+    const u = parseUnfurl(
+      '<meta property="og:title" content="OG Title" /><title>fallback</title>',
+      "https://x.io/a/b",
+    );
+    expect(u.title).toBe("OG Title");
+    expect(u.iconUrl).toBe("https://x.io/favicon.ico");
+  });
+});
+
+describe("unfurl platform switch", () => {
+  it("uses the web /api/unfurl endpoint on web", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ title: "Web" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const r = await unfurl("https://example.com");
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining("/api/unfurl?url="));
+    expect(tauriFetch).not.toHaveBeenCalled();
+    expect(r?.title).toBe("Web");
+  });
+
+  it("uses the Tauri native fetch (no server round-trip) under Tauri", async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    tauriFetch.mockResolvedValue(new Response("<title>Native</title>", { status: 200 }));
+    const webFetch = vi.spyOn(globalThis, "fetch");
+    const r = await unfurl("https://example.com");
+    expect(tauriFetch).toHaveBeenCalled();
+    expect(webFetch).not.toHaveBeenCalled();
+    expect(r?.title).toBe("Native");
+  });
+
+  it("returns null for non-http(s) urls without any fetch", async () => {
+    const webFetch = vi.spyOn(globalThis, "fetch");
+    expect(await unfurl("javascript:alert(1)")).toBeNull();
+    expect(webFetch).not.toHaveBeenCalled();
+  });
+});
