@@ -19,14 +19,14 @@ const DATABASE_URL = process.env.DATABASE_URL;
 describe("ticket store", () => {
   it("issues a ticket that consumes exactly once", () => {
     const store = createTicketStore();
-    const token = store.issue("user-1");
-    expect(store.consume(token)).toEqual({ userId: "user-1" });
+    const token = store.issue("user-1", "board:b1");
+    expect(store.consume(token)).toEqual({ userId: "user-1", documentName: "board:b1" });
     expect(store.consume(token)).toBeNull(); // single-use
   });
 
   it("rejects an expired ticket and unknown tokens", () => {
     const store = createTicketStore();
-    const token = store.issue("user-1", -1); // already expired
+    const token = store.issue("user-1", "board:b1", -1); // already expired
     expect(store.consume(token)).toBeNull();
     expect(store.consume("nope")).toBeNull();
   });
@@ -76,7 +76,7 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
   it("accepts the owner's ticket for their board", async () => {
     const { userId, boardId } = await seedUserWithBoard();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(userId);
+    const token = ticketStore.issue(userId, `board:${boardId}`);
     const ctx = await authenticateConnection(
       { db: handle.db, ticketStore, allowedOrigins },
       { token, documentName: `board:${boardId}`, origin: "http://localhost:3000" },
@@ -91,7 +91,7 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
       .values({ email: `t-${randomUUID()}@example.com`, passwordHash: "x" })
       .returning({ id: users.id });
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(other!.id);
+    const token = ticketStore.issue(other!.id, `board:${boardId}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
@@ -103,7 +103,7 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
   it("rejects an expired/invalid ticket before touching the board", async () => {
     const { boardId } = await seedUserWithBoard();
     const ticketStore = createTicketStore();
-    const expired = ticketStore.issue("someone", -1);
+    const expired = ticketStore.issue("someone", `board:${boardId}`, -1);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
@@ -112,10 +112,22 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
   });
 
+  it("rejects a ticket minted for a different document", async () => {
+    const { userId, boardId } = await seedUserWithBoard();
+    const ticketStore = createTicketStore();
+    const token = ticketStore.issue(userId, `board:other-board`);
+    await expect(
+      authenticateConnection(
+        { db: handle.db, ticketStore, allowedOrigins },
+        { token, documentName: `board:${boardId}`, origin: undefined },
+      ),
+    ).rejects.toBeInstanceOf(SyncUnauthorizedError);
+  });
+
   it("rejects a disallowed origin without consuming the ticket", async () => {
     const { userId, boardId } = await seedUserWithBoard();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(userId);
+    const token = ticketStore.issue(userId, `board:${boardId}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
@@ -123,13 +135,13 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
       ),
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
     // Ticket survived (origin was checked first), so the owner can still connect.
-    expect(ticketStore.consume(token)).toEqual({ userId });
+    expect(ticketStore.consume(token)).toEqual({ userId, documentName: `board:${boardId}` });
   });
 
   it("authorizes a user's own workspace room but not another's", async () => {
     const { userId } = await seedUserWithBoard();
     const ticketStore = createTicketStore();
-    const ownToken = ticketStore.issue(userId);
+    const ownToken = ticketStore.issue(userId, `workspace:${userId}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
@@ -137,7 +149,7 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
       ),
     ).resolves.toEqual({ userId });
 
-    const otherToken = ticketStore.issue(userId);
+    const otherToken = ticketStore.issue(userId, `workspace:someone-else`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },

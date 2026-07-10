@@ -37,13 +37,13 @@ async function main(): Promise<void> {
   // Yjs sync server (Unit 3.5): shares the ticket store with the (Unit 3.6)
   // ticket endpoint and rides the same HTTP server on /sync.
   const ticketStore = createTicketStore();
-  const hocuspocus = createSyncServer({ db, ticketStore, config });
+  const syncServer = createSyncServer({ db, ticketStore, config });
 
-  const app = buildServer({ config, pool, authService });
+  const app = buildServer({ config, pool, authService, database: db, ticketStore, keys });
   let detachSync: (() => Promise<void>) | undefined;
   try {
     const address = await app.listen({ port: config.PORT, host: config.HOST });
-    detachSync = attachSyncServer(app.server, hocuspocus);
+    detachSync = attachSyncServer(app.server, syncServer);
     console.log(`[boardly-server] listening on ${address} (sync on /sync)`);
   } catch (error) {
     console.error("[boardly-server] failed to start:", error);

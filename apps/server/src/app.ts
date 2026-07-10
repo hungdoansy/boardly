@@ -4,7 +4,11 @@ import { Pool } from "pg";
 
 import { authRoutes } from "./auth/routes";
 import type { AuthService } from "./auth/service";
+import type { TokenKeys } from "./auth/tokens";
 import type { ServerConfig } from "./config";
+import type { Database } from "./db/client";
+import { ticketRoutes } from "./routes/ticket";
+import type { TicketStore } from "./sync/ticket-store";
 
 export interface BuildServerOptions {
   config: ServerConfig;
@@ -12,6 +16,12 @@ export interface BuildServerOptions {
   pool?: Pool;
   /** When provided, the /auth/* routes are mounted. */
   authService?: AuthService;
+  /** Drizzle client — required (with `ticketStore` + `keys`) for /sync/ticket. */
+  database?: Database;
+  /** Shared WS ticket store — mounts /sync/ticket when present with `database` + `keys`. */
+  ticketStore?: TicketStore;
+  /** Access-token keys for verifying Bearer on /sync/ticket. */
+  keys?: TokenKeys;
 }
 
 /**
@@ -19,7 +29,14 @@ export interface BuildServerOptions {
  * Owns a pg pool for liveness checks; auth routes mount when an `authService`
  * is supplied. Later units layer the Yjs sync endpoints on top.
  */
-export function buildServer({ config, pool, authService }: BuildServerOptions): FastifyInstance {
+export function buildServer({
+  config,
+  pool,
+  authService,
+  database,
+  ticketStore,
+  keys,
+}: BuildServerOptions): FastifyInstance {
   const app = Fastify({ logger: false });
   const db = pool ?? new Pool({ connectionString: config.DATABASE_URL });
 
@@ -62,6 +79,10 @@ export function buildServer({ config, pool, authService }: BuildServerOptions): 
 
   if (authService) {
     void app.register(authRoutes, { service: authService, config });
+  }
+
+  if (database && ticketStore && keys) {
+    void app.register(ticketRoutes, { db: database, ticketStore, keys });
   }
 
   return app;

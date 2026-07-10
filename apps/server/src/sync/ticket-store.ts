@@ -9,26 +9,33 @@ import { randomBytes } from "node:crypto";
  */
 interface Ticket {
   userId: string;
+  documentName: string;
   expiresAt: number;
 }
 
+export interface TicketGrant {
+  userId: string;
+  documentName: string;
+}
+
 export interface TicketStore {
-  issue(userId: string, ttlMs?: number): string;
-  /** Consume a ticket: returns the bound user once, then never again. */
-  consume(token: string): { userId: string } | null;
+  /** Issue a single-use ticket bound to a user AND a specific document. */
+  issue(userId: string, documentName: string, ttlMs?: number): string;
+  /** Consume a ticket: returns the bound grant once, then never again. */
+  consume(token: string): TicketGrant | null;
   /** Number of live (unconsumed) tickets — for tests/metrics. */
   size(): number;
 }
 
-const DEFAULT_TTL_MS = 30_000;
+export const DEFAULT_TICKET_TTL_MS = 30_000;
 
-export function createTicketStore(defaultTtlMs = DEFAULT_TTL_MS): TicketStore {
+export function createTicketStore(defaultTtlMs = DEFAULT_TICKET_TTL_MS): TicketStore {
   const tickets = new Map<string, Ticket>();
 
   return {
-    issue(userId, ttlMs = defaultTtlMs) {
+    issue(userId, documentName, ttlMs = defaultTtlMs) {
       const token = randomBytes(32).toString("base64url");
-      tickets.set(token, { userId, expiresAt: Date.now() + ttlMs });
+      tickets.set(token, { userId, documentName, expiresAt: Date.now() + ttlMs });
       return token;
     },
     consume(token) {
@@ -36,7 +43,7 @@ export function createTicketStore(defaultTtlMs = DEFAULT_TTL_MS): TicketStore {
       if (!ticket) return null;
       tickets.delete(token); // single-use: gone whether or not it was still valid
       if (ticket.expiresAt <= Date.now()) return null;
-      return { userId: ticket.userId };
+      return { userId: ticket.userId, documentName: ticket.documentName };
     },
     size() {
       return tickets.size;

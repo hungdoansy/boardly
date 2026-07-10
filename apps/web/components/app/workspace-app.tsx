@@ -14,6 +14,7 @@ import { BoardView } from "../board/board-view";
 import { LabelManager } from "../board/label-manager";
 import { CommandPalette } from "../command-palette/palette";
 import { SearchDialog } from "../search/search";
+import { SyncBridge } from "../sync/sync-bridge";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -90,6 +91,7 @@ function Shell() {
       <MainArea />
       <CommandPalette />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+      <SyncBridge />
     </div>
   );
 }

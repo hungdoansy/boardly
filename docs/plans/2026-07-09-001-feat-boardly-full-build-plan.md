@@ -660,7 +660,7 @@ sequenceDiagram
 - Integration — two authorized clients on the same board converge; server persists the merged state.
   **Verification:** authz + persistence tests pass against the container db; unauthorized connections are closed pre-sync.
 
-- [ ] **Unit 3.6: WS-ticket endpoint + client network provider wiring**
+- [x] **Unit 3.6: WS-ticket endpoint + client network provider wiring** — done (`docs/units/UNIT-3.6-ws-ticket-provider.md`). `POST /sync/ticket` (Bearer-auth, single-use ticket bound to {userId,documentName}); `attachNetwork` (HocuspocusProvider after local whenSynced, function-token re-mints on reconnect); SyncBridge wires the workspace doc. Rewired sync to Hocuspocus Server/crossws (raw ws never completed the handshake). Verified: library two-client A↔B convergence + full-app offline→online restore from server. Board _content_ sync awaits 3.8 board rows.
 
 **Goal:** clients obtain a ticket and attach the y-websocket provider after local hydrate, enabling multi-device sync.
 **Requirements:** R3, R1.

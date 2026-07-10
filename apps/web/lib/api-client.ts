@@ -6,6 +6,9 @@ import { authStore, type AuthStore } from "./auth-store";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8787";
 
+/** WebSocket URL of the Yjs sync server (derived from the API origin). */
+export const SYNC_WS_URL = `${API_BASE_URL.replace(/^http/, "ws")}/sync`;
+
 export interface ApiResult {
   ok: boolean;
   /** Generic, user-safe message on failure (never reveals which field was wrong). */
@@ -98,6 +101,19 @@ export function createApiClient(options: ApiClientOptions = {}) {
       } finally {
         store.clear();
       }
+    },
+
+    /** Mint a single-use WS ticket for a sync document (auto-refreshes on 401). */
+    async getSyncTicket(documentName: string): Promise<string> {
+      const res = await client.authFetch("/sync/ticket", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ documentName }),
+      });
+      if (!res.ok) throw new Error(`sync ticket request failed (${res.status})`);
+      const data = (await res.json()) as { ticket?: string };
+      if (!data.ticket) throw new Error("sync ticket missing");
+      return data.ticket;
     },
 
     /**

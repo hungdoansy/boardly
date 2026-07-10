@@ -2,6 +2,7 @@
 // `useY` subscriptions and every mutation share the same in-memory doc. Rooms
 // are `boardly:board:{boardId}` and `boardly:workspace:{userId}` (the room ==
 // the sync-server room in Phase 3). Client-only (needs IndexedDB).
+import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 
 import { attachIndexedDb, requestPersistentStorage } from "./persistence";
@@ -10,6 +11,14 @@ const PREFIX = "boardly";
 
 export const boardRoom = (boardId: string): string => `${PREFIX}:board:${boardId}`;
 export const workspaceRoom = (userId: string): string => `${PREFIX}:workspace:${userId}`;
+
+/**
+ * Server document names (the Hocuspocus room on `/sync`). NOT the local
+ * IndexedDB room keys above — the server authz layer parses `board:<id>` /
+ * `workspace:<id>` (Unit 3.5), so the network provider uses these.
+ */
+export const boardDocName = (boardId: string): string => `board:${boardId}`;
+export const workspaceDocName = (userId: string): string => `workspace:${userId}`;
 
 export interface DocHandle {
   doc: Y.Doc;
@@ -50,3 +59,68 @@ export function getDoc(room: string): DocHandle {
 
 export const getBoardDoc = (boardId: string): DocHandle => getDoc(boardRoom(boardId));
 export const getWorkspaceDoc = (userId: string): DocHandle => getDoc(workspaceRoom(userId));
+
+// ---------------------------------------------------------------------------
+// Network provider (Unit 3.6): attach the doc to the /sync server.
+// ---------------------------------------------------------------------------
+
+export interface NetworkHandle {
+  destroy: () => void;
+}
+
+interface ProviderConfig {
+  url: string;
+  name: string;
+  document: Y.Doc;
+  /** Called on every (re)connect → re-mints a single-use ticket. */
+  token: () => Promise<string>;
+  onAuthenticationFailed?: () => void;
+}
+
+export interface AttachNetworkOptions {
+  /** Server document name, e.g. `board:<id>` (use `boardDocName`/`workspaceDocName`). */
+  documentName: string;
+  /** WebSocket base URL of the sync server, e.g. `ws://localhost:8787/sync`. */
+  url: string;
+  /** Mint a fresh single-use ticket for `documentName` (POST /sync/ticket). */
+  getTicket: (documentName: string) => Promise<string>;
+  /** Notified when the server rejects auth (e.g. session expired). */
+  onAuthFailed?: () => void;
+  /** Injectable for tests; defaults to a real HocuspocusProvider. */
+  createProvider?: (config: ProviderConfig) => NetworkHandle;
+}
+
+function defaultCreateProvider(config: ProviderConfig): NetworkHandle {
+  const provider = new HocuspocusProvider({
+    url: config.url,
+    name: config.name,
+    document: config.document,
+    // A function token is re-invoked by the provider on each (re)connect, so a
+    // reconnect automatically mints a fresh ticket — no manual reconnect logic.
+    token: config.token,
+    onAuthenticationFailed: () => config.onAuthenticationFailed?.(),
+  });
+  return { destroy: () => provider.destroy() };
+}
+
+/**
+ * Attach a Yjs doc to the sync server — but only AFTER local IndexedDB has
+ * hydrated (`handle.whenSynced`), so the UI renders local state first with no
+ * content flash. The provider carries a per-connect ticket; an auth rejection
+ * fires `onAuthFailed` and does not enter a reconnect loop (the server closes
+ * with a terminal Forbidden code).
+ */
+export async function attachNetwork(
+  handle: DocHandle,
+  options: AttachNetworkOptions,
+): Promise<NetworkHandle> {
+  await handle.whenSynced;
+  const create = options.createProvider ?? defaultCreateProvider;
+  return create({
+    url: options.url,
+    name: options.documentName,
+    document: handle.doc,
+    token: () => options.getTicket(options.documentName),
+    onAuthenticationFailed: options.onAuthFailed,
+  });
+}

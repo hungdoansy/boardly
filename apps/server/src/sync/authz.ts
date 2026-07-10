@@ -59,6 +59,10 @@ export async function authenticateConnection(
   const consumed = deps.ticketStore.consume(token);
   if (!consumed) throw new SyncUnauthorizedError("invalid or expired ticket");
 
+  // The ticket is bound to a specific document — a ticket for board A cannot be
+  // replayed to open board B, even for the same user.
+  if (consumed.documentName !== documentName) throw new SyncUnauthorizedError("forbidden");
+
   const ref = parseDocumentName(documentName);
   if (!ref) throw new SyncUnauthorizedError("unknown document");
 

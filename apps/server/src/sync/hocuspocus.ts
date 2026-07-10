@@ -1,8 +1,7 @@
 import type { IncomingMessage, Server as HttpServer } from "node:http";
 import type { Duplex } from "node:stream";
 
-import { Hocuspocus } from "@hocuspocus/server";
-import { WebSocketServer } from "ws";
+import { Server as HocuspocusServer } from "@hocuspocus/server";
 
 import type { ServerConfig } from "../config";
 import type { Database } from "../db/client";
@@ -24,19 +23,24 @@ export interface CreateSyncServerDeps {
 export const SYNC_PATH = "/sync";
 
 /**
- * A Hocuspocus instance that authorizes every connection (one-time ticket +
+ * A Hocuspocus `Server` that authorizes every connection (one-time ticket +
  * board ownership + origin) before any sync, and persists document state to
- * Postgres. Not listening on its own port — {@link attachSyncServer} bolts it
- * onto the Fastify HTTP server.
+ * Postgres. It is NOT `listen()`-ed on its own port — {@link attachSyncServer}
+ * feeds it the Fastify HTTP server's upgrades via Hocuspocus's own crossws
+ * adapter (v4 speaks crossws, so we reuse its connection wiring verbatim).
  */
-export function createSyncServer({ db, ticketStore, config }: CreateSyncServerDeps): Hocuspocus {
+export function createSyncServer({
+  db,
+  ticketStore,
+  config,
+}: CreateSyncServerDeps): HocuspocusServer {
   const allowedOrigins = new Set(
     config.CORS_ORIGINS.split(",")
       .map((o) => o.trim())
       .filter(Boolean),
   );
 
-  return new Hocuspocus({
+  return new HocuspocusServer({
     extensions: [createDatabaseExtension(db)],
     async onAuthenticate({ token, documentName, requestHeaders }): Promise<SyncContext> {
       const origin = requestHeaders.get("origin");
@@ -54,15 +58,22 @@ export function createSyncServer({ db, ticketStore, config }: CreateSyncServerDe
   });
 }
 
+interface CrosswsLike {
+  handleUpgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void;
+}
+
 /**
  * Route WebSocket upgrades on {@link SYNC_PATH} to Hocuspocus (other paths are
- * rejected). Returns a disposer that closes the ws layer.
+ * rejected). Returns a disposer that flushes pending stores + closes sockets.
  */
 export function attachSyncServer(
   httpServer: HttpServer,
-  hocuspocus: Hocuspocus,
+  server: HocuspocusServer,
 ): () => Promise<void> {
-  const wss = new WebSocketServer({ noServer: true });
+  // `crossws` is Hocuspocus's connection adapter (created in the Server ctor).
+  // Not part of the public types, but reusing it is exactly what Server.listen
+  // does — it gives correct peer/message/close semantics for free.
+  const crossws = (server as unknown as { crossws: CrosswsLike }).crossws;
 
   const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer): void => {
     let pathname: string;
@@ -76,20 +87,15 @@ export function attachSyncServer(
       socket.destroy();
       return;
     }
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      // Hocuspocus reads `.url`/`.headers` off the request; IncomingMessage
-      // satisfies that at runtime (its param type is the fetch `Request`).
-      hocuspocus.handleConnection(ws, request as unknown as Request);
-    });
+    crossws.handleUpgrade(request, socket, head);
   };
 
   httpServer.on("upgrade", onUpgrade);
 
   return async () => {
     httpServer.off("upgrade", onUpgrade);
-    // Persist any debounced document writes before dropping connections.
-    hocuspocus.flushPendingStores();
-    hocuspocus.closeConnections();
-    await new Promise<void>((resolve) => wss.close(() => resolve()));
+    // Persist any debounced writes before dropping connections.
+    server.hocuspocus.flushPendingStores();
+    server.hocuspocus.closeConnections();
   };
 }
