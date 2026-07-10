@@ -702,7 +702,7 @@ sequenceDiagram
 - Edge case — offline-created boards register on next connection (queued reconciliation).
   **Verification:** unit/integration tests pass; end-to-end a newly created board syncs across two clients of the same user.
 
-- [ ] **Unit 3.9: REST command API (agent write path)**
+- [x] **Unit 3.9: REST command API (agent write path)** — done (`docs/units/UNIT-3.9-rest-command-api.md`). `GET /api/commands` (catalog + zod→JSON-schema) and `POST /api/commands/:name` (Bearer-auth, validate, board-owner authz, execute via Hocuspocus direct connection → persist + broadcast). Same `packages/commands` as the UI (parity). 70 server tests (authz 403 / 404 / 400 / persistence / parity); live: REST-created card broadcast to a connected client. Service token + multi-doc reads deferred to 3.10.
 
 **Goal:** expose the command catalog over authenticated HTTP, executing commands server-side against live board docs so agent/script edits persist and sync.
 **Requirements:** R13.

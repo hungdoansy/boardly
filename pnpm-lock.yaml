@@ -70,6 +70,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@boardly/commands':
+        specifier: workspace:*
+        version: link:../../packages/commands
       '@fastify/cookie':
         specifier: 11.1.0
         version: 11.1.0

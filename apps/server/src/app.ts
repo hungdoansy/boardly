@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import type { Hocuspocus } from "@hocuspocus/server";
 import Fastify, { type FastifyInstance } from "fastify";
 import { Pool } from "pg";
 
@@ -8,6 +9,7 @@ import type { TokenKeys } from "./auth/tokens";
 import type { ServerConfig } from "./config";
 import type { Database } from "./db/client";
 import { boardRoutes } from "./routes/boards";
+import { commandRoutes } from "./routes/commands";
 import { ticketRoutes } from "./routes/ticket";
 import { unfurlRoutes } from "./routes/unfurl";
 import type { TicketStore } from "./sync/ticket-store";
@@ -24,6 +26,8 @@ export interface BuildServerOptions {
   ticketStore?: TicketStore;
   /** Access-token keys for verifying Bearer on /sync/ticket. */
   keys?: TokenKeys;
+  /** Hocuspocus instance — enables the REST command API (executes via direct connection). */
+  hocuspocus?: Hocuspocus;
 }
 
 /**
@@ -38,6 +42,7 @@ export function buildServer({
   database,
   ticketStore,
   keys,
+  hocuspocus,
 }: BuildServerOptions): FastifyInstance {
   const app = Fastify({ logger: false });
   const db = pool ?? new Pool({ connectionString: config.DATABASE_URL });
@@ -89,6 +94,10 @@ export function buildServer({
 
   if (database && keys) {
     void app.register(boardRoutes, { db: database, keys });
+  }
+
+  if (database && keys && hocuspocus) {
+    void app.register(commandRoutes, { db: database, keys, hocuspocus });
   }
 
   if (database) {

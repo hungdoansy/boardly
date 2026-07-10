@@ -39,7 +39,15 @@ async function main(): Promise<void> {
   const ticketStore = createTicketStore();
   const syncServer = createSyncServer({ db, ticketStore, config });
 
-  const app = buildServer({ config, pool, authService, database: db, ticketStore, keys });
+  const app = buildServer({
+    config,
+    pool,
+    authService,
+    database: db,
+    ticketStore,
+    keys,
+    hocuspocus: syncServer.hocuspocus,
+  });
   let detachSync: (() => Promise<void>) | undefined;
   try {
     const address = await app.listen({ port: config.PORT, host: config.HOST });
