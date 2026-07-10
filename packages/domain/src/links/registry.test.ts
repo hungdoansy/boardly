@@ -88,7 +88,19 @@ describe("isPublicHttpUrl (desktop SSRF pre-filter)", () => {
     expect(isPublicHttpUrl("https://[fe80::1]")).toBe(false);
   });
 
-  it("allows a public IP literal", () => {
+  it("blocks IPv4-mapped / embedded IPv6 that resolve to private v4 (allowlist bypass)", () => {
+    expect(isPublicHttpUrl("https://[::ffff:127.0.0.1]")).toBe(false);
+    expect(isPublicHttpUrl("https://[::ffff:169.254.169.254]")).toBe(false); // cloud metadata
+    expect(isPublicHttpUrl("https://[::ffff:192.168.0.1]")).toBe(false);
+    expect(isPublicHttpUrl("https://[::ffff:7f00:1]")).toBe(false); // hex-form ::ffff:127.0.0.1
+    expect(isPublicHttpUrl("https://[::7f00:1]")).toBe(false); // IPv4-compatible hex
+    expect(isPublicHttpUrl("https://[64:ff9b::7f00:1]")).toBe(false); // NAT64
+    expect(isPublicHttpUrl("https://[2002:7f00:1::]")).toBe(false); // 6to4
+    // Mapped forms are denied wholesale (URL parser hides the dotted quad).
+    expect(isPublicHttpUrl("https://[::ffff:8.8.8.8]")).toBe(false);
+  });
+
+  it("allows a public IPv4 literal", () => {
     expect(isPublicHttpUrl("https://8.8.8.8")).toBe(true);
   });
 });

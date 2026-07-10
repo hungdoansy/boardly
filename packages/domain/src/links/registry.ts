@@ -51,6 +51,19 @@ export function isSafeHttpUrl(url: string): boolean {
   return parsed !== null && (parsed.protocol === "https:" || parsed.protocol === "http:");
 }
 
+/** IPv4 in a non-public range: unspecified / private / loopback / link-local / multicast. */
+function isPrivateV4(a: number, b: number): boolean {
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) || // link-local (incl. cloud metadata 169.254.169.254)
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224 // multicast / reserved
+  );
+}
+
 /**
  * SSRF guard for the DESKTOP native unfurl path (Unit 5.2/5.3). Unlike the web
  * path — where the server's `/api/unfurl` resolves DNS and blocks internal
@@ -58,8 +71,9 @@ export function isSafeHttpUrl(url: string): boolean {
  * so a crafted link could probe loopback/LAN services. Since the webview can't
  * resolve DNS, this is a syntactic pre-filter: require HTTPS and reject
  * localhost, `*.local`, bare single-label hosts, and literal private / loopback
- * / link-local IPs. (Does not defend DNS-rebinding — an accepted, documented
- * residual risk for desktop link unfurling.)
+ * / link-local IPs (v4 and v6, including IPv4-mapped/NAT64/6to4 forms). Does
+ * not defend DNS-rebinding — an accepted, documented residual for desktop
+ * unfurling.
  */
 export function isPublicHttpUrl(url: string): boolean {
   const parsed = safeUrl(url);
@@ -70,24 +84,26 @@ export function isPublicHttpUrl(url: string): boolean {
   // Bare single-label hostnames (no dot) resolve to internal names — reject.
   if (!host.includes(".") && !host.includes(":")) return false;
 
-  // IPv4 literal → block loopback / private / link-local / unspecified ranges.
+  // IPv4 literal → block non-public ranges.
   const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (v4) {
-    const [a, b] = [Number(v4[1]), Number(v4[2])];
-    if (a === 0 || a === 10 || a === 127) return false;
-    if (a === 169 && b === 254) return false; // link-local
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a >= 224) return false; // multicast / reserved
+  if (v4 && isPrivateV4(Number(v4[1]), Number(v4[2]))) return false;
+
+  if (host.includes(":")) {
+    // Unspecified / loopback / unique-local (fc00::/7) / link-local (fe80::/10).
+    if (host === "::" || host === "::1") return false;
+    if (/^f[cd][0-9a-f]{2}:/.test(host)) return false;
+    if (host.startsWith("fe80:")) return false;
+    // NAT64 (64:ff9b::/96) and 6to4 (2002::/16) embed an IPv4 that may be private.
+    if (host.startsWith("64:ff9b:") || host.startsWith("2002:")) return false;
+    // IPv4-mapped/compatible (`::ffff:…` / `::…`) embed an IPv4. The WHATWG URL
+    // parser canonicalizes the dotted quad to hex, so public vs private can't be
+    // told apart syntactically — deny all such forms (legit browsing never uses
+    // them). `::`/`::1` are already handled above.
+    if (host.startsWith("::")) return false;
+    // Any other IPv6 still carrying a dotted quad → apply the v4 ranges.
+    const embedded = /(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+    if (embedded && isPrivateV4(Number(embedded[1]), Number(embedded[2]))) return false;
   }
-  // IPv6 loopback / unspecified / unique-local / link-local literals.
-  if (
-    host === "::1" ||
-    host === "::" ||
-    /^f[cd][0-9a-f]{2}:/.test(host) ||
-    host.startsWith("fe80:")
-  )
-    return false;
 
   return true;
 }
