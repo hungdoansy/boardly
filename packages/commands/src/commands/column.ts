@@ -3,10 +3,25 @@ import {
   archiveColumn as syncArchiveColumn,
   moveColumn as syncMoveColumn,
   renameColumn as syncRenameColumn,
+  setColumnWipLimit as syncSetWipLimit,
 } from "@boardly/sync";
 import { z } from "zod";
 
 import { defineCommand } from "../command";
+
+export const setColumnWipLimit = defineCommand({
+  name: "setColumnWipLimit",
+  description: "Set or clear (null) a column's soft WIP limit.",
+  input: z.object({
+    boardId: z.string(),
+    columnId: z.string(),
+    wipLimit: z.number().int().positive().nullable(),
+  }),
+  run: (ctx, input) => {
+    syncSetWipLimit(ctx.getBoardDoc(input.boardId), input.columnId, input.wipLimit, ctx.now());
+    return { id: input.columnId, wipLimit: input.wipLimit };
+  },
+});
 
 export const addColumn = defineCommand({
   name: "addColumn",

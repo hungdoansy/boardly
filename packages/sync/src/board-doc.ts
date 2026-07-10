@@ -193,6 +193,22 @@ export function renameColumn(doc: Y.Doc, columnId: string, title: string, now: n
   });
 }
 
+/** Set (or clear, with `null`) a column's soft WIP limit. */
+export function setColumnWipLimit(
+  doc: Y.Doc,
+  columnId: string,
+  wipLimit: number | null,
+  now: number,
+): void {
+  doc.transact(() => {
+    const col = boardColumns(doc).get(columnId);
+    if (!(col instanceof Y.Map)) return;
+    if (wipLimit === null) col.delete("wipLimit");
+    else col.set("wipLimit", wipLimit);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
 export function moveColumn(
   doc: Y.Doc,
   columnId: string,

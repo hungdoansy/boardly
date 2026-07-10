@@ -1,8 +1,8 @@
 // Saved views: a nestable, pure filter model over cards, plus sort. Kept
 // framework-agnostic and side-effect-free so evaluation is fully unit-testable
 // and runs identically on any client. Persisted per board (Unit 4.1).
-import { Priority, type PriorityValue } from "./enums";
-import { Status } from "./status";
+import { PRIORITY_META, Priority, type PriorityValue, SEVERITY_META } from "./enums";
+import { STATUS_META, Status, STATUS_ORDER } from "./status";
 import type { Card } from "./types";
 
 export type FilterField =
@@ -174,6 +174,111 @@ export function sortCards(cards: Card[], sort: Sort): Card[] {
   });
 }
 
+// ----- Grouping (swimlanes, Unit 4.2) -----
+
+export type GroupByField = "status" | "priority" | "severity" | "label" | "assignee";
+
+export interface CardGroup {
+  /** Group value; `""` is the ungrouped/missing lane (No priority, Unassigned, …). */
+  key: string;
+  cards: Card[];
+}
+
+/** Keys a card belongs to for a group-by field. `""` = missing; labels are multi-valued. */
+function groupKeys(card: Card, field: GroupByField): string[] {
+  switch (field) {
+    case "status":
+      return [card.status];
+    case "priority":
+      return [card.priority === Priority.None ? "" : String(card.priority)];
+    case "severity":
+      return [card.severity === null ? "" : String(card.severity)];
+    case "assignee":
+      return [card.assigneeId ?? ""];
+    case "label":
+      return card.labelIds.length ? card.labelIds : [""];
+  }
+}
+
+// Natural order for enum fields; `""` (ungrouped) always sorts last.
+const PRIORITY_GROUP_ORDER = [Priority.Urgent, Priority.High, Priority.Medium, Priority.Low].map(
+  String,
+);
+const rankFor = (field: GroupByField, key: string, firstSeen: number): number => {
+  if (key === "") return Number.POSITIVE_INFINITY; // ungrouped lane last
+  if (field === "priority") return PRIORITY_GROUP_ORDER.indexOf(key);
+  if (field === "status") return STATUS_ORDER.indexOf(key as (typeof STATUS_ORDER)[number]);
+  if (field === "severity") return Number(key);
+  return firstSeen; // label / assignee: order of first appearance
+};
+
+/**
+ * Partition cards into ordered lanes for a group-by field. Label grouping is
+ * multi-valued (a card appears in each of its label lanes); a card missing the
+ * field lands in the trailing `""` (ungrouped) lane. Card order within a lane
+ * follows the input order.
+ */
+export function groupCards(cards: Card[], groupBy: GroupByField): CardGroup[] {
+  const buckets = new Map<string, Card[]>();
+  const firstSeen = new Map<string, number>();
+  let seq = 0;
+  for (const card of cards) {
+    for (const key of groupKeys(card, groupBy)) {
+      if (!buckets.has(key)) {
+        buckets.set(key, []);
+        firstSeen.set(key, seq++);
+      }
+      buckets.get(key)!.push(card);
+    }
+  }
+  return [...buckets.entries()]
+    .map(([key, laneCards]) => ({ key, cards: laneCards }))
+    .sort(
+      (a, b) =>
+        rankFor(groupBy, a.key, firstSeen.get(a.key)!) -
+        rankFor(groupBy, b.key, firstSeen.get(b.key)!),
+    );
+}
+
+/**
+ * Human label for a swimlane. Enum fields resolve to their display names; the
+ * empty key is the ungrouped lane ("No priority", "Unassigned", …). Label and
+ * assignee keys are opaque ids — pass `labelName` to resolve a label's name;
+ * an assignee key falls back to the raw id (no user directory yet).
+ */
+export function groupLabel(
+  groupBy: GroupByField,
+  key: string,
+  opts?: { labelName?: string },
+): string {
+  if (key === "") {
+    switch (groupBy) {
+      case "priority":
+        return "No priority";
+      case "severity":
+        return "No severity";
+      case "label":
+        return "No label";
+      case "assignee":
+        return "Unassigned";
+      case "status":
+        return "No status";
+    }
+  }
+  switch (groupBy) {
+    case "status":
+      return STATUS_META[key as Status]?.name ?? key;
+    case "priority":
+      return PRIORITY_META[Number(key) as PriorityValue]?.name ?? key;
+    case "severity":
+      return SEVERITY_META[Number(key) as keyof typeof SEVERITY_META]?.name ?? key;
+    case "label":
+      return opts?.labelName ?? key;
+    case "assignee":
+      return key;
+  }
+}
+
 // ----- Saved views -----
 
 export interface SavedView {
@@ -181,8 +286,8 @@ export interface SavedView {
   name: string;
   filter: Filter;
   sort?: Sort;
-  /** Applied in Unit 4.2 (swimlanes). Persisted here for forward-compat. */
-  groupBy?: FilterField | null;
+  /** Swimlane grouping (Unit 4.2); null/undefined → ungrouped columns. */
+  groupBy?: GroupByField | null;
   /** Overrides the board badge row when set (Unit 2.6). */
   visibleBadges?: string[];
 }

@@ -104,10 +104,14 @@ function MainArea() {
   const actions = useBoardActions();
   const active = boards.find((b) => b.id === selected) ?? null;
 
-  const [activeView, setActiveView] = useState<ActiveView>({ filter: emptyFilter(), view: null });
+  const [activeView, setActiveView] = useState<ActiveView>({
+    filter: emptyFilter(),
+    view: null,
+    groupBy: null,
+  });
   // Reset the applied view when switching boards (views are per-board).
   useEffect(() => {
-    setActiveView({ filter: emptyFilter(), view: null });
+    setActiveView({ filter: emptyFilter(), view: null, groupBy: null });
   }, [selected]);
   const filter = isEmptyFilter(activeView.filter) ? undefined : activeView.filter;
 
@@ -160,7 +164,7 @@ function MainArea() {
 
       {active ? (
         <main className="min-h-0 flex-1">
-          <BoardView boardId={active.id} filter={filter} />
+          <BoardView boardId={active.id} filter={filter} groupBy={activeView.groupBy} />
         </main>
       ) : (
         <main className="grid flex-1 place-items-center p-6">

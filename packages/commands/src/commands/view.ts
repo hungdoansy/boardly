@@ -37,10 +37,7 @@ const viewSchema = z.object({
   name: z.string().min(1).max(80),
   filter: groupSchema,
   sort: sortSchema.optional(),
-  groupBy: z
-    .enum(["status", "priority", "severity", "label", "dueDate", "assignee", "title"])
-    .nullable()
-    .optional(),
+  groupBy: z.enum(["status", "priority", "severity", "label", "assignee"]).nullable().optional(),
   visibleBadges: z.array(z.string()).optional(),
 });
 

@@ -6,6 +6,8 @@ import {
   PRESET_VIEWS,
   emptyFilter,
   evaluateFilter,
+  groupCards,
+  groupLabel,
   isEmptyFilter,
   sortCards,
 } from "./filters";
@@ -162,6 +164,59 @@ describe("sortCards", () => {
       "late",
       "none",
     ]);
+  });
+});
+
+describe("groupCards", () => {
+  it("groups by priority (natural order) with a trailing ungrouped lane for None", () => {
+    const cards = [
+      card({ id: "none", priority: Priority.None }),
+      card({ id: "high", priority: Priority.High }),
+      card({ id: "urgent", priority: Priority.Urgent }),
+    ];
+    const groups = groupCards(cards, "priority");
+    expect(groups.map((g) => g.key)).toEqual([String(Priority.Urgent), String(Priority.High), ""]);
+    expect(groups.at(-1)!.cards.map((c) => c.id)).toEqual(["none"]); // ungrouped last
+  });
+
+  it("groups by label (multi-valued: a card appears in each of its label lanes)", () => {
+    const cards = [
+      card({ id: "a", labelIds: ["bug", "p0"] }),
+      card({ id: "b", labelIds: ["bug"] }),
+      card({ id: "c", labelIds: [] }),
+    ];
+    const groups = groupCards(cards, "label");
+    const byKey = Object.fromEntries(groups.map((g) => [g.key, g.cards.map((c) => c.id)]));
+    expect(byKey["bug"]).toEqual(["a", "b"]);
+    expect(byKey["p0"]).toEqual(["a"]);
+    expect(byKey[""]).toEqual(["c"]); // no-label lane
+    expect(groups.at(-1)!.key).toBe(""); // ungrouped last
+  });
+
+  it("groups by assignee with an Unassigned lane last", () => {
+    const groups = groupCards([card({ id: "x", assigneeId: "u1" }), card({ id: "y" })], "assignee");
+    expect(groups.map((g) => g.key)).toEqual(["u1", ""]);
+  });
+});
+
+describe("groupLabel", () => {
+  it("resolves enum keys to display names", () => {
+    expect(groupLabel("status", Status.InProgress)).toBe("In Progress");
+    expect(groupLabel("priority", String(Priority.Urgent))).toBe("Urgent");
+    expect(groupLabel("severity", String(Severity.S1))).toBe("S1");
+  });
+
+  it("names the ungrouped lane per field", () => {
+    expect(groupLabel("priority", "")).toBe("No priority");
+    expect(groupLabel("severity", "")).toBe("No severity");
+    expect(groupLabel("label", "")).toBe("No label");
+    expect(groupLabel("assignee", "")).toBe("Unassigned");
+  });
+
+  it("resolves a label key via the provided name, else the raw id", () => {
+    expect(groupLabel("label", "lbl1", { labelName: "Bug" })).toBe("Bug");
+    expect(groupLabel("label", "lbl1")).toBe("lbl1");
+    expect(groupLabel("assignee", "u1")).toBe("u1");
   });
 });
 

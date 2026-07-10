@@ -25,7 +25,13 @@ import {
   setChecklistItemText,
   toggleChecklistItem,
 } from "./commands/card";
-import { addColumn, archiveColumn, moveColumn, renameColumn } from "./commands/column";
+import {
+  addColumn,
+  archiveColumn,
+  moveColumn,
+  renameColumn,
+  setColumnWipLimit,
+} from "./commands/column";
 import {
   assignLabel,
   createLabel,
@@ -49,6 +55,7 @@ export const commands = [
   renameColumn,
   moveColumn,
   archiveColumn,
+  setColumnWipLimit,
   createCard,
   moveCard,
   renameCard,

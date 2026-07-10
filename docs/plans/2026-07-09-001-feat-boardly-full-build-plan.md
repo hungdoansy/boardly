@@ -750,7 +750,7 @@ sequenceDiagram
 - Edge case — a filter referencing a deleted label degrades gracefully (no crash).
   **Verification:** pure filter-evaluation unit tests pass across conditions; e2e apply-view flow green.
 
-- [ ] **Unit 4.2: Grouping / swimlanes + WIP limits**
+- [x] **Unit 4.2: Grouping / swimlanes + WIP limits** — done (`docs/units/UNIT-4.2-swimlanes-wip.md`). Pure `groupCards`/`groupLabel` in domain (ungrouped lane last; priority/status/severity natural order; multi-valued labels); `SavedView.groupBy`. `setColumnWipLimit` sync helper + command (catalog-registered → REST/MCP parity). Web: `swimlanes.tsx` (lanes × columns grid, Unsorted cell, empty-state), `WipBadge` in `column.tsx` (`count/limit`, soft over-limit danger style, popover editor), Group-by selector in the Filter menu, threaded through workspace-app → BoardView. 48 domain / 97 web / 7 command tests; dark e2e: group-by-priority lanes + `3/2` over-limit badge. Deferred: cross-lane DnD, assignee name resolution, sort-in-UI.
 
 **Goal:** group the board by a field (assignee/label/priority) into swimlanes; enforce per-column WIP limits visually.
 **Requirements:** R5, R8.

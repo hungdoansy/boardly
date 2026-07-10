@@ -1,6 +1,12 @@
 "use client";
 
-import { type Filter, type SavedView, isEmptyFilter, PRESET_VIEWS } from "@boardly/domain";
+import {
+  type Filter,
+  type GroupByField,
+  type SavedView,
+  isEmptyFilter,
+  PRESET_VIEWS,
+} from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import { Check, ListFilter, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -11,7 +17,17 @@ import { FilterBuilder } from "./filter-builder";
 export interface ActiveView {
   filter: Filter;
   view: SavedView | null;
+  groupBy: GroupByField | null;
 }
+
+const GROUP_OPTIONS: { value: GroupByField | null; label: string }[] = [
+  { value: null, label: "None" },
+  { value: "status", label: "Status" },
+  { value: "priority", label: "Priority" },
+  { value: "severity", label: "Severity" },
+  { value: "label", label: "Label" },
+  { value: "assignee", label: "Assignee" },
+];
 
 export function ViewsMenu({
   boardId,
@@ -26,9 +42,14 @@ export function ViewsMenu({
   const actions = useViewActions(boardId);
   const [name, setName] = useState("");
 
-  const applyView = (view: SavedView): void => onChange({ filter: view.filter, view });
-  const setFilter = (filter: Filter): void => onChange({ filter, view: null });
+  const applyView = (view: SavedView): void =>
+    onChange({ filter: view.filter, view, groupBy: view.groupBy ?? null });
+  const setFilter = (filter: Filter): void =>
+    onChange({ filter, view: null, groupBy: active.groupBy });
+  const setGroupBy = (groupBy: GroupByField | null): void =>
+    onChange({ filter: active.filter, view: null, groupBy });
   const filtered = !isEmptyFilter(active.filter);
+  const customized = filtered || active.groupBy !== null;
 
   const saveCurrent = (): void => {
     const trimmed = name.trim();
@@ -37,18 +58,19 @@ export function ViewsMenu({
       id: crypto.randomUUID(),
       name: trimmed,
       filter: active.filter,
+      groupBy: active.groupBy,
     };
     actions.save(view);
     setName("");
-    onChange({ filter: view.filter, view });
+    onChange({ filter: view.filter, view, groupBy: view.groupBy ?? null });
   };
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={filtered ? "text-fg" : "text-fg-muted"}>
+        <Button variant="ghost" size="sm" className={customized ? "text-fg" : "text-fg-muted"}>
           <ListFilter className="size-3.5" />
-          {active.view ? active.view.name : filtered ? "Filtered" : "Filter"}
+          {active.view ? active.view.name : customized ? "Filtered" : "Filter"}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-96 flex-col gap-3">
@@ -77,10 +99,33 @@ export function ViewsMenu({
                       e.stopPropagation();
                       actions.remove(view.id);
                       if (active.view?.id === view.id)
-                        onChange({ filter: active.filter, view: null });
+                        onChange({ filter: active.filter, view: null, groupBy: active.groupBy });
                     }}
                   />
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 border-t border-line-subtle pt-2">
+          <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+            Group by
+          </span>
+          <div className="flex flex-wrap gap-1">
+            {GROUP_OPTIONS.map((opt) => (
+              <button
+                key={opt.value ?? "none"}
+                type="button"
+                onClick={() => setGroupBy(opt.value)}
+                className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                  active.groupBy === opt.value ? "bg-overlay text-fg" : "text-fg-muted"
+                }`}
+              >
+                {active.groupBy === opt.value ? (
+                  <Check className="size-3 text-[var(--accent)]" />
+                ) : null}
+                {opt.label}
               </button>
             ))}
           </div>
@@ -101,7 +146,7 @@ export function ViewsMenu({
             }}
             className="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line bg-elevated px-2 text-sm text-fg outline-none placeholder:text-fg-faint focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
-          <Button size="sm" onClick={saveCurrent} disabled={!name.trim() || !filtered}>
+          <Button size="sm" onClick={saveCurrent} disabled={!name.trim() || !customized}>
             Save
           </Button>
         </div>

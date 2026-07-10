@@ -179,12 +179,14 @@ export function SortableColumn({
   column,
   count,
   onRename,
+  onSetWipLimit,
   onDelete,
   children,
 }: {
   column: Column;
   count: number;
   onRename: (title: string) => void;
+  onSetWipLimit: (wipLimit: number | null) => void;
   onDelete: () => void;
   children?: ReactNode;
 }) {
@@ -205,6 +207,7 @@ export function SortableColumn({
       column={column}
       count={count}
       onRename={onRename}
+      onSetWipLimit={onSetWipLimit}
       onDelete={onDelete}
       dndRef={setNodeRef}
       dndStyle={{

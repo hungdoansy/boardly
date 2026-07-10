@@ -1,6 +1,12 @@
 "use client";
 
-import { type Filter, type FilterContext, evaluateFilter, Priority } from "@boardly/domain";
+import {
+  type Filter,
+  type FilterContext,
+  type GroupByField,
+  evaluateFilter,
+  Priority,
+} from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { useCallback, useMemo, useRef } from "react";
@@ -23,10 +29,19 @@ import { AddColumn } from "./add-column";
 import { ColumnCards } from "./column-cards";
 import { BoardDndProvider, SortableColumn } from "./dnd";
 import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
+import { Swimlanes } from "./swimlanes";
 
 const PRIORITY_CYCLE = Object.values(Priority).sort((a, b) => a - b);
 
-export function BoardView({ boardId, filter }: { boardId: string; filter?: Filter }) {
+export function BoardView({
+  boardId,
+  filter,
+  groupBy,
+}: {
+  boardId: string;
+  filter?: Filter;
+  groupBy?: GroupByField | null;
+}) {
   const columns = useColumns(boardId);
   const counts = useCardCounts(boardId);
   const reclaimed = useReclaimedCards(boardId);
@@ -75,6 +90,21 @@ export function BoardView({ boardId, filter }: { boardId: string; filter?: Filte
     }
   }, [openCardId, setOpenCardId]);
 
+  if (groupBy) {
+    return (
+      <>
+        <Swimlanes
+          boardId={boardId}
+          groupBy={groupBy}
+          filter={filter}
+          filterCtx={filterCtx}
+          onOpenCard={setOpenCardId}
+        />
+        <CardDetail boardId={boardId} cardId={openCardId} onClose={closeCard} />
+      </>
+    );
+  }
+
   return (
     <BoardDndProvider boardId={boardId}>
       <div ref={boardRef} className="flex h-full items-start gap-3 overflow-x-auto p-4">
@@ -85,6 +115,7 @@ export function BoardView({ boardId, filter }: { boardId: string; filter?: Filte
               column={column}
               count={counts[column.id] ?? 0}
               onRename={(title) => columnActions.rename(column.id, title)}
+              onSetWipLimit={(limit) => columnActions.setWipLimit(column.id, limit)}
               onDelete={() => columnActions.remove(column.id)}
             >
               <ColumnCards

@@ -29,6 +29,7 @@ import {
   removeLink,
   renameCard,
   renameColumn,
+  setColumnWipLimit,
   renameLabel,
   setBadgeConfig,
   setCardDescription,
@@ -41,6 +42,7 @@ import {
   unassignLabel,
 } from "@boardly/commands";
 import {
+  allLiveCards,
   boardCards,
   boardColumns,
   boardLabels,
@@ -156,6 +158,7 @@ export function useReclaimedCards(boardId: string): Card[] {
 export interface ColumnActions {
   add(title: string): string;
   rename(columnId: string, title: string): void;
+  setWipLimit(columnId: string, wipLimit: number | null): void;
   remove(columnId: string): void;
 }
 
@@ -163,6 +166,12 @@ export interface ColumnActions {
 export function useCardsInColumn(boardId: string, columnId: string): Card[] {
   const doc = useBoardlyContext().getBoardDoc(boardId);
   return useY(boardCards(doc), () => cardsInColumn(doc, columnId), { deep: true });
+}
+
+/** All non-archived cards on the board (for swimlane grouping, Unit 4.2). */
+export function useAllCards(boardId: string): Card[] {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useY(boardCards(doc), () => allLiveCards(doc), { deep: true });
 }
 
 /** A single live card by id (or null). Doc-level subscription (description is a nested Y.Text). */
@@ -343,11 +352,17 @@ export function useColumnActions(boardId: string): ColumnActions {
     },
     [ctx, boardId],
   );
+  const setWipLimit = useCallback(
+    (columnId: string, wipLimit: number | null) => {
+      execute(setColumnWipLimit, ctx, { boardId, columnId, wipLimit });
+    },
+    [ctx, boardId],
+  );
   const remove = useCallback(
     (columnId: string) => {
       execute(archiveColumn, ctx, { boardId, columnId });
     },
     [ctx, boardId],
   );
-  return { add, rename, remove };
+  return { add, rename, setWipLimit, remove };
 }

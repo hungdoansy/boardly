@@ -1,6 +1,7 @@
 "use client";
 
 import type { Column } from "@boardly/domain";
+import { Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import type { DraggableAttributes, DraggableSyntheticListeners } from "@dnd-kit/core";
 import { GripVertical, Trash2 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
@@ -15,6 +16,7 @@ interface BoardColumnProps {
   column: Column;
   count: number;
   onRename: (title: string) => void;
+  onSetWipLimit: (wipLimit: number | null) => void;
   onDelete: () => void;
   children?: ReactNode;
   dndRef?: (el: HTMLElement | null) => void;
@@ -26,6 +28,7 @@ export function BoardColumn({
   column,
   count,
   onRename,
+  onSetWipLimit,
   onDelete,
   children,
   dndRef,
@@ -89,7 +92,12 @@ export function BoardColumn({
             {column.title}
           </button>
         )}
-        <span className="px-1 text-xs tabular-nums text-fg-faint">{count}</span>
+        <WipBadge
+          count={count}
+          wipLimit={column.wipLimit}
+          columnTitle={column.title}
+          onSetWipLimit={onSetWipLimit}
+        />
         <button
           type="button"
           aria-label={`Delete ${column.title}`}
@@ -104,5 +112,88 @@ export function BoardColumn({
         {children}
       </div>
     </section>
+  );
+}
+
+/** Card count, or `count / limit` when a soft WIP limit is set. Click to edit. */
+function WipBadge({
+  count,
+  wipLimit,
+  columnTitle,
+  onSetWipLimit,
+}: {
+  count: number;
+  wipLimit?: number;
+  columnTitle: string;
+  onSetWipLimit: (wipLimit: number | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const over = wipLimit !== undefined && count >= wipLimit;
+
+  const commit = (): void => {
+    const n = Number.parseInt(draft, 10);
+    onSetWipLimit(Number.isFinite(n) && n > 0 ? n : null);
+    setOpen(false);
+  };
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setDraft(wipLimit ? String(wipLimit) : "");
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`WIP limit for ${columnTitle}`}
+          className={`rounded-[var(--radius-sm)] px-1 text-xs tabular-nums transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+            over ? "font-medium text-[var(--danger)]" : "text-fg-faint"
+          }`}
+        >
+          {wipLimit !== undefined ? `${count}/${wipLimit}` : count}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="flex w-52 flex-col gap-2">
+        <span className="text-xs text-fg-muted">WIP limit (soft — never blocks adding)</span>
+        <div className="flex items-center gap-2">
+          <input
+            autoFocus
+            type="number"
+            min={1}
+            aria-label="WIP limit"
+            placeholder="None"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") setOpen(false);
+            }}
+            className="h-7 w-20 rounded-[var(--radius-sm)] border border-line bg-elevated px-2 text-sm text-fg outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          />
+          <button
+            type="button"
+            onClick={commit}
+            className="h-7 rounded-[var(--radius-sm)] bg-primary px-2 text-sm text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            Set
+          </button>
+          {wipLimit !== undefined ? (
+            <button
+              type="button"
+              onClick={() => {
+                onSetWipLimit(null);
+                setOpen(false);
+              }}
+              className="h-7 rounded-[var(--radius-sm)] px-2 text-sm text-fg-muted hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
