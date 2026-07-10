@@ -15,7 +15,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
   const add = (): void => {
     const trimmed = url.trim();
     if (!trimmed) return;
-    actions.add(card.id, trimmed);
+    void actions.add(card.id, trimmed);
     setUrl("");
   };
 

@@ -9,7 +9,9 @@ import type {
   SeverityValue,
   Status,
 } from "@boardly/domain";
-import { isSafeHttpUrl } from "@boardly/domain";
+import { detectProvider, isSafeHttpUrl, LinkProvider } from "@boardly/domain";
+
+import { unfurl } from "./unfurl-client";
 import {
   addChecklistItem,
   addColumn,
@@ -300,7 +302,7 @@ export function useChecklistActions(boardId: string): ChecklistActions {
 }
 
 export interface LinkActions {
-  add(cardId: string, url: string): void;
+  add(cardId: string, url: string): Promise<void>;
   remove(cardId: string, linkId: string): void;
 }
 
@@ -308,9 +310,15 @@ export function useLinkActions(boardId: string): LinkActions {
   const ctx = useBoardlyContext();
   return {
     add: useCallback(
-      (cardId: string, url: string) => {
+      async (cardId: string, url: string) => {
         if (!isSafeHttpUrl(url)) return; // command also rejects; skip here to avoid a throw
-        execute(addLink, ctx, { boardId, cardId, url });
+        // Generic links get a server-fetched title (Unit 3.7); known providers
+        // already render a good short label, so skip the round-trip for them.
+        let title: string | undefined;
+        if (detectProvider(url) === LinkProvider.Generic) {
+          title = (await unfurl(url))?.title;
+        }
+        execute(addLink, ctx, { boardId, cardId, url, title });
       },
       [ctx, boardId],
     ),

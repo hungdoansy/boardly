@@ -674,7 +674,7 @@ sequenceDiagram
 - Edge case — going offline then online backfills via state-vector exchange (no data loss, no dupes).
   **Verification:** provider unit tests (mocked) pass; a two-client e2e (two browser contexts) shows a card created in one appearing in the other; offline→online backfill verified. _(Critical flow — the core promise.)_
 
-- [ ] **Unit 3.7: Link-unfurl endpoint (web)**
+- [x] **Unit 3.7: Link-unfurl endpoint (web)** — done (`docs/units/UNIT-3.7-link-unfurl.md`). `GET /api/unfurl` fetches title/favicon server-side with a DNS-resolving SSRF guard (blocks loopback/RFC-1918/link-local/CGNAT, per-redirect re-validation), timeout+size cap, graceful hostname fallback, and `link_metadata_cache` upsert. Web `useLinkActions.add` unfurls generic links. 60 server tests (incl. SSRF); live: example.com chip populated "Example Domain".
 
 **Goal:** server-side title/favicon fetch with caching for generic links on web.
 **Requirements:** R7.
