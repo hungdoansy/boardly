@@ -12,3 +12,4 @@ export * from "./commands/label";
 export * from "./commands/status";
 export * from "./commands/link";
 export * from "./commands/search";
+export * from "./commands/view";

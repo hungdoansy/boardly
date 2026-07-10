@@ -37,6 +37,7 @@ import {
 import { addLink, removeLink } from "./commands/link";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
+import { deleteView, saveView } from "./commands/view";
 
 export const commands = [
   createBoard,
@@ -72,6 +73,8 @@ export const commands = [
   addLink,
   removeLink,
   searchCards,
+  saveView,
+  deleteView,
 ] satisfies Command[];
 
 export const catalog: Record<string, Command> = Object.fromEntries(

@@ -13,6 +13,7 @@ import {
   type Label,
   type LinkProvider,
   type PriorityValue,
+  type SavedView,
   type SeverityValue,
   type Status,
   DEFAULT_BADGE_CONFIG,
@@ -121,6 +122,37 @@ export function setBadgeConfig(doc: Y.Doc, config: string[], now: number): void 
   doc.transact(() => {
     const meta = boardMeta(doc);
     meta.set("badgeConfig", [...config]);
+    meta.set("updatedAt", now);
+  });
+}
+
+// ----- saved views (Unit 4.1) -----
+
+/** The board's saved views (stored as a plain JSON array on `meta.views`). */
+export function listViews(doc: Y.Doc): SavedView[] {
+  const raw = boardMeta(doc).get("views");
+  return Array.isArray(raw) ? (raw as SavedView[]) : [];
+}
+
+/** Insert or replace a saved view by id. */
+export function saveView(doc: Y.Doc, view: SavedView, now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    const views = listViews(doc).filter((v) => v.id !== view.id);
+    views.push(view);
+    meta.set("views", views);
+    meta.set("updatedAt", now);
+  });
+}
+
+/** Remove a saved view by id. */
+export function deleteView(doc: Y.Doc, viewId: string, now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    meta.set(
+      "views",
+      listViews(doc).filter((v) => v.id !== viewId),
+    );
     meta.set("updatedAt", now);
   });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { type Filter, type FilterContext, evaluateFilter } from "@boardly/domain";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useMemo } from "react";
 
@@ -11,16 +12,28 @@ export function ColumnCards({
   boardId,
   columnId,
   onOpenCard,
+  filter,
+  filterCtx,
 }: {
   boardId: string;
   columnId: string;
   onOpenCard: (cardId: string) => void;
+  filter?: Filter;
+  filterCtx?: FilterContext;
 }) {
-  const cards = useCardsInColumn(boardId, columnId);
+  const allCards = useCardsInColumn(boardId, columnId);
   const labels = useLabels(boardId);
   const config = useBadgeConfig(boardId);
   const actions = useCardActions(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
+
+  const cards = useMemo(
+    () =>
+      filter
+        ? allCards.filter((c) => evaluateFilter(c, filter, filterCtx ?? { now: Date.now() }))
+        : allCards,
+    [allCards, filter, filterCtx],
+  );
 
   return (
     <>

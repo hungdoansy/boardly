@@ -1,5 +1,6 @@
 "use client";
 
+import { emptyFilter, isEmptyFilter } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import { LayoutGrid, LogOut, Plus, Search, SlidersHorizontal, Tag } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
 import { LabelManager } from "../board/label-manager";
+import { type ActiveView, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
 import { SearchDialog } from "../search/search";
 import { SyncBridge } from "../sync/sync-bridge";
@@ -102,6 +104,13 @@ function MainArea() {
   const actions = useBoardActions();
   const active = boards.find((b) => b.id === selected) ?? null;
 
+  const [activeView, setActiveView] = useState<ActiveView>({ filter: emptyFilter(), view: null });
+  // Reset the applied view when switching boards (views are per-board).
+  useEffect(() => {
+    setActiveView({ filter: emptyFilter(), view: null });
+  }, [selected]);
+  const filter = isEmptyFilter(activeView.filter) ? undefined : activeView.filter;
+
   const createAndOpen = (): void => {
     select(actions.create());
   };
@@ -113,6 +122,9 @@ function MainArea() {
           {active ? active.title : "Welcome"}
         </h1>
         <div className="flex items-center gap-2">
+          {active ? (
+            <ViewsMenu boardId={active.id} active={activeView} onChange={setActiveView} />
+          ) : null}
           {active ? (
             <Popover>
               <PopoverTrigger asChild>
@@ -148,7 +160,7 @@ function MainArea() {
 
       {active ? (
         <main className="min-h-0 flex-1">
-          <BoardView boardId={active.id} />
+          <BoardView boardId={active.id} filter={filter} />
         </main>
       ) : (
         <main className="grid flex-1 place-items-center p-6">

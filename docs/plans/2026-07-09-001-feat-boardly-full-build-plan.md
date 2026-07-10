@@ -736,7 +736,7 @@ sequenceDiagram
 
 ### Phase 4 — Views, filters, activity, interop
 
-- [ ] **Unit 4.1: Saved views & filters**
+- [x] **Unit 4.1: Saved views & filters** — done (`docs/units/UNIT-4.1-saved-views-filters.md`). Pure nestable filter model + `evaluateFilter`/`sortCards` in domain; presets (My cards/Due this week/High priority); views persisted on `meta.views` via `saveView`/`deleteView` commands; web Filter menu + builder wired through the board (client-side card filtering). 42 domain tests; e2e: "Title contains bug" filtered 4→2 and saved as a view. Deferred: groupBy→4.2, sort-in-UI, filtered counts.
 
 **Goal:** define, save, and apply filters/sorts as named views per board.
 **Requirements:** R8.

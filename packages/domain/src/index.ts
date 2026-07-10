@@ -3,6 +3,7 @@ export * from "./activity";
 export * from "./badges";
 export * from "./dates";
 export * from "./enums";
+export * from "./filters";
 export * from "./ids";
 export * from "./palette";
 export * from "./status";

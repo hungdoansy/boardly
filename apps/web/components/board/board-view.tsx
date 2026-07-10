@@ -1,10 +1,11 @@
 "use client";
 
-import { Priority } from "@boardly/domain";
+import { type Filter, type FilterContext, evaluateFilter, Priority } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { useCallback, useMemo, useRef } from "react";
 
+import { useAuthSession } from "../../lib/auth-store";
 import { useBoardlyContext } from "../../lib/boardly-context";
 import {
   useBadgeConfig,
@@ -25,7 +26,7 @@ import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
 
 const PRIORITY_CYCLE = Object.values(Priority).sort((a, b) => a - b);
 
-export function BoardView({ boardId }: { boardId: string }) {
+export function BoardView({ boardId, filter }: { boardId: string; filter?: Filter }) {
   const columns = useColumns(boardId);
   const counts = useCardCounts(boardId);
   const reclaimed = useReclaimedCards(boardId);
@@ -35,6 +36,15 @@ export function BoardView({ boardId }: { boardId: string }) {
   const config = useBadgeConfig(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const [openCardId, setOpenCardId] = useSelectedCard();
+  const { userId } = useAuthSession();
+  const filterCtx: FilterContext = useMemo(
+    () => ({ now: Date.now(), currentUserId: userId ?? undefined }),
+    [userId],
+  );
+  const filteredReclaimed = useMemo(
+    () => (filter ? reclaimed.filter((c) => evaluateFilter(c, filter, filterCtx)) : reclaimed),
+    [reclaimed, filter, filterCtx],
+  );
 
   const ctx = useBoardlyContext();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -77,22 +87,30 @@ export function BoardView({ boardId }: { boardId: string }) {
               onRename={(title) => columnActions.rename(column.id, title)}
               onDelete={() => columnActions.remove(column.id)}
             >
-              <ColumnCards boardId={boardId} columnId={column.id} onOpenCard={setOpenCardId} />
+              <ColumnCards
+                boardId={boardId}
+                columnId={column.id}
+                onOpenCard={setOpenCardId}
+                filter={filter}
+                filterCtx={filterCtx}
+              />
             </SortableColumn>
           ))}
         </SortableContext>
 
-        {reclaimed.length > 0 && (
+        {filteredReclaimed.length > 0 && (
           <section
             aria-label="Unsorted"
             className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-dashed border-line bg-surface"
           >
             <header className="flex h-9 shrink-0 items-center gap-2 px-2">
               <span className="text-md font-medium text-fg-muted">Unsorted</span>
-              <span className="px-1 text-xs tabular-nums text-fg-faint">{reclaimed.length}</span>
+              <span className="px-1 text-xs tabular-nums text-fg-faint">
+                {filteredReclaimed.length}
+              </span>
             </header>
             <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
-              {reclaimed.map((card) => (
+              {filteredReclaimed.map((card) => (
                 <CardFace
                   key={card.id}
                   card={card}
