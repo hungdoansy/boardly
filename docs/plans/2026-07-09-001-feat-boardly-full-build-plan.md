@@ -897,7 +897,7 @@ sequenceDiagram
 - Edge case — a saved view restores filter+sort+group+layout exactly (serialize→parse round-trip), with `layout` defaulting to `"board"` when absent (back-compat with existing saved views).
   **Verification:** domain unit tests for `resolveView` + `SavedView` round-trip pass; `packages/domain` still has no React/DOM dependency.
 
-- [ ] **Unit V1.2: Linear-style filter builder (AND/OR, all fields + operators)**
+- [x] **Unit V1.2: Linear-style filter builder (AND/OR, all fields + operators)**
 
 **Goal:** replace the AND-only builder with a chip-based, nestable filter editor covering every field.
 **Requirements:** R16.

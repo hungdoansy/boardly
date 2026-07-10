@@ -23,7 +23,7 @@ One source of truth for "a view", so the board and the (upcoming) list lens rend
   sort, empty-lens board order, no-mutation) and a `SavedView` JSON round-trip (filter+sort+group+
   layout preserved; legacy view with no `layout` still parses).
 - **`packages/commands/src/commands/view.ts`** — `viewSchema` gains `layout: z.enum(["board",
-  "list"]).optional()`. **Necessary beyond the plan's file list:** the schema is a `z.object`, which
+"list"]).optional()`. **Necessary beyond the plan's file list:** the schema is a `z.object`, which
   strips unknown keys, so without this the `saveView` command would silently drop `layout` and the
   real-app round-trip (V1.4) would fail even though the domain test passes.
 - **`apps/web/components/board/views.tsx`** — `ActiveView` gains `sort: Sort | null` and
@@ -39,7 +39,7 @@ One source of truth for "a view", so the board and the (upcoming) list lens rend
   group. Putting the pipeline in a single pure `resolveView` guarantees both lenses produce the same
   ordering from the same lens; V1.3/V1.4 just choose a renderer.
 - **`resolveView`, not `applyView`.** A UI handler named `applyView` already exists in `views.tsx`
-  (it applies a *saved view* to the active state). Naming the pure pipeline helper `resolveView`
+  (it applies a _saved view_ to the active state). Naming the pure pipeline helper `resolveView`
   avoids a confusing same-name collision (decided with the user before implementation).
 - **`layout` optional, defaults to `"board"`.** Keeps every pre-V1.1 saved view valid — an absent
   `layout` reads as board, so nothing migrates.
