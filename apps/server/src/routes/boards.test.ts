@@ -95,6 +95,27 @@ describe.skipIf(!DATABASE_URL)("board ownership registry (integration, real db)"
     expect(boards.find((b) => b.id === boardId)?.title).toBe("A renamed");
   });
 
+  it("handles concurrent duplicate registration of a new board id without a 500", async () => {
+    const userId = await newUser();
+    const boardId = randomUUID();
+    const auth = await bearer(userId);
+    const register = () =>
+      app.inject({
+        method: "POST",
+        url: "/boards",
+        headers: { authorization: auth },
+        payload: { id: boardId, title: "Race" },
+      });
+
+    // Fire several registrations for the same new id at once (the client can
+    // double-fire). Exactly one inserts (201); the rest resolve idempotently
+    // (200) — none 500 on the unique violation.
+    const results = await Promise.all([register(), register(), register(), register()]);
+    const codes = results.map((r) => r.statusCode).sort();
+    expect(codes.every((c) => c === 200 || c === 201)).toBe(true);
+    expect(codes.filter((c) => c === 201)).toHaveLength(1);
+  });
+
   it("cannot register a board id already owned by another user", async () => {
     const owner = await newUser();
     const attacker = await newUser();

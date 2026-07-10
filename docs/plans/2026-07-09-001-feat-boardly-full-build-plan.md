@@ -776,7 +776,7 @@ sequenceDiagram
 - Edge case — high-volume changes don't unbounded-grow the UI (paginate/limit render); appends are append-only (no rewrite).
   **Verification:** unit tests pass; timeline renders in the detail panel.
 
-- [ ] **Unit 4.4: Import / export (JSON, Markdown, Obsidian-kanban)**
+- [x] **Unit 4.4: Import / export (JSON, Markdown, Obsidian-kanban)** — done (`docs/units/UNIT-4.4-import-export.md`). Pure `packages/domain/src/io` (`BoardSnapshot` + zod schema, `exportJson`/`parseJson`, `exportMarkdown`, `parseObsidian`; atomic `ImportError`); sync `boardToSnapshot`/`buildBoardFromSnapshot` (verbatim rebuild → exact JSON round-trip); `exportBoard`/`importBoard` commands (catalog → REST/MCP parity); web Export/Import menu (download + file import into a new board). Also made `POST /boards` race-safe (concurrent duplicate registration no longer 500s — found by the import e2e). 60 domain / 38 sync / 9 command / 71 server tests; dark e2e imports an Obsidian board. Deferred: lossy MD export, Obsidian metadata, merge-into-existing.
 
 **Goal:** export a board to JSON/Markdown and import from JSON and Obsidian-kanban markdown.
 **Requirements:** R10.

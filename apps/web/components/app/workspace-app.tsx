@@ -12,6 +12,7 @@ import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boar
 import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
+import { ImportExportMenu } from "../board/import-export";
 import { LabelManager } from "../board/label-manager";
 import { type ActiveView, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
@@ -155,6 +156,11 @@ function MainArea() {
               </PopoverContent>
             </Popover>
           ) : null}
+          <ImportExportMenu
+            boardId={active?.id ?? null}
+            boardTitle={active?.title ?? "board"}
+            onImported={select}
+          />
           <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint">
             <span className="font-mono">⌘</span>
             <span className="font-mono">K</span>

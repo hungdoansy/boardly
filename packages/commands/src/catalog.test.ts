@@ -8,6 +8,7 @@ import { addLink } from "./commands/link";
 import { archiveCard, createCard, moveCard } from "./commands/card";
 import { addColumn, renameColumn } from "./commands/column";
 import { createBoard } from "./commands/board";
+import { exportBoard, importBoard } from "./commands/io";
 import { setCardStatus } from "./commands/status";
 import { type CommandContext, createMemoryContext } from "./context";
 
@@ -74,6 +75,31 @@ describe("commands (client context)", () => {
     );
     const after = cardsInColumn(ctx.getBoardDoc("b1"), "col1").length;
     expect(after).toBe(before);
+  });
+});
+
+describe("export / import commands", () => {
+  it("exports a board and imports the snapshot into a new board (round-trip)", () => {
+    const ctx = createMemoryContext({ clientId: "c1", now: () => 100 });
+    execute(createBoard, ctx, { id: "b1", title: "Source" });
+    execute(addColumn, ctx, { boardId: "b1", id: "col1", title: "To Do" });
+    execute(createCard, ctx, { boardId: "b1", id: "k1", columnId: "col1", title: "Task" });
+    execute(setCardStatus, ctx, { boardId: "b1", cardId: "k1", status: "in_progress" });
+
+    const snapshot = execute(exportBoard, ctx, { boardId: "b1" });
+    expect(snapshot.columns).toHaveLength(1);
+    expect(snapshot.cards[0]).toMatchObject({ title: "Task", status: "in_progress" });
+
+    const imported = execute(importBoard, ctx, { snapshot, id: "b2" });
+    expect(imported.id).toBe("b2");
+    const cols = liveColumns(ctx.getBoardDoc("b2"));
+    expect(cols.map((c) => c.title)).toEqual(["To Do"]);
+    expect(cardsInColumn(ctx.getBoardDoc("b2"), cols[0]!.id)[0]?.title).toBe("Task");
+  });
+
+  it("rejects a malformed snapshot via zod (nothing created)", () => {
+    const ctx = createMemoryContext();
+    expect(() => execute(importBoard, ctx, { snapshot: { board: {} } as never })).toThrow(ZodError);
   });
 });
 

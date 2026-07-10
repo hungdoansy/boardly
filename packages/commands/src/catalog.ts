@@ -40,6 +40,7 @@ import {
   renameLabel,
   unassignLabel,
 } from "./commands/label";
+import { exportBoard, importBoard } from "./commands/io";
 import { addLink, removeLink } from "./commands/link";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
@@ -82,6 +83,8 @@ export const commands = [
   searchCards,
   saveView,
   deleteView,
+  exportBoard,
+  importBoard,
 ] satisfies Command[];
 
 export const catalog: Record<string, Command> = Object.fromEntries(
