@@ -18,6 +18,7 @@ import { type ActiveView, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
 import { SearchDialog } from "../search/search";
 import { SyncBridge } from "../sync/sync-bridge";
+import { ThemeToggle } from "./theme-toggle";
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -50,7 +51,7 @@ function Shell() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line-subtle bg-surface">
+      <aside className="flex w-52 shrink-0 flex-col border-r border-line-subtle bg-surface sm:w-60">
         <div className="flex h-12 items-center gap-2 px-3">
           <div className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-primary text-primary-foreground">
             <LayoutGrid className="size-3.5" />
@@ -79,14 +80,17 @@ function Shell() {
               {(userId ?? "?").slice(0, 2).toUpperCase()}
             </span>
             <span className="truncate text-sm text-fg-muted">Account</span>
-            <button
-              type="button"
-              aria-label="Sign out"
-              onClick={() => void apiClient.logout()}
-              className="ml-auto grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            >
-              <LogOut className="size-3.5" />
-            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-0.5">
+              <ThemeToggle />
+              <button
+                type="button"
+                aria-label="Sign out"
+                onClick={() => void apiClient.logout()}
+                className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -161,7 +165,7 @@ function MainArea() {
             boardTitle={active?.title ?? "board"}
             onImported={select}
           />
-          <div className="flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint">
+          <div className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint sm:flex">
             <span className="font-mono">⌘</span>
             <span className="font-mono">K</span>
           </div>

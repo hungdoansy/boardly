@@ -3,6 +3,8 @@
 // (Unit 5.2) it fetches the page directly with Tauri's native HTTP plugin —
 // CORS-free, no server round-trip — and parses the title/icon locally. Any
 // failure returns null so the card falls back to the hostname; never breaks.
+import { isPublicHttpUrl } from "@boardly/domain";
+
 import { API_BASE_URL } from "./api-client";
 import { isTauri } from "./platform";
 
@@ -30,6 +32,9 @@ async function unfurlViaServer(url: string): Promise<Unfurled | null> {
 
 /** Desktop path: native fetch (no CORS), parse the HTML locally. */
 async function unfurlViaTauri(url: string): Promise<Unfurled | null> {
+  // The native fetch bypasses the server's SSRF guard, so require a public
+  // HTTPS host before touching the network (see `isPublicHttpUrl`).
+  if (!isPublicHttpUrl(url)) return null;
   try {
     const { fetch: tauriFetch } = await import("@tauri-apps/plugin-http");
     const res = await tauriFetch(url, { method: "GET" });

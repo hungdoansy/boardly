@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { LinkProvider } from "../enums";
-import { detectProvider, isSafeHttpUrl, normalizeUrl, shortLabelFor } from "./registry";
+import {
+  detectProvider,
+  isPublicHttpUrl,
+  isSafeHttpUrl,
+  normalizeUrl,
+  shortLabelFor,
+} from "./registry";
 
 describe("detectProvider", () => {
   it("maps each shipped provider", () => {
@@ -50,5 +56,39 @@ describe("normalizeUrl", () => {
   it("canonicalizes for de-duplication", () => {
     expect(normalizeUrl("https://example.com/a/")).toBe(normalizeUrl("https://example.com/a"));
     expect(normalizeUrl("https://example.com/a#frag")).toBe(normalizeUrl("https://example.com/a"));
+  });
+});
+
+describe("isPublicHttpUrl (desktop SSRF pre-filter)", () => {
+  it("allows public https hosts", () => {
+    expect(isPublicHttpUrl("https://example.com")).toBe(true);
+    expect(isPublicHttpUrl("https://sub.example.co.uk/path?q=1")).toBe(true);
+  });
+
+  it("rejects non-https and dangerous schemes", () => {
+    expect(isPublicHttpUrl("http://example.com")).toBe(false); // plaintext
+    expect(isPublicHttpUrl("javascript:alert(1)")).toBe(false);
+    expect(isPublicHttpUrl("not a url")).toBe(false);
+  });
+
+  it("rejects localhost, *.local, and bare single-label hosts", () => {
+    expect(isPublicHttpUrl("https://localhost")).toBe(false);
+    expect(isPublicHttpUrl("https://localhost:8787/x")).toBe(false);
+    expect(isPublicHttpUrl("https://printer.local")).toBe(false);
+    expect(isPublicHttpUrl("https://intranet")).toBe(false);
+  });
+
+  it("rejects private / loopback / link-local IP literals", () => {
+    expect(isPublicHttpUrl("https://127.0.0.1")).toBe(false);
+    expect(isPublicHttpUrl("https://10.0.0.5")).toBe(false);
+    expect(isPublicHttpUrl("https://192.168.1.1")).toBe(false);
+    expect(isPublicHttpUrl("https://172.16.0.1")).toBe(false);
+    expect(isPublicHttpUrl("https://169.254.169.254")).toBe(false); // cloud metadata
+    expect(isPublicHttpUrl("https://[::1]")).toBe(false);
+    expect(isPublicHttpUrl("https://[fe80::1]")).toBe(false);
+  });
+
+  it("allows a public IP literal", () => {
+    expect(isPublicHttpUrl("https://8.8.8.8")).toBe(true);
   });
 });

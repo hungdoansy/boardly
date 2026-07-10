@@ -6,8 +6,11 @@ primitives) restyled to the tokens below. This doc is the single source of truth
 type, spacing, motion, and component usage; components must consume these tokens (as CSS
 variables / Tailwind theme), never hardcode values.
 
-> **Priority: dark mode.** All values below are the dark theme (the default). Light-theme values
-> come in the polish phase (plan Unit 5.3) and mirror the same token names.
+> **Priority: dark mode.** All values below are the dark theme (the default). The light theme
+> (Unit 5.3) mirrors the same token names under `:root.light` — see §2.1 — so every component
+> themes automatically (no `dark:` variants; tokens only). The resolved theme is stamped as a
+> `.dark`/`.light` class on `<html>` from the persisted choice or `prefers-color-scheme`, applied
+> before first paint by an inline script (no FOUC). Dark remains the SSR/no-JS default.
 
 ---
 
@@ -92,6 +95,22 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 **Severity:** S1 `#EB5757`, S2 `#F2994A`, S3 `#E2B341`, S4 `#6B6F76`. Rendered as a small solid `S#` pill.
 
 **Label palette** (accessible on dark; user picks per label): slate `#8A8F98`, red `#EB5757`, orange `#F2994A`, amber `#E2B341`, green `#4CB782`, teal `#3DB4B0`, blue `#4EA7FC`, indigo `#5E6AD2`, violet `#9B7EDE`, pink `#E06C9F`. Chips use the color at ~16% alpha fill + full-color text/dot.
+
+### 2.1 Light theme (Unit 5.3)
+
+Same token names re-declared under `:root.light` (`packages/ui/src/theme.css`). Only the
+surface / border / text ramps flip; accent, semantic hues, radii, and motion are shared. Cards
+and columns are white on a faintly gray canvas, with **low-alpha black** borders providing the
+elevation separation (mirroring the dark theme's low-alpha white).
+
+- **Surfaces:** base `#F6F7F8` (canvas) · surface `#FBFBFC` (columns) · elevated `#FFFFFF` (cards) · overlay `#FFFFFF` (popovers) · selected `rgba(94,106,210,0.10)`.
+- **Borders:** subtle `rgba(0,0,0,0.06)` · default `rgba(0,0,0,0.11)` · strong `rgba(0,0,0,0.18)`.
+- **Text:** primary `#1C1D21` · secondary `#55595F` · tertiary `#82868D` · disabled `#B2B6BC`.
+- **Accent:** deepened to `#5058C9` (hover `#464EC0`, active `#3C44B4`) for AA contrast on white; fg `#FFFFFF`.
+- **Semantic:** success `#2F9E6B` · warning `#B9862A` · danger `#D63A3A` · info `#2F7FD6` (darkened for light-surface contrast).
+
+Theme selection is a persisted preference (`boardly-theme` = `dark` | `light` | `system`); `system`
+follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔light.
 
 ---
 

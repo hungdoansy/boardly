@@ -815,7 +815,7 @@ sequenceDiagram
 - Edge case — auth-store selects keychain storage under Tauri and cookie/memory on web.
   **Verification:** platform-switch unit tests pass; capabilities include http/notification/deep-link/updater/keyring; config compiles if toolchain present. Native runtime checks deferred to user.
 
-- [ ] **Unit 5.3: Theme polish + light theme + responsive pass**
+- [x] **Unit 5.3: Theme polish + light theme + responsive pass** — done (`docs/units/UNIT-5.3-theme-responsive.md`). Light theme via `:root.light` token re-declaration (tokens-only UI → cascades everywhere; dark stays default); `lib/theme.ts` (resolve/apply/persist `boardly-theme`=dark|light|system, `system` follows `prefers-color-scheme`), sidebar Sun/Moon toggle, no-FOUC inline script in layout. Responsive: sidebar `w-52 sm:w-60`, ⌘K hint `hidden sm:flex`, board scrolls horizontally, detail Sheet full-screen <448px. Also hardened the 5.2 desktop unfurl (review follow-up): pure `isPublicHttpUrl` SSRF pre-filter (HTTPS + blocks localhost/private/loopback/link-local incl. cloud-metadata) applied in `unfurlViaTauri`, and the `http:default` capability tightened to `https://*` only. 65 domain / 117 web tests; dark+light × wide+narrow screenshots; cargo check + all gates green. Deferred: explicit "System" toggle UI, formal contrast audit (5.4), DNS-rebinding residual.
 
 **Goal:** finish the Linear-style dark theme, add a light theme, and make the web layout responsive.
 **Requirements:** R11.

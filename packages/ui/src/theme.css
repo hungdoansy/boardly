@@ -6,7 +6,10 @@
  * color names (background/foreground/primary/border/ring/…) so components
  * consume tokens and never hardcode colors, spacing, or radii.
  *
- * Light theme (Unit 5.3) will mirror these token names under a selector.
+ * Light theme (Unit 5.3): the same token names are re-declared under `.light`
+ * on the root element. Dark is the default (`:root`), so no-JS / SSR renders
+ * dark (the priority theme); the app stamps `.light` (or `.dark`) on <html>
+ * from the persisted choice / `prefers-color-scheme` before paint.
  */
 
 :root {
@@ -54,6 +57,42 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * Light theme — same token names, high-contrast Linear-style light. Only the
+ * surface / border / text ramps flip; accent, semantic colors, radii, and
+ * motion are shared. Cards/columns are white on a faintly gray canvas, with
+ * low-alpha black borders providing the elevation separation.
+ */
+:root.light {
+  color-scheme: light;
+
+  --bg-base: #f6f7f8;
+  --bg-surface: #fbfbfc;
+  --bg-elevated: #ffffff;
+  --bg-overlay: #ffffff;
+  --bg-selected: rgba(94, 106, 210, 0.1);
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.11);
+  --border-strong: rgba(0, 0, 0, 0.18);
+
+  --text-primary: #1c1d21;
+  --text-secondary: #55595f;
+  --text-tertiary: #82868d;
+  --text-disabled: #b2b6bc;
+
+  /* Slightly deeper accent for AA contrast on white. */
+  --accent: #5058c9;
+  --accent-hover: #464ec0;
+  --accent-active: #3c44b4;
+  --accent-fg: #ffffff;
+
+  --success: #2f9e6b;
+  --warning: #b9862a;
+  --danger: #d63a3a;
+  --info: #2f7fd6;
 }
 
 @theme inline {

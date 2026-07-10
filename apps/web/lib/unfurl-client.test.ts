@@ -61,4 +61,11 @@ describe("unfurl platform switch", () => {
     expect(await unfurl("javascript:alert(1)")).toBeNull();
     expect(webFetch).not.toHaveBeenCalled();
   });
+
+  it("under Tauri, refuses to fetch a private/loopback host (SSRF guard)", async () => {
+    (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
+    expect(await unfurl("https://192.168.1.1/admin")).toBeNull();
+    expect(await unfurl("http://example.com")).toBeNull(); // plaintext blocked on desktop
+    expect(tauriFetch).not.toHaveBeenCalled();
+  });
 });
