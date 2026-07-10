@@ -1,0 +1,157 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+
+import {
+  addColumn as addColumnCmd,
+  createBoard,
+  createCard,
+  createMemoryContext,
+  execute,
+  type MemoryContext,
+  setCardStatus,
+} from "@boardly/commands";
+import { type Card, type Filter, Priority, type ResolvedView, Status } from "@boardly/domain";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { BoardlyProvider } from "../../lib/boardly-context";
+import { ListBody, ListView } from "./list-view";
+
+const NOW = new Date("2026-07-10T12:00:00Z").getTime();
+
+function makeCard(over: Partial<Card>): Card {
+  return {
+    id: over.id ?? "c",
+    shortId: "BRD-1",
+    title: "Card",
+    description: "",
+    columnId: "col",
+    ord: "a0",
+    status: Status.Todo,
+    priority: Priority.None,
+    severity: null,
+    dueDate: null,
+    labelIds: [],
+    checklist: [],
+    links: [],
+    archived: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...over,
+  };
+}
+
+// ---- Data path: the ListView container over a real (memory) board doc ----
+
+function setup(
+  seed: (ctx: MemoryContext, boardId: string, columnId: string) => void,
+  props?: { groupBy?: "status" | "priority" | null; filter?: Filter },
+) {
+  const ctx = createMemoryContext();
+  const board = execute(createBoard, ctx, { title: "Board" });
+  const col = execute(addColumnCmd, ctx, { boardId: board.id, title: "Todo" });
+  seed(ctx, board.id, col.id);
+  render(
+    <BoardlyProvider context={ctx}>
+      <ListView boardId={board.id} groupBy={props?.groupBy ?? null} filter={props?.filter} />
+    </BoardlyProvider>,
+  );
+  return { ctx, boardId: board.id, columnId: col.id };
+}
+
+const add = (ctx: MemoryContext, boardId: string, columnId: string, title: string) =>
+  execute(createCard, ctx, { boardId, columnId, title })!;
+
+afterEach(cleanup);
+
+describe("ListView (data path)", () => {
+  it("renders a flat list of rows in card order", () => {
+    setup((ctx, id, col) => {
+      add(ctx, id, col, "Alpha");
+      add(ctx, id, col, "Beta");
+      add(ctx, id, col, "Gamma");
+    });
+    expect(screen.getAllByRole("button").map((r) => r.getAttribute("aria-label"))).toEqual([
+      "Alpha",
+      "Beta",
+      "Gamma",
+    ]);
+  });
+
+  it("groups rows into sections with counts when grouped", () => {
+    setup(
+      (ctx, id, col) => {
+        const a = add(ctx, id, col, "Doing it");
+        const b = add(ctx, id, col, "Also doing");
+        const c = add(ctx, id, col, "Done one");
+        execute(setCardStatus, ctx, { boardId: id, cardId: a.id, status: Status.InProgress });
+        execute(setCardStatus, ctx, { boardId: id, cardId: b.id, status: Status.InProgress });
+        execute(setCardStatus, ctx, { boardId: id, cardId: c.id, status: Status.Done });
+      },
+      { groupBy: "status" },
+    );
+    expect(
+      within(screen.getByRole("region", { name: "Group: In Progress" })).getByText("2"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("region", { name: "Group: Done" })).getByText("1"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an empty state when nothing matches the filter", () => {
+    setup((ctx, id, col) => add(ctx, id, col, "Hidden"), {
+      filter: { op: "and", clauses: [{ field: "title", condition: "contains", values: ["zzz"] }] },
+    });
+    expect(screen.getByText(/no cards match/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hidden" })).not.toBeInTheDocument();
+  });
+
+  it("renders terminal cards struck through", () => {
+    setup((ctx, id, col) => {
+      const c = add(ctx, id, col, "Finished");
+      execute(setCardStatus, ctx, { boardId: id, cardId: c.id, status: Status.Done });
+    });
+    expect(screen.getByText("Finished")).toHaveClass("line-through");
+  });
+});
+
+// ---- Interaction: the pure ListBody with a spy (detail-open flow is e2e in V1.4) ----
+
+const flat = (cards: Card[]): ResolvedView => ({ flat: cards });
+
+describe("ListBody (interaction)", () => {
+  const renderBody = (cards: Card[], onOpen = vi.fn()) => {
+    render(
+      <ListBody
+        resolved={flat(cards)}
+        labelById={new Map()}
+        config={[]}
+        groupBy={null}
+        onOpen={onOpen}
+      />,
+    );
+    return onOpen;
+  };
+
+  it("calls onOpen with the card id when a row is clicked", () => {
+    const onOpen = renderBody([makeCard({ id: "a", title: "Alpha" })]);
+    fireEvent.click(screen.getByRole("button", { name: "Alpha" }));
+    expect(onOpen).toHaveBeenCalledWith("a");
+  });
+
+  it("navigates rows with ArrowUp/Down and opens the focused row with Enter", () => {
+    const onOpen = renderBody([
+      makeCard({ id: "a", title: "First" }),
+      makeCard({ id: "b", title: "Second" }),
+    ]);
+    const first = screen.getByRole("button", { name: "First" });
+    const second = screen.getByRole("button", { name: "Second" });
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(second);
+    fireEvent.keyDown(second, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "Enter" });
+    expect(onOpen).toHaveBeenCalledWith("a");
+  });
+});

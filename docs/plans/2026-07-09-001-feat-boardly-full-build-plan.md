@@ -916,7 +916,7 @@ sequenceDiagram
 - Edge case — switching a group AND↔OR re-evaluates; an enum field offers only its valid operators.
   **Verification:** component tests build filters and assert the produced model + rendered chips; dark + light screenshots of the filter bar reviewed vs `DESIGN.md`.
 
-- [ ] **Unit V1.3: List view**
+- [x] **Unit V1.3: List view**
 
 **Goal:** a dense, keyboard-navigable list lens over the same cards, grouped/sorted per the view.
 **Requirements:** R15, R17, R2.

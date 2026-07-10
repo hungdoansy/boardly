@@ -2,7 +2,16 @@
 
 import { emptyFilter, isEmptyFilter } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
-import { LayoutGrid, LogOut, Plus, Search, SlidersHorizontal, Tag } from "lucide-react";
+import {
+  Columns3,
+  LayoutGrid,
+  List,
+  LogOut,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Tag,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { apiClient } from "../../lib/api-client";
@@ -13,6 +22,7 @@ import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
 import { ImportExportMenu } from "../board/import-export";
+import { ListView } from "../board/list-view";
 import { LabelManager } from "../board/label-manager";
 import { type ActiveView, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
@@ -140,6 +150,12 @@ function MainArea() {
         </h1>
         <div className="flex items-center gap-2">
           {active ? (
+            <LayoutSwitch
+              layout={activeView.layout}
+              onChange={(layout) => setActiveView((v) => ({ ...v, layout }))}
+            />
+          ) : null}
+          {active ? (
             <ViewsMenu boardId={active.id} active={activeView} onChange={setActiveView} />
           ) : null}
           {active ? (
@@ -182,7 +198,16 @@ function MainArea() {
 
       {active ? (
         <main className="min-h-0 flex-1">
-          <BoardView boardId={active.id} filter={filter} groupBy={activeView.groupBy} />
+          {activeView.layout === "list" ? (
+            <ListView
+              boardId={active.id}
+              filter={filter}
+              groupBy={activeView.groupBy}
+              sort={activeView.sort}
+            />
+          ) : (
+            <BoardView boardId={active.id} filter={filter} groupBy={activeView.groupBy} />
+          )}
         </main>
       ) : (
         <main className="grid flex-1 place-items-center p-6">
@@ -206,6 +231,45 @@ function MainArea() {
           </div>
         </main>
       )}
+    </div>
+  );
+}
+
+/** Board ↔ List segmented switch. V1.4 grows this toolbar with sort/group menus. */
+function LayoutSwitch({
+  layout,
+  onChange,
+}: {
+  layout: "board" | "list";
+  onChange: (layout: "board" | "list") => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Layout"
+      className="inline-flex overflow-hidden rounded-[var(--radius-sm)] border border-line"
+    >
+      {(
+        [
+          { value: "board", label: "Board", Icon: Columns3 },
+          { value: "list", label: "List", Icon: List },
+        ] as const
+      ).map(({ value, label, Icon }) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={layout === value}
+          aria-label={label}
+          onClick={() => onChange(value)}
+          className={
+            layout === value
+              ? "grid size-7 place-items-center bg-overlay text-fg"
+              : "grid size-7 place-items-center text-fg-muted transition-colors hover:bg-overlay/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          }
+        >
+          <Icon className="size-3.5" />
+        </button>
+      ))}
     </div>
   );
 }
