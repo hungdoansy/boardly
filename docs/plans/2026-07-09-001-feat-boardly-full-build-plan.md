@@ -884,18 +884,18 @@ sequenceDiagram
 **Dependencies:** 4.1, 4.2 (done).
 **Files:**
 
-- Modify: `packages/domain/src/filters.ts` (add `layout?: "board" | "list"` to `SavedView`; add a pure `applyView` helper), `apps/web/components/board/views.tsx` (`ActiveView` gains `sort` + `layout`), `apps/web/lib/use-views.ts`, `apps/web/components/app/workspace-app.tsx`.
+- Modify: `packages/domain/src/filters.ts` (add `layout?: "board" | "list"` to `SavedView`; add a pure `resolveView` helper), `apps/web/components/board/views.tsx` (`ActiveView` gains `sort` + `layout`), `apps/web/lib/use-views.ts`, `apps/web/components/app/workspace-app.tsx`.
 - Test: `packages/domain/src/filters.test.ts`.
 
-**Approach:** Add `layout?: "board" | "list"` to `SavedView` (default `"board"`). Add a pure `applyView(cards, { filter, sort, groupBy }, ctx)` that composes the existing `evaluateFilter`→`sortCards`→`groupCards` into a single result (`{ grouped: CardGroup[] } | { flat: Card[] }`), so board/list never re-implement the pipeline. Extend the web `ActiveView` to `{ filter, sort, groupBy, layout, view }` and persist all of it when saving a view.
-**Execution note:** implement `applyView` test-first — it is the seam both lenses depend on.
+**Approach:** Add `layout?: "board" | "list"` to `SavedView` (default `"board"`). Add a pure `resolveView(cards, { filter, sort, groupBy }, ctx)` that composes the existing `evaluateFilter`→`sortCards`→`groupCards` into a single result (`{ grouped: CardGroup[] } | { flat: Card[] }`), so board/list never re-implement the pipeline. (Named `resolveView`, not `applyView`, to avoid colliding with the existing UI `applyView` in `apps/web/components/board/views.tsx` that applies a saved view to active state.) Extend the web `ActiveView` to `{ filter, sort, groupBy, layout, view }` and persist all of it when saving a view.
+**Execution note:** implement `resolveView` test-first — it is the seam both lenses depend on.
 **Patterns to follow:** existing `evaluateFilter`/`sortCards`/`groupCards` in `packages/domain/src/filters.ts`; keep the helper pure and framework-agnostic (no React/DOM).
 **Test scenarios:**
 
-- Happy path — `applyView` filters, then sorts, then groups; ungrouped returns a stable flat sort.
+- Happy path — `resolveView` filters, then sorts, then groups; ungrouped returns a stable flat sort.
 - Edge case — empty filter + no sort returns all cards in board order.
 - Edge case — a saved view restores filter+sort+group+layout exactly (serialize→parse round-trip), with `layout` defaulting to `"board"` when absent (back-compat with existing saved views).
-  **Verification:** domain unit tests for `applyView` + `SavedView` round-trip pass; `packages/domain` still has no React/DOM dependency.
+  **Verification:** domain unit tests for `resolveView` + `SavedView` round-trip pass; `packages/domain` still has no React/DOM dependency.
 
 - [ ] **Unit V1.2: Linear-style filter builder (AND/OR, all fields + operators)**
 
@@ -927,7 +927,7 @@ sequenceDiagram
 - Modify: wire into the board container.
 - Test: `apps/web/components/board/list-view.test.tsx`.
 
-**Approach:** Render `applyView` output as rows: group section headers (with count, via `groupLabel`) when `groupBy` is set, else a flat sorted list. Each row shows status icon, title, `shortId`, the badge row (reuse `BadgeRow`), due chip, and assignee; hover affordances match the board. Click or `Enter` opens the card detail (reuse `CardDetail` + `useSelectedCard`); `↑/↓` move row focus (reuse the keyboard-nav conventions). Window the list (simple virtualization) past a threshold so hundreds of rows stay smooth. No new mutations — editing/reordering still go through the command layer via the detail panel and existing row actions (archive).
+**Approach:** Render `resolveView` output as rows: group section headers (with count, via `groupLabel`) when `groupBy` is set, else a flat sorted list. Each row shows status icon, title, `shortId`, the badge row (reuse `BadgeRow`), due chip, and assignee; hover affordances match the board. Click or `Enter` opens the card detail (reuse `CardDetail` + `useSelectedCard`); `↑/↓` move row focus (reuse the keyboard-nav conventions). Window the list (simple virtualization) past a threshold so hundreds of rows stay smooth. No new mutations — editing/reordering still go through the command layer via the detail panel and existing row actions (archive).
 **Patterns to follow:** `BadgeRow`, `StatusIcon`, `CardDetail`, `useSelectedCard`; keyboard-nav conventions from the board; DESIGN.md density/motion rules.
 **Test scenarios:**
 
@@ -946,7 +946,7 @@ sequenceDiagram
 - Modify: `apps/web/components/board/views.tsx` (toolbar: layout segmented control + Sort + Group menus, consolidating the existing group-by selector), `apps/web/components/app/workspace-app.tsx` (render board or list by `activeView.layout`).
 - Test: `apps/e2e/tests/list.spec.ts`.
 
-**Approach:** A compact toolbar next to the existing Filter menu: **Board | List** segmented switch; a **Sort** menu (field + asc/desc); a **Group by** menu (reuse V1.1). Persist `layout`/`sort`/`groupBy` into the active view and into saved views, so applying a saved view restores the exact lens. Board and list both call `applyView` — one write path, two renderers.
+**Approach:** A compact toolbar next to the existing Filter menu: **Board | List** segmented switch; a **Sort** menu (field + asc/desc); a **Group by** menu (reuse V1.1). Persist `layout`/`sort`/`groupBy` into the active view and into saved views, so applying a saved view restores the exact lens. Board and list both call `resolveView` — one derive path, two renderers.
 **Patterns to follow:** the existing views/filter toolbar and saved-view persistence; shadcn segmented/menu primitives; DESIGN.md.
 **Test scenarios:**
 
