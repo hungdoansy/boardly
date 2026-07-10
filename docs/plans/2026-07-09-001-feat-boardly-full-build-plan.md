@@ -718,7 +718,7 @@ sequenceDiagram
 - Integration — a command issued via REST and the same command issued in the UI produce identical doc state (server/UI parity end-to-end).
   **Verification:** REST command tests pass against the container db + live sync; authz + validation enforced; a REST-created card appears in a second connected client.
 
-- [ ] **Unit 3.10: MCP server (`apps/mcp`)**
+- [x] **Unit 3.10: MCP server (`apps/mcp`)** — done (`docs/units/UNIT-3.10-mcp-server.md`). Stdio MCP server that generates one tool per command from the live `GET /api/commands` catalog and forwards `CallTool` → `POST /api/commands/:name` (Bearer); errors surfaced as tool errors, not crashes. Deps 3.9. Verified live: 33 tools == 33 catalog commands, createCard via MCP created a card, invalid→400 / bad-token→401. Also fixed the recurring `pnpm --filter` precheck via `verifyDepsBeforeRun:false`.
 
 **Goal:** an MCP server that exposes every Boardly command as an MCP tool, so an AI agent (Claude, etc.) can drive Boardly directly.
 **Requirements:** R13.

@@ -13,6 +13,7 @@ export default defineConfig({
       "packages/ui",
       "apps/web",
       "apps/server",
+      "apps/mcp",
     ],
   },
 });
