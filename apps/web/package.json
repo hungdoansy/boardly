@@ -29,6 +29,7 @@
     "react-hook-form": "7.81.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
+    "simple-icons": "16.25.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
