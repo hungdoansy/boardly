@@ -1,139 +1,146 @@
 import type { LinkProvider } from "@boardly/domain";
+import { cn } from "@boardly/ui";
+import airtable from "@thesvg/icons/airtable";
+import asana from "@thesvg/icons/asana";
+import behance from "@thesvg/icons/behance";
+import bitbucket from "@thesvg/icons/bitbucket";
+import claude from "@thesvg/icons/claude";
+import codepen from "@thesvg/icons/codepen";
+import confluence from "@thesvg/icons/confluence";
+import discord from "@thesvg/icons/discord";
+import docker from "@thesvg/icons/docker";
+import dribbble from "@thesvg/icons/dribbble";
+import dropbox from "@thesvg/icons/dropbox";
+import facebook from "@thesvg/icons/facebook";
+import figma from "@thesvg/icons/figma";
+import github from "@thesvg/icons/github";
+import gitlab from "@thesvg/icons/gitlab";
+import googleCalendar from "@thesvg/icons/google-calendar";
+import googleDocs from "@thesvg/icons/google-docs";
+import googleDrive from "@thesvg/icons/google-drive";
+import googleMeet from "@thesvg/icons/google-meet";
+import googleSheets from "@thesvg/icons/google-sheets";
+import instagram from "@thesvg/icons/instagram";
+import jira from "@thesvg/icons/jira";
+import linear from "@thesvg/icons/linear";
+import linkedin from "@thesvg/icons/linkedin";
+import loom from "@thesvg/icons/loom";
+import medium from "@thesvg/icons/medium";
+import miro from "@thesvg/icons/miro";
+import notion from "@thesvg/icons/notion";
+import npm from "@thesvg/icons/npm";
+import pinterest from "@thesvg/icons/pinterest";
+import reddit from "@thesvg/icons/reddit";
+import replit from "@thesvg/icons/replit";
+import slack from "@thesvg/icons/slack";
+import spotify from "@thesvg/icons/spotify";
+import stackOverflow from "@thesvg/icons/stack-overflow";
+import stripe from "@thesvg/icons/stripe";
+import telegram from "@thesvg/icons/telegram";
+import tiktok from "@thesvg/icons/tiktok";
+import trello from "@thesvg/icons/trello";
+import twitch from "@thesvg/icons/twitch";
+import vimeo from "@thesvg/icons/vimeo";
+import whatsapp from "@thesvg/icons/whatsapp";
+import wikipedia from "@thesvg/icons/wikipedia";
+import x from "@thesvg/icons/x";
+import youtube from "@thesvg/icons/youtube";
+import zoom from "@thesvg/icons/zoom";
 import { Globe } from "lucide-react";
-import { FaCodepen, FaLinkedinIn, FaSlack } from "react-icons/fa";
-import type { IconType } from "react-icons/lib";
-import {
-  siAirtable,
-  siAsana,
-  siBehance,
-  siBitbucket,
-  siClaude,
-  siConfluence,
-  siDiscord,
-  siDocker,
-  siDribbble,
-  siDropbox,
-  siFacebook,
-  siFigma,
-  siGithub,
-  siGitlab,
-  siGooglecalendar,
-  siGoogledocs,
-  siGoogledrive,
-  siGooglemeet,
-  siGooglesheets,
-  siInstagram,
-  siJira,
-  siLinear,
-  siLoom,
-  siMedium,
-  siMiro,
-  siNotion,
-  siNpm,
-  siPinterest,
-  siReddit,
-  siReplit,
-  siSpotify,
-  siStackoverflow,
-  siStripe,
-  siTelegram,
-  siTiktok,
-  siTrello,
-  siTwitch,
-  siVimeo,
-  siWhatsapp,
-  siWikipedia,
-  siX,
-  siYoutube,
-  siZoom,
-} from "simple-icons";
 
-/** Every rendered icon (brand SVG, react-icons mark, or the Globe fallback) is this size. */
+/** Every rendered icon (brand SVG or the Globe fallback) is this size. */
 const ICON_CLASS = "size-3 shrink-0";
 
-// Real brand marks from simple-icons (github.com/simple-icons/simple-icons,
-// ~46k★) — vetted single-path SVGs, bundled locally (no network fetch, no
-// per-icon package needed; tree-shaken to just the icons referenced below).
-// A few brand hexes are too dark to read against a dark surface (contrast
-// <3:1 against the card background, computed via the WCAG relative-luminance
-// formula) — those render via `currentColor` instead, same as GitHub's own UI
-// inverts its mark in dark mode.
-const BRAND: Partial<Record<string, { path: string; hex: string; monochrome?: boolean }>> = {
-  github: { ...siGithub, monochrome: true },
-  linear: siLinear,
-  claude: siClaude,
-  figma: siFigma,
-  notion: { ...siNotion, monochrome: true },
-  jira: { ...siJira, monochrome: true },
-  confluence: { ...siConfluence, monochrome: true },
-  trello: { ...siTrello, monochrome: true },
-  google_docs: siGoogledocs,
-  google_sheets: siGooglesheets,
-  google_drive: siGoogledrive,
-  google_calendar: siGooglecalendar,
-  google_meet: siGooglemeet,
-  loom: siLoom,
-  miro: { ...siMiro, monochrome: true },
-  dropbox: siDropbox,
-  youtube: siYoutube,
-  zoom: siZoom,
-  asana: siAsana,
-  airtable: siAirtable,
-  facebook: siFacebook,
-  twitter: { ...siX, monochrome: true },
-  instagram: siInstagram,
-  reddit: siReddit,
-  discord: siDiscord,
-  tiktok: { ...siTiktok, monochrome: true },
-  pinterest: siPinterest,
-  whatsapp: siWhatsapp,
-  telegram: siTelegram,
-  medium: { ...siMedium, monochrome: true },
-  stackoverflow: siStackoverflow,
-  gitlab: siGitlab,
-  bitbucket: { ...siBitbucket, monochrome: true },
-  npm: siNpm,
-  dockerhub: siDocker,
-  spotify: siSpotify,
-  twitch: siTwitch,
-  vimeo: siVimeo,
-  behance: siBehance,
-  dribbble: siDribbble,
-  replit: siReplit,
-  stripe: siStripe,
-  wikipedia: { ...siWikipedia, monochrome: true },
-};
+/**
+ * Real brand marks from thesvg (github.com/glincker/thesvg) — each icon's
+ * `svg` field is a complete, self-contained `<svg>` string with its brand
+ * colors already baked into the markup (verified directly; the package's
+ * separate `hex` metadata field is unreliable for several brands — e.g. it
+ * reports "000000" for Slack and LinkedIn, and "fff" for Notion — so we never
+ * read it). A handful of brands are near-black or have a data bug in their
+ * `default` asset (GitHub's default has a mismatched viewBox/path scale) —
+ * those use the package's separate `mono` variant instead, rendered in the
+ * current text color so it stays legible against a dark surface.
+ */
+interface IconModule {
+  svg: string;
+  variants: Record<string, string>;
+}
 
-// simple-icons dropped these marks on brand-owner request; react-icons'
-// Font Awesome set (github.com/react-icons/react-icons, ~11k★) has them.
-const REACT_ICON: Partial<Record<string, { Icon: IconType; hex: string }>> = {
-  slack: { Icon: FaSlack, hex: "#4A154B" },
-  linkedin: { Icon: FaLinkedinIn, hex: "#0A66C2" },
-  codepen: { Icon: FaCodepen, hex: "" }, // brand mark is black/white — always monochrome
+/** Use an icon's `mono` variant — verified present for every call site below. */
+function mono(icon: IconModule): { svg: string; mono: true } {
+  const svg = icon.variants.mono;
+  if (!svg) throw new Error("expected a mono variant");
+  return { svg, mono: true };
+}
+
+const BRAND: Partial<Record<string, { svg: string; mono?: boolean }>> = {
+  slack,
+  linear,
+  claude,
+  figma,
+  github: mono(github),
+  notion: mono(notion),
+  jira,
+  confluence: mono(confluence),
+  trello,
+  google_docs: googleDocs,
+  google_sheets: googleSheets,
+  google_drive: googleDrive,
+  google_calendar: googleCalendar,
+  google_meet: googleMeet,
+  loom,
+  miro: mono(miro),
+  dropbox,
+  youtube,
+  zoom,
+  asana,
+  airtable,
+  facebook,
+  twitter: mono(x),
+  instagram,
+  linkedin,
+  reddit,
+  discord,
+  tiktok: mono(tiktok),
+  pinterest,
+  whatsapp,
+  telegram,
+  medium: mono(medium),
+  stackoverflow: stackOverflow,
+  gitlab,
+  bitbucket,
+  npm,
+  dockerhub: docker,
+  spotify,
+  twitch,
+  vimeo,
+  behance,
+  dribbble,
+  // CodePen's mark is black/white by design and thesvg ships no `mono`
+  // variant for it — the default asset has no explicit fill, so forcing
+  // currentColor on it is safe and correct in both themes.
+  codepen: { svg: codepen.svg, mono: true },
+  replit,
+  stripe,
+  wikipedia: mono(wikipedia),
 };
 
 export function ProviderIcon({ provider }: { provider: LinkProvider }) {
-  const fromReactIcons = REACT_ICON[provider];
-  if (fromReactIcons) {
-    const { Icon, hex } = fromReactIcons;
-    return hex ? (
-      <Icon aria-hidden="true" className={ICON_CLASS} style={{ color: hex }} />
-    ) : (
-      <Icon aria-hidden="true" className={`${ICON_CLASS} text-fg-muted`} />
-    );
-  }
-
   const brand = BRAND[provider];
   if (brand) {
     return (
-      <svg
+      <span
         aria-hidden="true"
-        viewBox="0 0 24 24"
-        className={brand.monochrome ? `${ICON_CLASS} text-fg-muted` : ICON_CLASS}
-        fill={brand.monochrome ? "currentColor" : `#${brand.hex}`}
-      >
-        <path d={brand.path} />
-      </svg>
+        className={cn(
+          ICON_CLASS,
+          "inline-block align-middle [&_svg]:block [&_svg]:size-full",
+          brand.mono && "text-fg-muted [&_svg]:fill-current",
+        )}
+        // `brand.svg` is bundled build-time data from the @thesvg/icons
+        // package, not user/link input — safe to inject verbatim.
+        dangerouslySetInnerHTML={{ __html: brand.svg }}
+      />
     );
   }
 
