@@ -1,14 +1,23 @@
 // Extensible link-provider registry — the single source of truth for provider
 // detection + short labels, used by both the card link chips (UI) and the
-// command layer. Adding a provider = one file in ./providers + one entry here.
-import type { LinkProvider } from "../enums";
+// command layer. Adding a provider with a readable title/slug in its URLs =
+// one file in ./providers + one entry here; a provider whose URLs never carry
+// a readable title (just a brand + an opaque id) = one `staticProvider(...)`
+// entry below, no new file needed.
 import { LinkProvider as LP } from "../enums";
+import type { LinkProvider } from "../enums";
 import { claude } from "./providers/claude";
+import { confluence } from "./providers/confluence";
+import { figma } from "./providers/figma";
 import { generic } from "./providers/generic";
 import { githubIssue } from "./providers/github-issue";
 import { githubPr } from "./providers/github-pr";
+import { jira } from "./providers/jira";
 import { linear } from "./providers/linear";
+import { notion } from "./providers/notion";
 import { slack } from "./providers/slack";
+import { staticProvider } from "./providers/static-provider";
+import { trello } from "./providers/trello";
 
 export interface LinkProviderDef {
   id: LinkProvider;
@@ -19,7 +28,30 @@ export interface LinkProviderDef {
 }
 
 /** Ordered; `generic` is last so it never shadows a specific provider. */
-export const PROVIDERS: LinkProviderDef[] = [slack, linear, githubPr, githubIssue, claude, generic];
+export const PROVIDERS: LinkProviderDef[] = [
+  slack,
+  linear,
+  githubPr,
+  githubIssue,
+  claude,
+  figma,
+  notion,
+  trello,
+  jira,
+  confluence,
+  staticProvider(LP.GoogleDocs, ["docs.google.com"], "Google Doc"),
+  staticProvider(LP.GoogleSheets, ["sheets.google.com"], "Google Sheet"),
+  staticProvider(LP.GoogleDrive, ["drive.google.com"], "Google Drive"),
+  staticProvider(LP.GoogleCalendar, ["calendar.google.com"], "Google Calendar"),
+  staticProvider(LP.Loom, ["loom.com"], "Loom"),
+  staticProvider(LP.Miro, ["miro.com"], "Miro"),
+  staticProvider(LP.Dropbox, ["dropbox.com"], "Dropbox"),
+  staticProvider(LP.YouTube, ["youtube.com", "youtu.be"], "YouTube"),
+  staticProvider(LP.Zoom, ["zoom.us"], "Zoom"),
+  staticProvider(LP.Asana, ["asana.com"], "Asana"),
+  staticProvider(LP.Airtable, ["airtable.com"], "Airtable"),
+  generic,
+];
 
 function safeUrl(url: string): URL | null {
   try {

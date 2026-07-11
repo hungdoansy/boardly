@@ -209,7 +209,7 @@ Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 | Long lists                              | `scroll-area`                      | virtualize if perf demands                                |
 | Toasts (sync/errors)                    | `sonner`                           | bottom-right, quiet                                       |
 
-Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Provider icons (Slack/Linear/GitHub/Claude) are **bundled SVGs**, not fetched.
+Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Link chips detect ~20 common providers (Slack, Linear, GitHub, Claude, Figma, Notion, Trello, Jira, Confluence, the Google Docs/Sheets/Drive/Calendar family, Loom, Miro, Dropbox, YouTube, Zoom, Asana, Airtable) and render one **bundled brand SVG each** — from `simple-icons` (github.com/simple-icons/simple-icons), except Slack, which that package dropped on request, so it comes from `react-icons`'s Font Awesome set instead — none fetched over the network. Every provider icon renders at a fixed `size-3` (12px) regardless of source library. A brand hex with <3:1 contrast against the card surface (GitHub, Notion, Jira, Confluence, Trello, Miro) renders via `currentColor`/`text-fg-muted` instead of its literal hex, so it stays legible in both themes.
 
 **Interaction states come from the base primitives — don't hand-roll them.** Form fields use the
 `@boardly/ui` `Input` (border + `hover:border-line-strong` + focus ring + `disabled:opacity-50`);

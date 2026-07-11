@@ -16,6 +16,31 @@ describe("detectProvider", () => {
     expect(detectProvider("https://github.com/o/r/pull/123")).toBe(LinkProvider.GitHub);
     expect(detectProvider("https://github.com/o/r/issues/123")).toBe(LinkProvider.GitHub);
     expect(detectProvider("https://claude.ai/code/session_abc")).toBe(LinkProvider.Claude);
+    expect(detectProvider("https://www.figma.com/file/abc/My-Design")).toBe(LinkProvider.Figma);
+    expect(detectProvider("https://www.notion.so/My-Page-abcdef1234567890abcdef1234567890")).toBe(
+      LinkProvider.Notion,
+    );
+    expect(detectProvider("https://trello.com/c/abc123/45-card-title")).toBe(LinkProvider.Trello);
+    expect(detectProvider("https://acme.atlassian.net/browse/ABC-123")).toBe(LinkProvider.Jira);
+    expect(detectProvider("https://acme.atlassian.net/wiki/spaces/X/pages/1")).toBe(
+      LinkProvider.Confluence,
+    );
+    expect(detectProvider("https://docs.google.com/document/d/abc")).toBe(LinkProvider.GoogleDocs);
+    expect(detectProvider("https://sheets.google.com/spreadsheets/d/abc")).toBe(
+      LinkProvider.GoogleSheets,
+    );
+    expect(detectProvider("https://drive.google.com/file/d/abc")).toBe(LinkProvider.GoogleDrive);
+    expect(detectProvider("https://calendar.google.com/calendar/u/0")).toBe(
+      LinkProvider.GoogleCalendar,
+    );
+    expect(detectProvider("https://loom.com/share/abc")).toBe(LinkProvider.Loom);
+    expect(detectProvider("https://miro.com/app/board/abc")).toBe(LinkProvider.Miro);
+    expect(detectProvider("https://www.dropbox.com/s/abc/file.pdf")).toBe(LinkProvider.Dropbox);
+    expect(detectProvider("https://www.youtube.com/watch?v=abc")).toBe(LinkProvider.YouTube);
+    expect(detectProvider("https://youtu.be/abc")).toBe(LinkProvider.YouTube);
+    expect(detectProvider("https://zoom.us/j/123456")).toBe(LinkProvider.Zoom);
+    expect(detectProvider("https://app.asana.com/0/1/2")).toBe(LinkProvider.Asana);
+    expect(detectProvider("https://airtable.com/app123/tbl456")).toBe(LinkProvider.Airtable);
     expect(detectProvider("https://example.com/page")).toBe(LinkProvider.Generic);
   });
 
@@ -38,6 +63,16 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://github.com/facebook/react/pull/42")).toBe("facebook/react#42");
     expect(shortLabelFor("https://github.com/facebook/react/issues/99")).toBe("facebook/react#99");
     expect(shortLabelFor("https://claude.ai/code/session_x")).toBe("session →");
+    expect(shortLabelFor("https://www.figma.com/file/abc/My-Design-Name")).toBe(
+      "My Design Name",
+    );
+    expect(
+      shortLabelFor("https://www.notion.so/My-Page-Title-abcdef1234567890abcdef1234567890"),
+    ).toBe("My Page Title");
+    expect(shortLabelFor("https://trello.com/c/abc123/45-card-title")).toBe("card title");
+    expect(shortLabelFor("https://acme.atlassian.net/browse/ABC-123")).toBe("ABC-123");
+    expect(shortLabelFor("https://acme.atlassian.net/wiki/spaces/X/pages/1")).toBe("Confluence");
+    expect(shortLabelFor("https://docs.google.com/document/d/abc")).toBe("Google Doc");
     expect(shortLabelFor("https://www.example.com/page")).toBe("example.com");
   });
 });
