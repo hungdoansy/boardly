@@ -37,8 +37,16 @@ tokens (`--background`, `--foreground`, `--primary`, `--border`, `--ring`, …) 
 | `--bg-base`     | `#08090A`               | App background (deepest)                |
 | `--bg-surface`  | `#0E0F11`               | Columns, rails, panels                  |
 | `--bg-elevated` | `#161719`               | Cards, popovers, inputs                 |
-| `--bg-overlay`  | `#1C1D21`               | Hover state, menus, dialogs             |
+| `--bg-overlay`  | `#1C1D21`               | Menus, dialogs, active/selected fills   |
+| `--bg-hover`    | `rgba(255,255,255,.07)` | Interactive hover fill (see rule below) |
 | `--bg-selected` | `rgba(94,106,210,0.14)` | Selected row/card tint (accent-derived) |
+
+**Hover fill rule (binding): use `bg-hover`, never `bg-overlay`, for `:hover`.** Hover is a
+_translucent_ token (`--bg-hover`) so it lifts on **any** surface. A solid `bg-overlay` hover is
+**invisible on overlay-colored surfaces** — the drawer (`bg-popover`) and every `PopoverContent`
+are themselves `--bg-overlay` (`#1C1D21`), so `hover:bg-overlay` there changes nothing. The base
+`Button`/`Input` already use `hover:bg-hover`; hand-rolled interactive elements must too. (`--bg-hover`
+is per-theme: `rgba(0,0,0,.05)` in light.)
 
 ### Borders (low-alpha white — chrome must stay quiet)
 
@@ -202,6 +210,14 @@ Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 | Toasts (sync/errors)                    | `sonner`                           | bottom-right, quiet                                       |
 
 Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Provider icons (Slack/Linear/GitHub/Claude) are **bundled SVGs**, not fetched.
+
+**Interaction states come from the base primitives — don't hand-roll them.** Form fields use the
+`@boardly/ui` `Input` (border + `hover:border-line-strong` + focus ring + `disabled:opacity-50`);
+buttons use `Button` (hover/active/`disabled` per variant, `iconSm`/`icon` sizes for icon buttons).
+An icon "add" button next to an input should be a `Button size="iconSm"` and **disable when its
+input is empty** — not a bare `<button>` that stays enabled. Any bespoke interactive element must
+still carry `hover` (via `bg-hover`), a `focus-visible` ring, and a disabled treatment. Prefer a
+shared primitive over a one-off so these states stay consistent across the app.
 
 ### 7.1 Iconography — SVG only, never glyphs (binding)
 
