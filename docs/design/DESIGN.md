@@ -233,9 +233,11 @@ don't inherit `currentColor` or `size-*` cleanly, and can't align to the icon gr
 - If a data string carries a glyph marker (e.g. a provider short-label ending in
   ` →` to flag a deep link), **strip it at the render boundary and draw the SVG** —
   don't print the glyph.
-- **Allowed (not icons):** literal keyboard keycaps inside `<kbd>` (`⌘ ⌥ ⇧ ↵ ⌫`,
+- **Allowed (not icons):** literal keyboard keycaps inside `<kbd>` (`⌥ ⇧ ↵ ⌫`,
   and `/`), and typographic punctuation in prose/labels (em dash `—`, ellipsis `…`,
-  smart quotes). These are text, not iconography.
+  smart quotes). These are text, not iconography. **Exception: the command
+  (⌘) key** always renders as lucide's `Command` icon, never the glyph — it's
+  visually ambiguous at small sizes across fonts.
 - Size with `size-*`/`className`, color via `currentColor` (text tokens), `aria-hidden`
   when decorative (give the control its own `aria-label`).
 

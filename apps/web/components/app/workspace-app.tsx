@@ -4,6 +4,7 @@ import { emptyFilter, isEmptyFilter } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import {
   Columns3,
+  Command,
   LayoutGrid,
   List,
   LogOut,
@@ -208,10 +209,10 @@ function MainArea() {
             onImported={select}
           />
           {active ? <FocusToggle /> : null}
-          <div className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint sm:flex">
-            <span className="font-mono">⌘</span>
+          <kbd className="hidden items-center gap-1 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint sm:flex">
+            <Command className="size-3" aria-hidden="true" />
             <span className="font-mono">K</span>
-          </div>
+          </kbd>
         </div>
       </header>
 
