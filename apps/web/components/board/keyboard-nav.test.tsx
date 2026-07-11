@@ -158,10 +158,10 @@ describe("useBoardKeyboardNav (integration)", () => {
     fireEvent.keyDown(card("a"), { key: "Enter" });
     expect(handlers.onOpenCard).toHaveBeenCalledWith("a");
 
-    fireEvent.keyDown(card("a"), { key: "p" });
+    fireEvent.keyDown(card("a"), { key: "p", code: "KeyP" });
     expect(handlers.onCyclePriority).toHaveBeenCalledWith("a");
 
-    fireEvent.keyDown(card("a"), { key: "e" });
+    fireEvent.keyDown(card("a"), { key: "e", code: "KeyE" });
     expect(handlers.onArchiveCard).toHaveBeenCalledWith("a");
   });
 
@@ -169,7 +169,7 @@ describe("useBoardKeyboardNav (integration)", () => {
     const { handlers, card } = renderFixture();
     card("a").focus();
 
-    fireEvent.keyDown(card("a"), { key: "c" });
+    fireEvent.keyDown(card("a"), { key: "c", code: "KeyC" });
     expect(handlers.onAddCard).toHaveBeenCalledWith("c1");
     expect(handlers.onAddCard).toHaveBeenCalledTimes(1);
   });
@@ -179,11 +179,11 @@ describe("useBoardKeyboardNav (integration)", () => {
     const input = document.createElement("input");
     document.body.appendChild(input);
     input.focus();
-    fireEvent.keyDown(input, { key: "e" });
+    fireEvent.keyDown(input, { key: "e", code: "KeyE" });
     expect(handlers.onArchiveCard).not.toHaveBeenCalled();
 
     card("a").focus();
-    fireEvent.keyDown(card("a"), { key: "e", metaKey: true });
+    fireEvent.keyDown(card("a"), { key: "e", code: "KeyE", metaKey: true });
     expect(handlers.onArchiveCard).not.toHaveBeenCalled();
     input.remove();
   });

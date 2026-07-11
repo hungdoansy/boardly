@@ -20,7 +20,7 @@ function renderPalette() {
 }
 
 function pressCmdK() {
-  fireEvent.keyDown(document, { key: "k", metaKey: true });
+  fireEvent.keyDown(document, { key: "k", code: "KeyK", metaKey: true });
 }
 
 beforeEach(() => {

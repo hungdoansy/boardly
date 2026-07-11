@@ -56,7 +56,7 @@ function Shell() {
       if (e.key === "/") {
         e.preventDefault();
         setSearchOpen(true);
-      } else if (e.shiftKey && e.key.toLowerCase() === "f") {
+      } else if (e.shiftKey && e.code === "KeyF") {
         e.preventDefault();
         cycleFocus();
       }

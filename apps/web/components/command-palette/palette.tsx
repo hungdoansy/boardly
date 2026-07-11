@@ -26,7 +26,9 @@ export function CommandPalette() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      // e.code (physical key position) is used instead of e.key so the shortcut
+      // fires consistently on non-QWERTY/non-Latin keyboard layouts.
+      if ((e.metaKey || e.ctrlKey) && e.code === "KeyK") {
         e.preventDefault();
         setOpen((o) => !o);
       }

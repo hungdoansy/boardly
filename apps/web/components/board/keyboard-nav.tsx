@@ -225,20 +225,21 @@ export function useBoardKeyboardNav(
         return;
       }
 
-      const key = e.key.toLowerCase();
-      if (key === "c") {
+      // e.code (physical key position) is used instead of e.key so these
+      // single-letter shortcuts fire consistently on non-QWERTY/non-Latin layouts.
+      if (e.code === "KeyC") {
         e.preventDefault();
         openComposer(root, focus.columnId);
         return;
       }
-      if (key === "e" && focus.cardId) {
+      if (e.code === "KeyE" && focus.cardId) {
         e.preventDefault();
         const next = focusAfterRemoval(readLayout(root), focus);
         onArchiveCard(focus.cardId);
         requestAnimationFrame(() => focusItem(root, next));
         return;
       }
-      if (key === "p" && focus.cardId) {
+      if (e.code === "KeyP" && focus.cardId) {
         e.preventDefault();
         onCyclePriority(focus.cardId);
       }
