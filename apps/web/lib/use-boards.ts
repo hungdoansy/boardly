@@ -146,6 +146,24 @@ export function useSelectedCard(): [string | null, (cardId: string | null) => vo
   return [cardId, setCard];
 }
 
+/**
+ * Whether the settings view is open (hash `#settings`) + a setter. Settings is a
+ * distinct route from an open ticket; opening it clears any open card.
+ */
+export function useSettingsRoute(): [boolean, (open: boolean) => void] {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const sync = (): void => setOpen(window.location.hash.replace(/^#/, "") === "settings");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const set = useCallback((next: boolean) => {
+    window.location.hash = next ? "settings" : "";
+  }, []);
+  return [open, set];
+}
+
 /** Open a specific card (used by search/palette). Board is the single board. */
 export function useOpenCardNav(): (boardId: string, cardId: string) => void {
   const ctx = useBoardlyContext();

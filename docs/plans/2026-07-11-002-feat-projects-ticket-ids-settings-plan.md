@@ -381,7 +381,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 8: Dedicated settings view (prefix, card display, projects)**
+- [x] **Unit 8: Dedicated settings view (prefix, card display, projects)**
 
 **Goal:** A Linear-style settings screen with left-nav sections controlling the ticket prefix, the card-face display config, and project management.
 

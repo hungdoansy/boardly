@@ -8,6 +8,7 @@ import {
   listBoards,
   renameBoard,
   setBadgeConfig,
+  setTicketPrefix,
 } from "./commands/board";
 import {
   addChecklistItem,
@@ -59,6 +60,7 @@ export const commands = [
   renameBoard,
   archiveBoard,
   setBadgeConfig,
+  setTicketPrefix,
   listBoards,
   addColumn,
   renameColumn,

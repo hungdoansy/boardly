@@ -1,4 +1,4 @@
-import { newId } from "@boardly/domain";
+import { newId, normalizeTicketPrefix } from "@boardly/domain";
 import {
   addBoardRef,
   archiveBoardRef,
@@ -8,6 +8,7 @@ import {
   renameBoard as syncRenameBoard,
   renameBoardRef,
   setBadgeConfig as syncSetBadgeConfig,
+  setTicketPrefix as syncSetTicketPrefix,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -64,6 +65,18 @@ export const setBadgeConfig = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc(input.boardId);
     syncSetBadgeConfig(doc, input.config, ctx.now());
+    return getBoard(doc, input.boardId);
+  },
+});
+
+export const setTicketPrefix = defineCommand({
+  name: "setTicketPrefix",
+  description:
+    "Set the board's ticket prefix (uppercase, max 5 chars; empty shows ids as #123). Display-only.",
+  input: z.object({ boardId: z.string(), prefix: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncSetTicketPrefix(doc, normalizeTicketPrefix(input.prefix), ctx.now());
     return getBoard(doc, input.boardId);
   },
 });

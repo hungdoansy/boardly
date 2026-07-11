@@ -131,6 +131,15 @@ export function setBadgeConfig(doc: Y.Doc, config: string[], now: number): void 
   });
 }
 
+/** Set the board's display-only ticket prefix (already normalized by the caller). */
+export function setTicketPrefix(doc: Y.Doc, prefix: string, now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    meta.set("shortIdPrefix", prefix);
+    meta.set("updatedAt", now);
+  });
+}
+
 // ----- saved views (Unit 4.1) -----
 
 /** The board's saved views (stored as a plain JSON array on `meta.views`). */

@@ -3,27 +3,18 @@
 import type { Filter, FilterClause } from "@boardly/domain";
 import { emptyFilter, isEmptyFilter } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
-import {
-  Columns3,
-  Command,
-  LayoutGrid,
-  List,
-  LogOut,
-  Search,
-  SlidersHorizontal,
-  Tag,
-} from "lucide-react";
+import { Columns3, Command, LayoutGrid, List, LogOut, Search, Settings, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
-import { useBoards, useEnsureBoard, useSelectedBoard } from "../../lib/use-boards";
+import { useBoards, useEnsureBoard, useSelectedBoard, useSettingsRoute } from "../../lib/use-boards";
 import { useSelectedProject } from "../../lib/use-projects";
-import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { ProjectList } from "../board/project-list";
+import { SettingsView } from "../settings/settings-view";
 import { BoardView } from "../board/board-view";
 import { ImportExportMenu } from "../board/import-export";
 import { ListView } from "../board/list-view";
@@ -55,6 +46,7 @@ function Shell() {
   // Single-board: provision + keep the one board selected (Unit 2).
   useEnsureBoard();
   const [boardId] = useSelectedBoard();
+  const [settingsOpen, setSettingsOpen] = useSettingsRoute();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -122,12 +114,25 @@ function Shell() {
                 </button>
               </PopoverContent>
             </Popover>
+            <button
+              type="button"
+              aria-label="Settings"
+              aria-pressed={settingsOpen}
+              onClick={() => setSettingsOpen(true)}
+              className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-muted transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <Settings className="size-4" />
+            </button>
             <ThemeToggle />
           </div>
         </div>
       </aside>
 
-      <MainArea />
+      {settingsOpen && boardId ? (
+        <SettingsView boardId={boardId} onClose={() => setSettingsOpen(false)} />
+      ) : (
+        <MainArea />
+      )}
       <CommandPalette />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <SyncBridge />
@@ -216,19 +221,6 @@ function MainArea() {
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80">
                 <LabelManager boardId={active.id} />
-              </PopoverContent>
-            </Popover>
-          ) : null}
-          {active ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-fg-muted">
-                  <SlidersHorizontal className="size-3.5" />
-                  Badges
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-72">
-                <BadgeConfig boardId={active.id} />
               </PopoverContent>
             </Popover>
           ) : null}

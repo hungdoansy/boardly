@@ -40,6 +40,7 @@ import {
   setCardSeverity,
   setCardStatus,
   setChecklistItemText,
+  setTicketPrefix,
   toggleChecklistItem,
   unassignLabel,
 } from "@boardly/commands";
@@ -92,6 +93,22 @@ export function useSetBadgeConfig(boardId: string): (config: string[]) => void {
   return useCallback(
     (config: string[]) => {
       execute(setBadgeConfig, ctx, { boardId, config });
+    },
+    [ctx, boardId],
+  );
+}
+
+/** Live board ticket prefix (display-only; empty renders ids as #123). */
+export function useTicketPrefix(boardId: string): string {
+  const doc = useBoardlyContext().getBoardDoc(boardId);
+  return useY(boardMeta(doc), () => getBoard(doc, boardId).shortIdPrefix);
+}
+
+export function useSetTicketPrefix(boardId: string): (prefix: string) => void {
+  const ctx = useBoardlyContext();
+  return useCallback(
+    (prefix: string) => {
+      execute(setTicketPrefix, ctx, { boardId, prefix });
     },
     [ctx, boardId],
   );
