@@ -73,3 +73,19 @@ activity), and the **list lens** (per-status icons, strike-through on Done/Cance
   clean up prior demo boards. Re-run and archive extras from the UI if the sidebar gets noisy.
 - It uses the `@boardly/sync` accessors directly rather than `@boardly/commands`; if the command
   package ever becomes resolvable from this module graph, prefer routing through it (R13).
+
+## Related: link-provider icon showcase card
+
+`packages/sync/scripts/add-brand-showcase-card.ts` (2026-07-11) is a companion script that finds
+the **existing** demo board by title (rather than creating a new one) and adds a single card —
+"Link provider icon showcase (all brands)" — carrying one link per brand the link registry detects
+(`packages/domain/src/links/registry.ts`), so the card drawer's LINKS section exercises every
+`ProviderIcon` branch at once. Same auth/connect helpers as the seed script, same run convention:
+
+```bash
+export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
+apps/server/node_modules/.bin/tsx packages/sync/scripts/add-brand-showcase-card.ts
+```
+
+Run once against the demo account (2026-07-11) and verified in-browser: all 46 links render with
+correct, theme-aware icons in the "Boardly Demo — Everything" board's Backlog column (`BRD-13`).

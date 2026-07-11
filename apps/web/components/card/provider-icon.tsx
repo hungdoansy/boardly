@@ -137,8 +137,11 @@ export function ProviderIcon({ provider }: { provider: LinkProvider }) {
           "inline-block align-middle [&_svg]:block [&_svg]:size-full",
           brand.mono && "text-fg-muted [&_svg]:fill-current",
         )}
-        // `brand.svg` is bundled build-time data from the @thesvg/icons
-        // package, not user/link input — safe to inject verbatim.
+        // `brand` is looked up by `provider`, a fixed LinkProvider enum value
+        // (never raw URL/link text), and `brand.svg` is always one of the ~45
+        // hardcoded @thesvg/icons imports above, pinned to an exact version —
+        // no user or link input ever reaches this string, so injecting it
+        // verbatim is safe.
         dangerouslySetInnerHTML={{ __html: brand.svg }}
       />
     );
