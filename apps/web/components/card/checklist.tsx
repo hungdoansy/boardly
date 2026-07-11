@@ -27,7 +27,7 @@ export function Checklist({ boardId, card }: { boardId: string; card: Card }) {
           <span className="text-xs tabular-nums text-fg-faint">
             {done}/{items.length}
           </span>
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-overlay">
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-line-strong">
             <div
               className="h-full rounded-full bg-[var(--success)] transition-[width] duration-[var(--dur-base)]"
               style={{ width: `${(done / items.length) * 100}%` }}
