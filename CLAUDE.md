@@ -36,6 +36,7 @@ Keep `PLAN.md`, the plan file, and `DESIGN.md` current when a change invalidates
 - **Dark mode is the priority.** Design and verify dark mode first; light mode is a later, secondary pass. Every screenshot check is against dark mode unless a unit is explicitly about light mode.
 - **Use shadcn/ui as the component reference/base.** Prefer composing shadcn/ui primitives (Radix under the hood) over hand-rolling; restyle them to the Boardly tokens in `DESIGN.md`. Do not pull in a second component library.
 - Use the **design tokens** in `DESIGN.md` (CSS variables). Never hardcode ad-hoc colors/spacing/radii in components.
+- **Icons are SVGs, never glyphs.** Every icon/affordance (arrows, checks, chevrons, dots, ×, …) is a `lucide-react` or bundled provider SVG — never a Unicode glyph (`→ ✓ × ⋯`). See `DESIGN.md` §7.1 for the ban list and the narrow exceptions (keyboard keycaps in `<kbd>`, typographic punctuation in prose).
 - **Transitions: measured.** Add motion where it aids comprehension (hover, popover/dialog/sheet enter-exit, drag feedback, checkbox/expand) using the durations/easing in `DESIGN.md`. Do **not** over-animate (no gratuitous page/list-wide motion, no long durations, no animating expensive layout on large lists). Respect `prefers-reduced-motion`. Missing a needed transition is as much a defect as adding a superfluous one.
 - Any new/changed screen or component: note the design in that unit's doc and, if it introduces reusable patterns/tokens, update `DESIGN.md`.
 

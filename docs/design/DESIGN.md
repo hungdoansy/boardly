@@ -203,6 +203,26 @@ Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 
 Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Provider icons (Slack/Linear/GitHub/Claude) are **bundled SVGs**, not fetched.
 
+### 7.1 Iconography — SVG only, never glyphs (binding)
+
+Every icon, symbol, and directional/status affordance in rendered UI is an **SVG
+from the icon library** — `lucide-react`, or a bundled provider SVG. **Never use
+a Unicode glyph as an icon.** Glyphs render inconsistently across platforms/fonts,
+don't inherit `currentColor` or `size-*` cleanly, and can't align to the icon grid.
+
+- **Banned as UI icons:** arrows (`→ ← ↑ ↓ ↔ ⟶ ↗ ⇒`), check/cross (`✓ ✔ ✕ ✗ × ✖`),
+  bullets/dots/stars (`• · ◦ ★ ☆`), chevrons/ellipsis (`‹ › » « … ⋯ ⋮`), math/UI
+  symbols (`± ∞ ⌄ ⌃`), and emoji used as icons. Use the lucide equivalent
+  (`ArrowRight`, `ArrowUpRight`, `Check`, `X`, `ChevronRight`, `MoreHorizontal`, …).
+- If a data string carries a glyph marker (e.g. a provider short-label ending in
+  ` →` to flag a deep link), **strip it at the render boundary and draw the SVG** —
+  don't print the glyph.
+- **Allowed (not icons):** literal keyboard keycaps inside `<kbd>` (`⌘ ⌥ ⇧ ↵ ⌫`,
+  and `/`), and typographic punctuation in prose/labels (em dash `—`, ellipsis `…`,
+  smart quotes). These are text, not iconography.
+- Size with `size-*`/`className`, color via `currentColor` (text tokens), `aria-hidden`
+  when decorative (give the control its own `aria-label`).
+
 ---
 
 ## 8. Key screens (layout intent)
@@ -228,4 +248,4 @@ Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-
 ## 10. Do / Don't
 
 **Do:** use tokens; keep chrome quiet and content sharp; one accent; short purposeful motion; test dark first; compose shadcn/ui.
-**Don't:** hardcode colors/px; introduce a second accent or a second component library; animate layout on big lists; add motion without a reason; ship a screen without checking it against this spec and noting the design in the unit doc.
+**Don't:** hardcode colors/px; introduce a second accent or a second component library; use Unicode glyphs as icons/affordances (→ ✓ × ⋯ …) — use lucide-react/bundled SVGs (§7.1); animate layout on big lists; add motion without a reason; ship a screen without checking it against this spec and noting the design in the unit doc.
