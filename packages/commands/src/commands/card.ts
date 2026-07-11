@@ -25,6 +25,7 @@ export const createCard = defineCommand({
     boardId: z.string(),
     columnId: z.string(),
     title: z.string().min(1),
+    projectId: z.string().optional(),
     id: z.string().optional(),
   }),
   run: (ctx, input) => {
@@ -33,6 +34,7 @@ export const createCard = defineCommand({
       id: input.id,
       columnId: input.columnId,
       title: input.title,
+      projectId: input.projectId,
       now: ctx.now(),
       clientId: ctx.clientId,
       createdBy: ctx.userId,

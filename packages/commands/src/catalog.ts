@@ -42,6 +42,14 @@ import {
 } from "./commands/label";
 import { exportBoard, importBoard } from "./commands/io";
 import { addLink, moveLink, removeLink } from "./commands/link";
+import {
+  archiveProject,
+  createProject,
+  listProjectsCommand,
+  recolorProject,
+  renameProject,
+  setCardProject,
+} from "./commands/project";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
 import { deleteView, saveView } from "./commands/view";
@@ -81,6 +89,12 @@ export const commands = [
   addLink,
   removeLink,
   moveLink,
+  createProject,
+  renameProject,
+  recolorProject,
+  archiveProject,
+  listProjectsCommand,
+  setCardProject,
   searchCards,
   saveView,
   deleteView,

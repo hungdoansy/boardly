@@ -21,6 +21,15 @@ export interface Label {
   ord: string;
 }
 
+/** A grouping under the single board (Linear-style). A card belongs to one. */
+export interface Project {
+  id: Id;
+  name: string;
+  color: string;
+  ord: string;
+  archived: boolean;
+}
+
 export interface ChecklistItem {
   id: Id;
   text: string;
@@ -60,6 +69,8 @@ export interface Card {
   title: string;
   description: string;
   columnId: Id;
+  /** The project this card belongs to (grouping only; unset = no project). */
+  projectId?: Id;
   ord: string;
   status: Status;
   priority: PriorityValue;

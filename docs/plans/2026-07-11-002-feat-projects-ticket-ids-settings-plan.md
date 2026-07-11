@@ -318,7 +318,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 6: Projects — schema + command layer**
+- [x] **Unit 6: Projects — schema + command layer**
 
 **Goal:** Add a project entity (name, color, order) under the board and a card's `projectId`, with full CRUD commands and read selectors.
 

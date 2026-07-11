@@ -14,6 +14,7 @@ import {
   type Label,
   type LinkProvider,
   type PriorityValue,
+  type Project,
   type SeverityValue,
   type Status,
   type WorkspaceBoardRef,
@@ -33,6 +34,8 @@ export const boardMeta = (doc: Y.Doc): Y.Map<unknown> => doc.getMap<unknown>("me
 export const boardColumns = (doc: Y.Doc): Y.Map<YColumn> => doc.getMap<YColumn>("columns");
 export const boardCards = (doc: Y.Doc): Y.Map<YCard> => doc.getMap<YCard>("cards");
 export const boardLabels = (doc: Y.Doc): Y.Map<YLabel> => doc.getMap<YLabel>("labels");
+export const boardProjects = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>
+  doc.getMap<Y.Map<unknown>>("projects");
 /** Append-only activity log (Unit 2.12; expanded in U4.3). */
 export const boardActivity = (doc: Y.Doc): Y.Array<Y.Map<unknown>> =>
   doc.getArray<Y.Map<unknown>>("activity");
@@ -150,6 +153,8 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
     createdAt: getNumber(yc, "createdAt"),
     updatedAt: getNumber(yc, "updatedAt"),
   };
+  const projectId = yc.get("projectId");
+  if (typeof projectId === "string") card.projectId = projectId;
   const assignee = yc.get("assigneeId");
   if (typeof assignee === "string") card.assigneeId = assignee;
   const del = yc.get("deletedAt");
@@ -184,6 +189,16 @@ export function labelToPlain(yl: YLabel): Label {
     name: getString(yl, "name"),
     color: getString(yl, "color"),
     ord: getString(yl, "ord"),
+  };
+}
+
+export function projectToPlain(yp: Y.Map<unknown>): Project {
+  return {
+    id: getString(yp, "id"),
+    name: getString(yp, "name"),
+    color: getString(yp, "color"),
+    ord: getString(yp, "ord"),
+    archived: getBool(yp, "archived"),
   };
 }
 

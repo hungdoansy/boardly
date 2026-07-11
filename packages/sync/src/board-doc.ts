@@ -14,6 +14,7 @@ import {
   type Label,
   type LinkProvider,
   type PriorityValue,
+  type Project,
   type SavedView,
   type SeverityValue,
   type SnapshotCard,
@@ -39,6 +40,7 @@ import {
   boardColumns,
   boardLabels,
   boardMeta,
+  boardProjects,
   boardToPlain,
   cardToPlain,
   columnToPlain,
@@ -46,6 +48,7 @@ import {
   getString,
   getNumber,
   labelToPlain,
+  projectToPlain,
 } from "./schema";
 
 // ----- internal helpers -----
@@ -245,6 +248,7 @@ export interface AddCardParams {
   id?: string;
   columnId: string;
   title: string;
+  projectId?: string;
   now: number;
   clientId: string;
   createdBy?: string;
@@ -264,6 +268,7 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     card.set("id", id);
     card.set("number", seq);
     card.set("title", params.title);
+    if (params.projectId !== undefined) card.set("projectId", params.projectId);
     card.set("description", new Y.Text());
     card.set("columnId", params.columnId);
     card.set("ord", keyBetween(lastOrd, null, params.clientId));
@@ -868,6 +873,97 @@ export function listLabels(doc: Y.Doc): Label[] {
     .filter((l): l is Y.Map<unknown> => l instanceof Y.Map)
     .map(labelToPlain)
     .sort(byOrd);
+}
+
+// ----- projects (grouping under the single board; a card has one) -----
+
+export interface AddProjectParams {
+  id?: string;
+  name: string;
+  color: string;
+  now: number;
+  clientId: string;
+}
+
+export function addProject(doc: Y.Doc, params: AddProjectParams): string {
+  const id = params.id ?? newId();
+  doc.transact(() => {
+    const projects = boardProjects(doc);
+    const lastOrd = maxOrd(
+      [...projects.values()]
+        .filter((p): p is Y.Map<unknown> => p instanceof Y.Map && !getBool(p, "archived"))
+        .map((p) => getString(p, "ord")),
+    );
+    const project = new Y.Map<unknown>();
+    project.set("id", id);
+    project.set("name", params.name);
+    project.set("color", params.color);
+    project.set("ord", keyBetween(lastOrd, null, params.clientId));
+    project.set("archived", false);
+    projects.set(id, project);
+    boardMeta(doc).set("updatedAt", params.now);
+  });
+  return id;
+}
+
+function withProject(
+  doc: Y.Doc,
+  projectId: string,
+  mutate: (p: Y.Map<unknown>) => void,
+  now: number,
+): void {
+  doc.transact(() => {
+    const project = boardProjects(doc).get(projectId);
+    if (!(project instanceof Y.Map)) return;
+    mutate(project);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
+export function renameProject(doc: Y.Doc, projectId: string, name: string, now: number): void {
+  withProject(doc, projectId, (p) => p.set("name", name), now);
+}
+
+export function recolorProject(doc: Y.Doc, projectId: string, color: string, now: number): void {
+  withProject(doc, projectId, (p) => p.set("color", color), now);
+}
+
+/** Soft-archive a project (hidden from the list). Cards keep their `projectId`. */
+export function archiveProject(doc: Y.Doc, projectId: string, now: number): void {
+  withProject(
+    doc,
+    projectId,
+    (p) => {
+      p.set("archived", true);
+      p.set("deletedAt", now);
+    },
+    now,
+  );
+}
+
+export function listProjects(doc: Y.Doc): Project[] {
+  return [...boardProjects(doc).values()]
+    .filter((p): p is Y.Map<unknown> => p instanceof Y.Map && !getBool(p, "archived"))
+    .map(projectToPlain)
+    .sort(byOrd);
+}
+
+/** Set (or clear, with `null`) a card's project. */
+export function setCardProject(
+  doc: Y.Doc,
+  cardId: string,
+  projectId: string | null,
+  now: number,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      if (projectId === null) card.delete("projectId");
+      else card.set("projectId", projectId);
+    },
+    now,
+  );
 }
 
 // ----- selectors (read-only) -----
