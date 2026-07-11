@@ -165,7 +165,7 @@ Suggested loop order: **1 → 2 → 3 → 4 → 5 → 6 → 7 → 8** (each is a
 
 Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/units/UNIT-6.<n>-<slug>.md` and must land green (typecheck/lint/test/build; dark-mode screenshot for user-facing UI) before its checkbox is ticked. Node commands use the pinned bin (memory `tools/pnpm_node.md`).
 
-- [ ] **Unit 1: Integer ticket number + display-only board prefix**
+- [x] **Unit 1: Integer ticket number + display-only board prefix**
 
 **Goal:** Replace the baked `shortId` string with a stored integer `number`, and make the displayed id derive from a board-level prefix (`#{n}` / `{PREFIX}-{n}`).
 

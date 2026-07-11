@@ -25,11 +25,10 @@ import {
   byOrd,
   compareOrd,
   detectProvider,
-  formatShortId,
   keyBetween,
   newId,
   normalizeUrl,
-  repairShortIds,
+  repairTicketNumbers,
 } from "@boardly/domain";
 import * as Y from "yjs";
 
@@ -99,7 +98,7 @@ export function initBoard(doc: Y.Doc, params: InitBoardParams): void {
     meta.set("title", params.title);
     if (params.icon !== undefined) meta.set("icon", params.icon);
     meta.set("description", new Y.Text());
-    meta.set("shortIdPrefix", params.shortIdPrefix ?? "BRD");
+    meta.set("shortIdPrefix", params.shortIdPrefix ?? "");
     meta.set("shortIdSeq", 0);
     meta.set("badgeConfig", [...DEFAULT_BADGE_CONFIG]);
     meta.set("createdAt", params.now);
@@ -263,7 +262,7 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     );
     const card = new Y.Map<unknown>();
     card.set("id", id);
-    card.set("shortId", formatShortId(getString(meta, "shortIdPrefix", "BRD"), seq));
+    card.set("number", seq);
     card.set("title", params.title);
     card.set("description", new Y.Text());
     card.set("columnId", params.columnId);
@@ -846,26 +845,32 @@ export function listLabels(doc: Y.Doc): Label[] {
 
 // ----- selectors (read-only) -----
 
+/** The board's display-only ticket prefix (empty by default). */
+function boardPrefix(doc: Y.Doc): string {
+  return getString(boardMeta(doc), "shortIdPrefix", "");
+}
+
 /**
- * Compute short-id overrides for the whole board (repair-on-read). Duplicate
- * short ids from concurrent offline creation are reassigned deterministically;
- * the map is `cardId → repaired shortId` for cards that changed.
+ * Compute ticket-number overrides for the whole board (repair-on-read).
+ * Duplicate numbers from concurrent offline creation are reassigned
+ * deterministically; the map is `cardId → repaired number` for cards that
+ * changed. Pass an entry's override to `cardToPlain` to derive its `shortId`.
  */
-function shortIdOverrides(doc: Y.Doc): Map<string, string> {
-  return repairShortIds(
+function ticketNumberOverrides(doc: Y.Doc): Map<string, number> {
+  return repairTicketNumbers(
     [...boardCards(doc).values()]
       .filter((c): c is YCard => c instanceof Y.Map)
       .map((c) => ({
         id: getString(c, "id"),
-        shortId: getString(c, "shortId"),
+        number: getNumber(c, "number"),
         createdAt: getNumber(c, "createdAt"),
       })),
   );
 }
 
-function withRepairedShortId(card: Card, overrides: Map<string, string>): Card {
-  const repaired = overrides.get(card.id);
-  return repaired ? { ...card, shortId: repaired } : card;
+/** Convert a stored card, deriving `shortId` from the board prefix + repaired number. */
+function toPlain(c: YCard, prefix: string, overrides: Map<string, number>): Card {
+  return cardToPlain(c, { prefix, number: overrides.get(getString(c, "id")) });
 }
 
 export function liveColumns(doc: Y.Doc): Column[] {
@@ -876,34 +881,37 @@ export function liveColumns(doc: Y.Doc): Column[] {
 }
 
 export function cardsInColumn(doc: Y.Doc, columnId: string): Card[] {
-  const overrides = shortIdOverrides(doc);
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
   return [...boardCards(doc).values()]
     .filter((c) => getString(c, "columnId") === columnId && !getBool(c, "archived"))
-    .map((c) => withRepairedShortId(cardToPlain(c), overrides))
+    .map((c) => toPlain(c, prefix, overrides))
     .sort(byOrd);
 }
 
 /** Non-archived cards whose `columnId` points at no live column ("Unsorted"). */
 export function reclaimCards(doc: Y.Doc): Card[] {
   const live = new Set(liveColumns(doc).map((c) => c.id));
-  const overrides = shortIdOverrides(doc);
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
   return [...boardCards(doc).values()]
     .filter((c) => !getBool(c, "archived") && !live.has(getString(c, "columnId")))
-    .map((c) => withRepairedShortId(cardToPlain(c), overrides))
+    .map((c) => toPlain(c, prefix, overrides))
     .sort(byOrd);
 }
 
 export function getCard(doc: Y.Doc, cardId: string): Card | null {
   const c = boardCards(doc).get(cardId);
-  return c instanceof Y.Map ? withRepairedShortId(cardToPlain(c), shortIdOverrides(doc)) : null;
+  return c instanceof Y.Map ? toPlain(c, boardPrefix(doc), ticketNumberOverrides(doc)) : null;
 }
 
-/** Every non-archived card on the board (any column, incl. unsorted), short-id repaired. */
+/** Every non-archived card on the board (any column, incl. unsorted), number-repaired. */
 export function allLiveCards(doc: Y.Doc): Card[] {
-  const overrides = shortIdOverrides(doc);
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
   return [...boardCards(doc).values()]
     .filter((c) => c instanceof Y.Map && !getBool(c, "archived"))
-    .map((c) => withRepairedShortId(cardToPlain(c), overrides));
+    .map((c) => toPlain(c, prefix, overrides));
 }
 
 // ----- import / export (Unit 4.4) -----
@@ -938,7 +946,7 @@ export function boardToSnapshot(doc: Y.Doc, boardId: string): BoardSnapshot {
 function buildCard(card: SnapshotCard): YCard {
   const yc = new Y.Map<unknown>();
   yc.set("id", card.id);
-  yc.set("shortId", card.shortId);
+  yc.set("number", card.number);
   yc.set("title", card.title);
   const desc = new Y.Text();
   if (card.description) desc.insert(0, card.description);
@@ -987,13 +995,10 @@ function buildCard(card: SnapshotCard): YCard {
   return yc;
 }
 
-/** Highest numeric suffix across `PREFIX-<n>` short ids (for the shortId sequence). */
-function maxShortIdSeq(cards: SnapshotCard[]): number {
+/** Highest ticket number across the cards (seeds the board's `shortIdSeq`). */
+function maxTicketNumber(cards: SnapshotCard[]): number {
   let max = 0;
-  for (const c of cards) {
-    const m = /-(\d+)$/.exec(c.shortId);
-    if (m) max = Math.max(max, Number(m[1]));
-  }
+  for (const c of cards) max = Math.max(max, c.number);
   return max;
 }
 
@@ -1013,7 +1018,7 @@ export function buildBoardFromSnapshot(doc: Y.Doc, snapshot: BoardSnapshot, now:
     if (snapshot.board.description) desc.insert(0, snapshot.board.description);
     meta.set("description", desc);
     meta.set("shortIdPrefix", snapshot.board.shortIdPrefix);
-    meta.set("shortIdSeq", maxShortIdSeq(snapshot.cards));
+    meta.set("shortIdSeq", maxTicketNumber(snapshot.cards));
     meta.set(
       "badgeConfig",
       snapshot.board.badgeConfig.length

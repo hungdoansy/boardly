@@ -17,7 +17,8 @@ const LABELS: Label[] = [
 function makeCard(over: Partial<import("@boardly/domain").Card>): import("@boardly/domain").Card {
   return {
     id: "c",
-    shortId: "BRD-1",
+    number: 1,
+    shortId: "#1",
     title: "Card",
     description: "",
     columnId: "col",

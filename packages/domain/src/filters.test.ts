@@ -22,7 +22,8 @@ const NOW = new Date("2026-07-10T12:00:00Z").getTime();
 function card(over: Partial<Card>): Card {
   return {
     id: over.id ?? "c",
-    shortId: "BRD-1",
+    number: 1,
+    shortId: "#1",
     title: "Card",
     description: "",
     columnId: "col",

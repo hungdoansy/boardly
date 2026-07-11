@@ -24,7 +24,7 @@ const snapshot: BoardSnapshot = {
   cards: [
     {
       id: "k1",
-      shortId: "RDM-1",
+      number: 1,
       title: "Fix login",
       description: "steps",
       columnId: "c1",
@@ -42,7 +42,7 @@ const snapshot: BoardSnapshot = {
     },
     {
       id: "k2",
-      shortId: "RDM-2",
+      number: 2,
       title: "Ship it",
       description: "",
       columnId: "c2",
@@ -75,7 +75,7 @@ describe("JSON round-trip", () => {
         cards: [{ id: "k1", title: "Card", columnId: "c1", ord: "a0" }],
       }),
     );
-    expect(restored.board.shortIdPrefix).toBe("BRD");
+    expect(restored.board.shortIdPrefix).toBe("");
     expect(restored.cards[0]).toMatchObject({
       status: Status.Todo,
       priority: Priority.None,

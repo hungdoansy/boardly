@@ -54,7 +54,7 @@ const statusSchema = z.enum(STATUS_VALUES as [Status, ...Status[]]).default("tod
 
 const cardSchema = z.object({
   id: z.string(),
-  shortId: z.string().default(""),
+  number: z.number().int().nonnegative().default(0),
   title: z.string(),
   description: z.string().default(""),
   columnId: z.string(),
@@ -84,7 +84,7 @@ export const boardSnapshotSchema = z.object({
     title: z.string(),
     icon: z.string().optional(),
     description: z.string().optional(),
-    shortIdPrefix: z.string().default("BRD"),
+    shortIdPrefix: z.string().default(""),
     badgeConfig: z.array(z.string()).default([]),
   }),
   labels: z.array(labelSchema).default([]),

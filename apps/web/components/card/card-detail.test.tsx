@@ -38,7 +38,7 @@ describe("CardDetail", () => {
   it("opens with the card's title and short id", () => {
     setup();
     expect(screen.getByRole("textbox", { name: "Card title" })).toHaveValue("Detail card");
-    expect(screen.getByText("BRD-1")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
   });
 
   it("persists description edits to the doc (Y.Text)", () => {

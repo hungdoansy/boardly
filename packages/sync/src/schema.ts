@@ -18,6 +18,7 @@ import {
   type Status,
   type WorkspaceBoardRef,
   DEFAULT_STATUS,
+  formatTicketId,
 } from "@boardly/domain";
 import * as Y from "yjs";
 
@@ -73,7 +74,12 @@ export function columnToPlain(yc: YColumn): Column {
   return col;
 }
 
-export function cardToPlain(yc: YCard): Card {
+/**
+ * Convert a stored card to its plain domain shape. `opts.prefix` is the board's
+ * display prefix and `opts.number` optionally overrides the stored number with a
+ * repaired one (collision repair-on-read); together they derive `shortId`.
+ */
+export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number }): Card {
   const description = yc.get("description");
   const dueRaw = yc.get("dueDate");
   const labelsRaw = yc.get("labels");
@@ -123,9 +129,12 @@ export function cardToPlain(yc: YCard): Card {
     links.sort((a, b) => (a.ord < b.ord ? -1 : a.ord > b.ord ? 1 : 0));
   }
 
+  const prefix = opts?.prefix ?? "";
+  const number = opts?.number ?? getNumber(yc, "number");
   const card: Card = {
     id: getString(yc, "id"),
-    shortId: getString(yc, "shortId"),
+    number,
+    shortId: formatTicketId(prefix, number),
     title: getString(yc, "title"),
     description: description instanceof Y.Text ? description.toString() : "",
     columnId: getString(yc, "columnId"),
@@ -157,7 +166,7 @@ export function boardToPlain(doc: Y.Doc, id: string): Board {
   const board: Board = {
     id,
     title: getString(meta, "title"),
-    shortIdPrefix: getString(meta, "shortIdPrefix", "BRD"),
+    shortIdPrefix: getString(meta, "shortIdPrefix", ""),
     shortIdSeq: getNumber(meta, "shortIdSeq"),
     badgeConfig: Array.isArray(badgeRaw) ? (badgeRaw as string[]) : [],
     createdAt: getNumber(meta, "createdAt"),

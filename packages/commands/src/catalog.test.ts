@@ -37,7 +37,7 @@ describe("commands (client context)", () => {
       columnId: "col1",
       title: "Card 1",
     });
-    expect(card?.shortId).toBe("BRD-1");
+    expect(card?.shortId).toBe("#1");
     expect(card?.status).toBe("todo");
 
     execute(renameColumn, ctx, { boardId: "b1", columnId: "col1", title: "Todo" });

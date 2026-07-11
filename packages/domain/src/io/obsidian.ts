@@ -22,7 +22,7 @@ export function parseObsidian(text: string, boardTitle = "Imported board"): Boar
   const cardOrdByColumn = new Map<string, string | null>();
   let inSettings = false;
   let sawH1 = false;
-  let shortIdSeq = 0;
+  let ticketNumber = 0;
 
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -45,7 +45,7 @@ export function parseObsidian(text: string, boardTitle = "Imported board"): Boar
       cardOrdByColumn.set(currentColumnId, ord);
       cards.push({
         id: newId(),
-        shortId: `BRD-${++shortIdSeq}`,
+        number: ++ticketNumber,
         title: task[2]!.trim(),
         description: "",
         columnId: currentColumnId,
@@ -87,7 +87,7 @@ export function parseObsidian(text: string, boardTitle = "Imported board"): Boar
 
   return {
     version: SNAPSHOT_VERSION,
-    board: { title, shortIdPrefix: "BRD", badgeConfig: [] },
+    board: { title, shortIdPrefix: "", badgeConfig: [] },
     labels: [],
     columns,
     cards,

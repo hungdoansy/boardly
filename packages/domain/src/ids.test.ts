@@ -1,13 +1,46 @@
 import { describe, expect, it } from "vitest";
 
-import { formatShortId, newId, parseShortId, repairShortIds } from "./ids";
+import {
+  formatShortId,
+  formatTicketId,
+  newId,
+  normalizeTicketPrefix,
+  parseShortId,
+  repairTicketNumbers,
+} from "./ids";
 
-describe("short ids", () => {
-  it("formats prefix + seq", () => {
-    expect(formatShortId("BRD", 142)).toBe("BRD-142");
+describe("formatTicketId", () => {
+  it("shows #{number} when the prefix is empty", () => {
+    expect(formatTicketId("", 7)).toBe("#7");
+    expect(formatTicketId("", 142)).toBe("#142");
   });
 
-  it("round-trips through parseShortId", () => {
+  it("shows {PREFIX}-{number} when the prefix is set", () => {
+    expect(formatTicketId("TEC", 7)).toBe("TEC-7");
+    expect(formatTicketId("BRD", 142)).toBe("BRD-142");
+  });
+});
+
+describe("normalizeTicketPrefix", () => {
+  it("uppercases and keeps only alphanumerics", () => {
+    expect(normalizeTicketPrefix("tec")).toBe("TEC");
+    expect(normalizeTicketPrefix("te-c1!")).toBe("TEC1");
+  });
+
+  it("caps at 5 characters", () => {
+    expect(normalizeTicketPrefix("toolong")).toBe("TOOLO");
+    expect(normalizeTicketPrefix("ABCDEFGH")).toBe("ABCDE");
+  });
+
+  it("allows an empty result", () => {
+    expect(normalizeTicketPrefix("")).toBe("");
+    expect(normalizeTicketPrefix("---")).toBe("");
+  });
+});
+
+describe("legacy short-id helpers", () => {
+  it("formats and round-trips through parseShortId", () => {
+    expect(formatShortId("BRD", 142)).toBe("BRD-142");
     expect(parseShortId("BRD-142")).toEqual({ prefix: "BRD", seq: 142 });
     expect(parseShortId(formatShortId("ABC", 7))).toEqual({ prefix: "ABC", seq: 7 });
   });
@@ -20,34 +53,34 @@ describe("short ids", () => {
   });
 });
 
-describe("repairShortIds", () => {
+describe("repairTicketNumbers", () => {
   it("returns no overrides without duplicates", () => {
     expect(
-      repairShortIds([
-        { id: "a", shortId: "BRD-1", createdAt: 1 },
-        { id: "b", shortId: "BRD-2", createdAt: 2 },
+      repairTicketNumbers([
+        { id: "a", number: 1, createdAt: 1 },
+        { id: "b", number: 2, createdAt: 2 },
       ]).size,
     ).toBe(0);
   });
 
-  it("keeps the earliest card and reassigns the later one beyond the max seq", () => {
-    const map = repairShortIds([
-      { id: "a", shortId: "BRD-3", createdAt: 10 },
-      { id: "b", shortId: "BRD-3", createdAt: 20 },
+  it("keeps the earliest card and reassigns the later one beyond the max number", () => {
+    const map = repairTicketNumbers([
+      { id: "a", number: 3, createdAt: 10 },
+      { id: "b", number: 3, createdAt: 20 },
     ]);
     expect(map.get("a")).toBeUndefined();
-    expect(map.get("b")).toBe("BRD-4");
+    expect(map.get("b")).toBe(4);
   });
 
   it("breaks ties by id and is order-independent (stable across replicas)", () => {
     const cards = [
-      { id: "y", shortId: "BRD-3", createdAt: 10 },
-      { id: "x", shortId: "BRD-3", createdAt: 10 },
+      { id: "y", number: 3, createdAt: 10 },
+      { id: "x", number: 3, createdAt: 10 },
     ];
-    const forward = repairShortIds(cards);
-    const reversed = repairShortIds([...cards].reverse());
+    const forward = repairTicketNumbers(cards);
+    const reversed = repairTicketNumbers([...cards].reverse());
     expect(forward.get("x")).toBeUndefined(); // "x" < "y" → keeper
-    expect(forward.get("y")).toBe("BRD-4");
+    expect(forward.get("y")).toBe(4);
     expect(Object.fromEntries(reversed)).toEqual(Object.fromEntries(forward));
   });
 });

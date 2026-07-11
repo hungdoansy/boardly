@@ -22,7 +22,8 @@ const NOW = new Date("2026-07-10T12:00:00Z").getTime();
 function makeCard(over: Partial<Card>): Card {
   return {
     id: over.id ?? "c",
-    shortId: "BRD-1",
+    number: 1,
+    shortId: "#1",
     title: "Card",
     description: "",
     columnId: "col",
@@ -181,7 +182,7 @@ describe("ListBody (Zen focus)", () => {
   it("hides trailing badges in Zen, keeping shortId + title + status", () => {
     renderBody(true);
     expect(screen.getByText("Alpha")).toBeInTheDocument();
-    expect(screen.getByText("BRD-1")).toBeInTheDocument(); // shortId (leading) stays
+    expect(screen.getByText("#1")).toBeInTheDocument(); // shortId (leading) stays
     expect(screen.queryByText("S2")).not.toBeInTheDocument();
     expect(screen.queryByText("Frontend")).not.toBeInTheDocument();
   });

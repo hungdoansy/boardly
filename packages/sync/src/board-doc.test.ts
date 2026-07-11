@@ -47,11 +47,11 @@ function merge(a: Y.Doc, b: Y.Doc): void {
 }
 
 describe("board meta + creation", () => {
-  it("initializes meta and default short-id prefix", () => {
+  it("initializes meta with an empty default prefix", () => {
     const { doc } = setup();
     const board = getBoard(doc, "board-1");
     expect(board.title).toBe("Test board");
-    expect(board.shortIdPrefix).toBe("BRD");
+    expect(board.shortIdPrefix).toBe("");
     expect(board.shortIdSeq).toBe(0);
   });
 
@@ -66,12 +66,44 @@ describe("board meta + creation", () => {
     expect(liveColumns(doc).map((c) => c.title)).toEqual(["To Do", "Doing", "Done"]);
   });
 
-  it("assigns sequential short ids", () => {
+  it("assigns sequential integer numbers, shown as #{number} with an empty prefix", () => {
     const { doc, c1 } = setup();
     const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
     const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
-    expect(getCard(doc, a)?.shortId).toBe("BRD-1");
-    expect(getCard(doc, b)?.shortId).toBe("BRD-2");
+    expect(getCard(doc, a)?.number).toBe(1);
+    expect(getCard(doc, b)?.number).toBe(2);
+    expect(getCard(doc, a)?.shortId).toBe("#1");
+    expect(getCard(doc, b)?.shortId).toBe("#2");
+  });
+
+  it("derives {PREFIX}-{number} when the board has a prefix", () => {
+    const doc = new Y.Doc();
+    initBoard(doc, { title: "Prefixed", shortIdPrefix: "TEC", now: NOW });
+    const c1 = addColumn(doc, { title: "To Do", now: NOW, clientId: "1" });
+    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    expect(getCard(doc, a)?.number).toBe(1);
+    expect(getCard(doc, a)?.shortId).toBe("TEC-1");
+  });
+
+  it("repairs duplicate numbers from concurrent creation on read (no write)", () => {
+    const { doc, c1 } = setup();
+    const first = addCard(doc, { columnId: c1, title: "First", now: NOW, clientId: "1" });
+    // Simulate a merged offline sibling that grabbed the same number.
+    const dupId = "dup-card";
+    const dup = new Y.Map<unknown>();
+    dup.set("id", dupId);
+    dup.set("number", getCard(doc, first)!.number);
+    dup.set("title", "Dup");
+    dup.set("columnId", c1);
+    dup.set("ord", "a1");
+    dup.set("archived", false);
+    dup.set("createdAt", NOW + 1000); // later → the displaced one
+    boardCards(doc).set(dupId, dup);
+
+    // Earliest (createdAt, id) keeps number 1; the later card is reassigned to 2.
+    expect(getCard(doc, first)?.number).toBe(1);
+    expect(getCard(doc, dupId)?.number).toBe(2);
+    expect(getCard(doc, dupId)?.shortId).toBe("#2");
   });
 });
 
