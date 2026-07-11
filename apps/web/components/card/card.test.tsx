@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, createBoard, createCard, execute } from "@boardly/commands";
+import {
+  addColumn as addColumnCmd,
+  createBoard,
+  createCard,
+  execute,
+  setCardSeverity,
+} from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { cardsInColumn } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
+import { setFocusLevel } from "../../lib/focus-mode";
 import { ColumnCards } from "../board/column-cards";
 
 function setup(seed?: (ctx: MemoryContext, boardId: string, columnId: string) => void) {
@@ -28,6 +35,8 @@ const composerInput = () => screen.getByRole("textbox", { name: "New card title"
 
 afterEach(() => {
   cleanup();
+  setFocusLevel("off"); // reset the module-level focus store between tests
+  localStorage.clear();
 });
 
 describe("cards", () => {
@@ -77,6 +86,26 @@ describe("cards", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Archive Bye" }));
     expect(screen.queryByText("Bye")).not.toBeInTheDocument();
+  });
+
+  it("collapses the card face to status only in Zen focus", () => {
+    const seed = (ctx: MemoryContext, boardId: string, columnId: string): void => {
+      execute(createCard, ctx, { boardId, columnId, id: "c1", title: "Seeded" });
+      execute(setCardSeverity, ctx, { boardId, cardId: "c1", severity: 2 });
+    };
+
+    // Off: the severity badge shows.
+    const off = setup(seed);
+    expect(screen.getByText("Seeded")).toBeInTheDocument();
+    expect(screen.getByText("S2")).toBeInTheDocument();
+    cleanup();
+    void off;
+
+    // Zen: title stays, the severity badge is gone (config forced to status only).
+    setFocusLevel("zen");
+    setup(seed);
+    expect(screen.getByText("Seeded")).toBeInTheDocument();
+    expect(screen.queryByText("S2")).not.toBeInTheDocument();
   });
 
   it("renders many cards without error (perf sanity)", () => {

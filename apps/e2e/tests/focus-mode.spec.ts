@@ -53,3 +53,42 @@ test("focus mode: Shift+F cycles + mutes the board; drawer escapes; per-theme sa
   await expect.poll(() => htmlFocus(page)).toBeNull();
   await expect.poll(() => mainFilter(page)).toBe("none");
 });
+
+test("focus mode: Zen collapses the card face + list row (both surfaces, both themes)", async ({
+  page,
+}) => {
+  await seed(page);
+
+  // Give a card a visible, queryable badge (a past due date → "Overdue" chip).
+  await page.getByRole("button", { name: "Apple", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Due date" }).click();
+  await page.getByLabel("Due date input").fill("2020-06-15");
+  await page.keyboard.press("Escape"); // close the date popover
+  await page.getByRole("button", { name: "Close" }).click(); // close the drawer
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const todo = page.getByRole("region", { name: "Column: To Do" });
+  await expect(todo.getByText("Overdue")).toBeVisible();
+
+  // Zen (off → calm → zen): the board card face collapses to title + status.
+  await page.keyboard.press("Shift+F");
+  await page.keyboard.press("Shift+F");
+  await expect.poll(() => htmlFocus(page)).toBe("zen");
+  await expect(todo.getByText("Overdue")).toHaveCount(0);
+  await expect(page.getByText("Apple")).toBeVisible();
+  await expect(page.getByRole("main")).toHaveScreenshot("focus-zen-board-dark.png");
+
+  // Same in the list lens — trailing badges gone, title + shortId remain.
+  await page.getByRole("button", { name: "List", exact: true }).click();
+  await expect(page.locator('[data-nav="row"]').first()).toBeVisible();
+  await expect(page.getByText("Overdue")).toHaveCount(0);
+  await expect(page.getByText("Apple")).toBeVisible();
+  await expect(page.getByRole("main")).toHaveScreenshot("focus-zen-list-dark.png");
+
+  // Light theme baselines for both surfaces.
+  await page.getByRole("button", { name: /Switch to light theme/ }).click();
+  await expect(page.getByRole("main")).toHaveScreenshot("focus-zen-list-light.png");
+  await page.getByRole("button", { name: "Board", exact: true }).click();
+  await expect(page.getByText("Apple")).toBeVisible();
+  await expect(page.getByRole("main")).toHaveScreenshot("focus-zen-board-light.png");
+});

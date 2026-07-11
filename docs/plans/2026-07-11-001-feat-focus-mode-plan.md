@@ -232,7 +232,7 @@ the `/`-shortcut effect in `workspace-app.tsx`.
 Calm and restores at Off; the choice survives reload (no color flash on load); dark and light both
 read as "clearly quieter but still legible"; typecheck/lint/tests/build green.
 
-- [ ] **Unit 2: Zen density — collapse card face + list row to title + status**
+- [x] **Unit 2: Zen density — collapse card face + list row to title + status**
 
 **Goal:** At Zen, the board card face and list row show only the title + a single muted status
 marker; all other badges are hidden. Reuses the badge config.

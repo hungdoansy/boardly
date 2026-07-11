@@ -17,6 +17,7 @@ import { StatusIcon } from "@boardly/ui";
 import { useCallback, useMemo, useRef } from "react";
 
 import { useAuthSession } from "../../lib/auth-store";
+import { useFocusMode } from "../../lib/focus-mode";
 import { useBadgeConfig, useAllCards, useLabels } from "../../lib/use-board";
 import { useSelectedCard } from "../../lib/use-boards";
 import { BadgeRow } from "../card/badge-row";
@@ -42,6 +43,7 @@ export function ListView({
   const cards = useAllCards(boardId);
   const labels = useLabels(boardId);
   const config = useBadgeConfig(boardId);
+  const { level } = useFocusMode();
   const [openCardId, setOpenCardId] = useSelectedCard();
   const { userId } = useAuthSession();
 
@@ -77,6 +79,7 @@ export function ListView({
           labelById={labelById}
           config={config}
           groupBy={groupBy ?? null}
+          zen={level === "zen"}
           onOpen={setOpenCardId}
         />
       </div>
@@ -91,12 +94,15 @@ export function ListBody({
   labelById,
   config,
   groupBy,
+  zen = false,
   onOpen,
 }: {
   resolved: ResolvedView;
   labelById: Map<string, Label>;
   config: string[];
   groupBy: GroupByField | null;
+  /** Zen focus level: collapse each row to status + shortId + title only. */
+  zen?: boolean;
   onOpen: (cardId: string) => void;
 }) {
   // The row shows a dedicated status glyph, so drop "status" from the badge row.
@@ -150,6 +156,7 @@ export function ListBody({
                   card={card}
                   labelById={labelById}
                   config={rowConfig}
+                  zen={zen}
                   onOpen={onOpen}
                 />
               ))}
@@ -161,6 +168,7 @@ export function ListBody({
               card={card}
               labelById={labelById}
               config={rowConfig}
+              zen={zen}
               onOpen={onOpen}
             />
           ))}
@@ -181,11 +189,13 @@ function ListRow({
   card,
   labelById,
   config,
+  zen = false,
   onOpen,
 }: {
   card: Card;
   labelById: Map<string, Label>;
   config: string[];
+  zen?: boolean;
   onOpen: (cardId: string) => void;
 }) {
   const terminal = isTerminalStatus(card.status);
@@ -212,17 +222,19 @@ function ListRow({
       <span className={terminal ? "truncate text-fg-faint line-through" : "truncate text-fg"}>
         {card.title}
       </span>
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <BadgeRow card={card} labels={cardLabels} config={config} />
-        {card.assigneeId ? (
-          <span
-            className="grid size-5 shrink-0 place-items-center rounded-full bg-overlay text-[10px] text-fg-muted"
-            title={card.assigneeId}
-          >
-            {card.assigneeId.slice(0, 2).toUpperCase()}
-          </span>
-        ) : null}
-      </div>
+      {zen ? null : (
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <BadgeRow card={card} labels={cardLabels} config={config} />
+          {card.assigneeId ? (
+            <span
+              className="grid size-5 shrink-0 place-items-center rounded-full bg-overlay text-[10px] text-fg-muted"
+              title={card.assigneeId}
+            >
+              {card.assigneeId.slice(0, 2).toUpperCase()}
+            </span>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

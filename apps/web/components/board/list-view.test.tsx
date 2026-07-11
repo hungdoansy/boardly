@@ -155,3 +155,34 @@ describe("ListBody (interaction)", () => {
     expect(onOpen).toHaveBeenCalledWith("a");
   });
 });
+
+describe("ListBody (Zen focus)", () => {
+  const labelById = new Map([["l1", { id: "l1", name: "Frontend", color: "#4EA7FC", ord: "a0" }]]);
+  const card = makeCard({ id: "a", title: "Alpha", severity: 2, labelIds: ["l1"] });
+  const renderBody = (zen: boolean) =>
+    render(
+      <ListBody
+        resolved={flat([card])}
+        labelById={labelById}
+        config={["status", "severity", "labels"]}
+        groupBy={null}
+        zen={zen}
+        onOpen={vi.fn()}
+      />,
+    );
+
+  it("shows trailing badges when not in Zen", () => {
+    renderBody(false);
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.getByText("S2")).toBeInTheDocument();
+    expect(screen.getByText("Frontend")).toBeInTheDocument();
+  });
+
+  it("hides trailing badges in Zen, keeping shortId + title + status", () => {
+    renderBody(true);
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+    expect(screen.getByText("BRD-1")).toBeInTheDocument(); // shortId (leading) stays
+    expect(screen.queryByText("S2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Frontend")).not.toBeInTheDocument();
+  });
+});

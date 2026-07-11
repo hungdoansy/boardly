@@ -4,9 +4,13 @@ import { type Filter, type FilterContext, evaluateFilter } from "@boardly/domain
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useMemo } from "react";
 
+import { useFocusMode } from "../../lib/focus-mode";
 import { useBadgeConfig, useCardActions, useCardsInColumn, useLabels } from "../../lib/use-board";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
+
+/** Zen collapses the card face to a single (muted) status marker + title. */
+const ZEN_CONFIG = ["status"];
 
 export function ColumnCards({
   boardId,
@@ -24,6 +28,8 @@ export function ColumnCards({
   const allCards = useCardsInColumn(boardId, columnId);
   const labels = useLabels(boardId);
   const config = useBadgeConfig(boardId);
+  const { level } = useFocusMode();
+  const effectiveConfig = level === "zen" ? ZEN_CONFIG : config;
   const actions = useCardActions(boardId);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
@@ -44,7 +50,7 @@ export function ColumnCards({
             card={card}
             columnId={columnId}
             labels={card.labelIds.map((id) => labelById.get(id)).filter((l) => l !== undefined)}
-            config={config}
+            config={effectiveConfig}
             onOpen={() => onOpenCard(card.id)}
             onArchive={() => actions.archive(card.id)}
           />
