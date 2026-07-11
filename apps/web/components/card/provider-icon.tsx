@@ -1,3 +1,5 @@
+"use client";
+
 import type { LinkProvider } from "@boardly/domain";
 import { cn } from "@boardly/ui";
 import airtable from "@thesvg/icons/airtable";
@@ -47,6 +49,9 @@ import x from "@thesvg/icons/x";
 import youtube from "@thesvg/icons/youtube";
 import zoom from "@thesvg/icons/zoom";
 import { Globe } from "lucide-react";
+import { useId } from "react";
+
+import { scopeSvgIds } from "./scope-svg-ids";
 
 /** Every rendered icon (brand SVG or the Globe fallback) is this size. */
 const ICON_CLASS = "size-3 shrink-0";
@@ -127,6 +132,10 @@ const BRAND: Partial<Record<string, { svg: string; mono?: boolean }>> = {
 };
 
 export function ProviderIcon({ provider }: { provider: LinkProvider }) {
+  // Some brand SVGs (Figma, Instagram, Reddit, Zoom, ...) reference internal
+  // gradient/clip-path ids via url(#x); scope those to this instance so two
+  // icons on the same page never resolve each other's ids (see scope-svg-ids).
+  const scopeId = useId().replace(/:/g, "");
   const brand = BRAND[provider];
   if (brand) {
     return (
@@ -142,7 +151,7 @@ export function ProviderIcon({ provider }: { provider: LinkProvider }) {
         // hardcoded @thesvg/icons imports above, pinned to an exact version —
         // no user or link input ever reaches this string, so injecting it
         // verbatim is safe.
-        dangerouslySetInnerHTML={{ __html: brand.svg }}
+        dangerouslySetInnerHTML={{ __html: scopeSvgIds(brand.svg, scopeId) }}
       />
     );
   }
