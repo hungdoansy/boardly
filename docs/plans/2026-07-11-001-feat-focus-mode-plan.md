@@ -170,7 +170,7 @@ Data flow (mirrors theme):
 
 ## Implementation Units
 
-- [ ] **Unit 1: Focus-mode preference + Calm (mechanism)**
+- [x] **Unit 1: Focus-mode preference + Calm (mechanism)**
 
 **Goal:** The full toggle/persistence/keyboard/indicator machinery, plus the Calm level (muted
 color) working in both themes. After this unit, cycling reaches Off ↔ Calm (Zen is a no-op until

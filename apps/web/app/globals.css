@@ -82,6 +82,17 @@
   margin: 0.5em 0;
 }
 
+/* Focus mode (Unit F1): mute the board/list content region when Calm or Zen is
+   active. `data-focus` is stamped on <html>; the filter is scoped to the tagged
+   content region only, so the portaled detail drawer + popovers stay full-color.
+   Muted via `saturate`, never grayscale — the overdue/urgent signal survives.
+   The global reduced-motion block below neutralizes the transition. */
+:root[data-focus="calm"] [data-focus-scope],
+:root[data-focus="zen"] [data-focus-scope] {
+  filter: saturate(var(--focus-saturate));
+  transition: filter var(--dur-base) var(--ease-standard);
+}
+
 /* Respect reduced motion globally (DESIGN.md §6). */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
+import { cycleFocus } from "../../lib/focus-mode";
 import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
 import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
@@ -28,6 +29,7 @@ import { type ActiveView, GroupMenu, SortMenu, ViewsMenu } from "../board/views"
 import { CommandPalette } from "../command-palette/palette";
 import { SearchDialog } from "../search/search";
 import { SyncBridge } from "../sync/sync-bridge";
+import { FocusToggle } from "./focus-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -50,9 +52,13 @@ function Shell() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditableTarget(e.target)) {
+      if (e.metaKey || e.ctrlKey || e.altKey || isEditableTarget(e.target)) return;
+      if (e.key === "/") {
         e.preventDefault();
         setSearchOpen(true);
+      } else if (e.shiftKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        cycleFocus();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -201,6 +207,7 @@ function MainArea() {
             boardTitle={active?.title ?? "board"}
             onImported={select}
           />
+          {active ? <FocusToggle /> : null}
           <div className="hidden items-center gap-1.5 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint sm:flex">
             <span className="font-mono">⌘</span>
             <span className="font-mono">K</span>
@@ -209,7 +216,7 @@ function MainArea() {
       </header>
 
       {active ? (
-        <main className="min-h-0 flex-1">
+        <main className="min-h-0 flex-1" data-focus-scope>
           {activeView.layout === "list" ? (
             <ListView
               boardId={active.id}

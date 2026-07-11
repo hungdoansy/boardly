@@ -25,6 +25,9 @@
      popover that is itself `--bg-overlay`). */
   --bg-hover: rgba(255, 255, 255, 0.07);
   --bg-selected: rgba(94, 106, 210, 0.14);
+  /* Focus mode (Calm/Zen): how far to desaturate the board region. Muted, NOT
+     grayscale (0) — the overdue/urgent signal must stay faintly perceptible. */
+  --focus-saturate: 0.4;
 
   /* Borders (low-alpha white — quiet chrome) */
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -78,6 +81,9 @@
   --bg-overlay: #ffffff;
   --bg-hover: rgba(0, 0, 0, 0.05);
   --bg-selected: rgba(94, 106, 210, 0.1);
+  /* Light surfaces are white; the same factor reads a touch stronger, so mute
+     a little less than dark to keep chips legible. */
+  --focus-saturate: 0.5;
 
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-default: rgba(0, 0, 0, 0.11);
