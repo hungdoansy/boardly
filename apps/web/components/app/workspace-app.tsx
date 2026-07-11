@@ -92,22 +92,31 @@ function Shell() {
         <BoardList />
 
         <div className="border-t border-line-subtle p-2">
-          <div className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5">
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-overlay text-xs text-fg-muted">
-              {(userId ?? "?").slice(0, 2).toUpperCase()}
-            </span>
-            <span className="truncate text-sm text-fg-muted">Account</span>
-            <div className="ml-auto flex shrink-0 items-center gap-0.5">
-              <ThemeToggle />
-              <button
-                type="button"
-                aria-label="Sign out"
-                onClick={() => void apiClient.logout()}
-                className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-              >
-                <LogOut className="size-3.5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-0.5">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-overlay text-xs text-fg-muted">
+                    {(userId ?? "?").slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="truncate text-sm text-fg-muted">Account</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" side="top" className="w-48 p-1">
+                <button
+                  type="button"
+                  onClick={() => void apiClient.logout()}
+                  className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  <LogOut className="size-3.5" />
+                  Sign out
+                </button>
+              </PopoverContent>
+            </Popover>
+            <ThemeToggle />
           </div>
         </div>
       </aside>
