@@ -47,11 +47,16 @@ export const PRIORITY_META: Record<PriorityValue, { name: PriorityName; color: s
   4: { name: "Urgent", color: "#EB5757" },
 };
 
-/** Display name + color per severity (DESIGN.md §2 encodings). */
+/**
+ * Display name + color per severity (DESIGN.md §2 encodings). S3 is a
+ * distinct gold (not Priority.High's `#E2B341` amber) — the two badges sit
+ * side by side in the card badge row, and identical hues there read as one
+ * blurred signal rather than two.
+ */
 export const SEVERITY_META: Record<SeverityValue, { name: SeverityName; color: string }> = {
   1: { name: "S1", color: "#EB5757" },
   2: { name: "S2", color: "#F2994A" },
-  3: { name: "S3", color: "#E2B341" },
+  3: { name: "S3", color: "#D9A441" },
   4: { name: "S4", color: "#6B6F76" },
 };
 

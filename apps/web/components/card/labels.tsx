@@ -8,15 +8,17 @@ import { useState } from "react";
 
 import { useLabelActions, useLabels } from "../../lib/use-board";
 
-/** A colored label chip (low-alpha fill + full-color dot/text). */
+/**
+ * A colored label chip: low-alpha fill + a full-color dot carry the color;
+ * the name renders in the normal foreground so it stays legible for every
+ * palette color in both themes (several picks — amber, slate, pink — read
+ * poorly as text-on-tint, especially on a light background).
+ */
 export function LabelChip({ label }: { label: Label }) {
   return (
     <span
-      className="inline-flex h-[18px] items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[11px] font-medium"
-      style={{
-        backgroundColor: `color-mix(in oklab, ${label.color} 16%, transparent)`,
-        color: label.color,
-      }}
+      className="inline-flex h-[18px] items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[11px] font-medium text-fg"
+      style={{ backgroundColor: `color-mix(in oklab, ${label.color} 16%, transparent)` }}
     >
       <span className="size-2 rounded-full" style={{ backgroundColor: label.color }} />
       {label.name}

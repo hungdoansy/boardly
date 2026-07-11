@@ -100,9 +100,9 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
 
-**Severity:** S1 `#EB5757`, S2 `#F2994A`, S3 `#E2B341`, S4 `#6B6F76`. Rendered as a small solid `S#` pill.
+**Severity:** S1 `#EB5757`, S2 `#F2994A`, S3 `#D9A441` (a distinct gold, not Priority.High's `#E2B341` amber — the two badges sit side by side), S4 `#6B6F76`. Rendered as a small `S#` pill: ~14% alpha fill + a solid 2px left accent bar in the color; the `S#` text stays the normal foreground (a solid fill behind white text failed contrast for the lighter hues).
 
-**Label palette** (accessible on dark; user picks per label): slate `#8A8F98`, red `#EB5757`, orange `#F2994A`, amber `#E2B341`, green `#4CB782`, teal `#3DB4B0`, blue `#4EA7FC`, indigo `#5E6AD2`, violet `#9B7EDE`, pink `#E06C9F`. Chips use the color at ~16% alpha fill + full-color text/dot.
+**Label palette** (accessible on dark; user picks per label): slate `#8A8F98`, red `#EB5757`, orange `#F2994A`, amber `#E2B341`, green `#4CB782`, teal `#3DB4B0`, blue `#4EA7FC`, indigo `#5E6AD2`, violet `#9B7EDE`, pink `#E06C9F`. Chips use the color at ~16% alpha fill + a full-color dot; the label name renders in the normal foreground (not the raw color) so every palette entry stays legible in both themes.
 
 ### 2.1 Light theme (Unit 5.3)
 
