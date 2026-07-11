@@ -6,7 +6,14 @@ import { STATUS_META, Status, STATUS_ORDER } from "./status";
 import type { Card } from "./types";
 
 export type FilterField =
-  "status" | "priority" | "severity" | "label" | "dueDate" | "assignee" | "title";
+  | "status"
+  | "priority"
+  | "severity"
+  | "label"
+  | "dueDate"
+  | "assignee"
+  | "title"
+  | "project";
 
 export type FilterCondition =
   | "is" // scalar equals one of `values`
@@ -114,6 +121,13 @@ function matchesClause(card: Card, clause: FilterClause, ctx: FilterContext): bo
       const needle = String(values[0] ?? "").toLowerCase();
       return needle.length === 0 || card.title.toLowerCase().includes(needle);
     }
+    case "project":
+      if (clause.condition === "isEmpty") return card.projectId === undefined;
+      if (clause.condition === "isSet") return card.projectId !== undefined;
+      if (clause.condition === "isNot")
+        return card.projectId === undefined || !values.includes(card.projectId);
+      // "is" — the card belongs to one of the given projects.
+      return card.projectId !== undefined && values.includes(card.projectId);
     default:
       return true;
   }

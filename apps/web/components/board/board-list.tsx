@@ -13,7 +13,7 @@ export function BoardList() {
   const [selected, select] = useSelectedBoard();
 
   return (
-    <nav className="flex min-h-0 flex-1 flex-col px-2" aria-label="Boards">
+    <nav className="flex shrink-0 flex-col px-2" aria-label="Boards">
       <div className="flex items-center px-1 py-1">
         <span className="text-xs font-medium uppercase tracking-wide text-fg-faint">Board</span>
       </div>

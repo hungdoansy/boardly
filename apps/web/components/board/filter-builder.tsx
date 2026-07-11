@@ -80,6 +80,12 @@ const OPS: Record<FilterField, OpDef[]> = {
     { condition: "isEmpty", label: "is empty" },
   ],
   title: [{ condition: "contains", label: "contains", kind: "text" }],
+  // Project scope is driven by the sidebar (Unit 6.7), not this manual builder —
+  // excluded from FIELDS below, so these entries only satisfy the exhaustive types.
+  project: [
+    { condition: "isSet", label: "is set" },
+    { condition: "isEmpty", label: "is empty" },
+  ],
 };
 
 const FIELD_LABELS: Record<FilterField, string> = {
@@ -90,8 +96,10 @@ const FIELD_LABELS: Record<FilterField, string> = {
   dueDate: "Due date",
   assignee: "Assignee",
   title: "Title",
+  project: "Project",
 };
-const FIELDS = Object.keys(FIELD_LABELS) as FilterField[];
+// "project" is sidebar-scoped, not offered as a manual saved-view field.
+const FIELDS = (Object.keys(FIELD_LABELS) as FilterField[]).filter((f) => f !== "project");
 
 interface Opt {
   value: string | number;
@@ -150,6 +158,10 @@ function defaultClause(field: FilterField): FilterClause {
       return { field, condition: "isWithin", values: ["week"] };
     case "title":
       return { field, condition: "contains", values: [""] };
+    case "project":
+      // Not reachable from the builder (excluded from FIELDS); scope is injected
+      // by the sidebar. Present only for switch exhaustiveness.
+      return { field, condition: "isSet" };
   }
 }
 

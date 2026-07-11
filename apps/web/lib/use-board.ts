@@ -61,6 +61,7 @@ import { useY, useYDoc } from "@boardly/sync/react";
 import { useCallback } from "react";
 
 import { useBoardlyContext } from "./boardly-context";
+import { getSelectedProject } from "./use-projects";
 
 /** Live, ord-sorted columns of a board. */
 export function useColumns(boardId: string): Column[] {
@@ -203,8 +204,11 @@ export interface CardActions {
 export function useCardActions(boardId: string): CardActions {
   const ctx = useBoardlyContext();
   const create = useCallback(
-    (columnId: string, title: string) =>
-      execute(createCard, ctx, { boardId, columnId, title })?.id ?? "",
+    (columnId: string, title: string) => {
+      // New cards inherit the sidebar's active project scope (null = no project).
+      const projectId = getSelectedProject() ?? undefined;
+      return execute(createCard, ctx, { boardId, columnId, title, projectId })?.id ?? "";
+    },
     [ctx, boardId],
   );
   const rename = useCallback(

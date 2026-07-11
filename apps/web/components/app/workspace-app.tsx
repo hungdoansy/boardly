@@ -1,5 +1,6 @@
 "use client";
 
+import type { Filter, FilterClause } from "@boardly/domain";
 import { emptyFilter, isEmptyFilter } from "@boardly/domain";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import {
@@ -12,15 +13,17 @@ import {
   SlidersHorizontal,
   Tag,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useBoards, useEnsureBoard, useSelectedBoard } from "../../lib/use-boards";
+import { useSelectedProject } from "../../lib/use-projects";
 import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
+import { ProjectList } from "../board/project-list";
 import { BoardView } from "../board/board-view";
 import { ImportExportMenu } from "../board/import-export";
 import { ListView } from "../board/list-view";
@@ -51,6 +54,7 @@ function Shell() {
   const { userId } = useAuthSession();
   // Single-board: provision + keep the one board selected (Unit 2).
   useEnsureBoard();
+  const [boardId] = useSelectedBoard();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -91,6 +95,7 @@ function Shell() {
         </div>
 
         <BoardList />
+        {boardId ? <ProjectList boardId={boardId} /> : null}
 
         <div className="border-t border-line-subtle p-2">
           <div className="flex items-center gap-0.5">
@@ -152,7 +157,26 @@ function MainArea() {
       layout: "board",
     });
   }, [selected]);
-  const filter = isEmptyFilter(activeView.filter) ? undefined : activeView.filter;
+
+  // The active project scope (Unit 6.7) is ANDed with the saved-view filter and
+  // threaded down as one filter, so every card list (columns, reclaim, swimlanes,
+  // list view) honors it with no extra plumbing.
+  const [projectId] = useSelectedProject();
+  const effectiveFilter = useMemo<Filter>(() => {
+    if (!projectId) return activeView.filter;
+    const projectClause: FilterClause = {
+      field: "project",
+      condition: "is",
+      values: [projectId],
+    };
+    return {
+      op: "and",
+      clauses: isEmptyFilter(activeView.filter)
+        ? [projectClause]
+        : [activeView.filter, projectClause],
+    };
+  }, [activeView.filter, projectId]);
+  const filter = isEmptyFilter(effectiveFilter) ? undefined : effectiveFilter;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-canvas">

@@ -68,6 +68,21 @@ describe("evaluateFilter", () => {
     );
   });
 
+  it("scopes by project (is / isSet / isEmpty)", () => {
+    const isP1 = and({ field: "project", condition: "is", values: ["p1"] });
+    expect(evaluateFilter(card({ projectId: "p1" }), isP1, ctx)).toBe(true);
+    expect(evaluateFilter(card({ projectId: "p2" }), isP1, ctx)).toBe(false);
+    expect(evaluateFilter(card({}), isP1, ctx)).toBe(false); // no project → not in p1
+
+    const hasProject = and({ field: "project", condition: "isSet" });
+    expect(evaluateFilter(card({ projectId: "p1" }), hasProject, ctx)).toBe(true);
+    expect(evaluateFilter(card({}), hasProject, ctx)).toBe(false);
+
+    const noProject = and({ field: "project", condition: "isEmpty" });
+    expect(evaluateFilter(card({}), noProject, ctx)).toBe(true);
+    expect(evaluateFilter(card({ projectId: "p1" }), noProject, ctx)).toBe(false);
+  });
+
   it("OR groups and nesting combine correctly", () => {
     // (status is Done) OR (priority is Urgent AND label hasAny [p0])
     const filter = or(

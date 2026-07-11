@@ -350,7 +350,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 7: Projects — sidebar navigation, board scoping, create-time picker**
+- [x] **Unit 7: Projects — sidebar navigation, board scoping, create-time picker**
 
 **Goal:** Surface projects in the sidebar; selecting a project scopes the board/list to that project's cards; the card composer picks a project at creation.
 
