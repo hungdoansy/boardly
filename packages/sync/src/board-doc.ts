@@ -699,6 +699,33 @@ export function removeLink(doc: Y.Doc, cardId: string, linkId: string, now: numb
   );
 }
 
+/** Reorder a link between neighbors on a card (fractional `ord`, same as cards/checklist). */
+export function moveLink(
+  doc: Y.Doc,
+  cardId: string,
+  linkId: string,
+  neighbors: Neighbors,
+  clientId: string,
+  now: number,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const links = card.get("links");
+      const link = links instanceof Y.Map ? links.get(linkId) : undefined;
+      if (!(links instanceof Y.Map) || !(link instanceof Y.Map)) return;
+      const ordOf = (id: string | null | undefined): string | null => {
+        if (!id) return null;
+        const other = links.get(id);
+        return other instanceof Y.Map ? getString(other, "ord") : null;
+      };
+      link.set("ord", keyBetween(ordOf(neighbors.afterId), ordOf(neighbors.beforeId), clientId));
+    },
+    now,
+  );
+}
+
 /**
  * Move a card to `toColumnId` at the slot between the neighbors. A single
  * `columnId` + `ord` write — concurrent moves of the same card resolve by Yjs

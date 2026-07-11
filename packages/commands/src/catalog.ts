@@ -41,7 +41,7 @@ import {
   unassignLabel,
 } from "./commands/label";
 import { exportBoard, importBoard } from "./commands/io";
-import { addLink, removeLink } from "./commands/link";
+import { addLink, moveLink, removeLink } from "./commands/link";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
 import { deleteView, saveView } from "./commands/view";
@@ -80,6 +80,7 @@ export const commands = [
   unassignLabel,
   addLink,
   removeLink,
+  moveLink,
   searchCards,
   saveView,
   deleteView,

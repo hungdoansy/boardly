@@ -2,6 +2,7 @@ import { isSafeHttpUrl } from "@boardly/domain";
 import {
   addLink as syncAddLink,
   getCard as syncGetCard,
+  moveLink as syncMoveLink,
   removeLink as syncRemoveLink,
 } from "@boardly/sync";
 import { z } from "zod";
@@ -40,5 +41,29 @@ export const removeLink = defineCommand({
   run: (ctx, input) => {
     syncRemoveLink(ctx.getBoardDoc(input.boardId), input.cardId, input.linkId, ctx.now());
     return { cardId: input.cardId, linkId: input.linkId };
+  },
+});
+
+export const moveLink = defineCommand({
+  name: "moveLink",
+  description: "Reorder a link on a card to a position between two neighbor links.",
+  input: z.object({
+    boardId: z.string(),
+    cardId: z.string(),
+    linkId: z.string(),
+    afterId: z.string().nullish(),
+    beforeId: z.string().nullish(),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc(input.boardId);
+    syncMoveLink(
+      doc,
+      input.cardId,
+      input.linkId,
+      { afterId: input.afterId ?? null, beforeId: input.beforeId ?? null },
+      ctx.clientId,
+      ctx.now(),
+    );
+    return { cardId: input.cardId, linkId: input.linkId, card: syncGetCard(doc, input.cardId) };
   },
 });

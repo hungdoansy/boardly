@@ -90,4 +90,31 @@ describe("CardLinks", () => {
     fireEvent.click(screen.getByRole("button", { name: /remove link/i }));
     expect(links(ctx)).toHaveLength(0);
   });
+
+  it("reorders links with the move controls", () => {
+    const ctx = setup((c) => {
+      for (const [id, title] of [
+        ["l1", "Alpha"],
+        ["l2", "Beta"],
+        ["l3", "Gamma"],
+      ]) {
+        execute(addLink, c, {
+          boardId: "b1",
+          cardId: "c1",
+          id,
+          url: `https://example.com/${id}`,
+          title,
+        });
+      }
+    });
+    const titleOrder = () => links(ctx).map((l) => l.title);
+    expect(titleOrder()).toEqual(["Alpha", "Beta", "Gamma"]);
+
+    // The first link cannot move up.
+    expect(screen.getByRole("button", { name: "Move Alpha up" })).toBeDisabled();
+
+    // Move Alpha down → [Beta, Alpha, Gamma].
+    fireEvent.click(screen.getByRole("button", { name: "Move Alpha down" }));
+    expect(titleOrder()).toEqual(["Beta", "Alpha", "Gamma"]);
+  });
 });

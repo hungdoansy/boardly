@@ -5,6 +5,7 @@ import * as Y from "yjs";
 import {
   addCard,
   addColumn,
+  addLink,
   allLiveCards,
   archiveCard,
   archiveColumn,
@@ -15,6 +16,7 @@ import {
   listActivity,
   liveColumns,
   moveCard,
+  moveLink,
   reclaimCards,
   setCardDescription,
   setCardPriority,
@@ -209,6 +211,32 @@ describe("allLiveCards", () => {
       .map((c) => c.id)
       .sort();
     expect(ids).toEqual([a, b].sort());
+  });
+});
+
+describe("moveLink", () => {
+  function seedLinks() {
+    const { doc, c1 } = setup();
+    const card = addCard(doc, { columnId: c1, title: "Card", now: NOW, clientId: "1" });
+    const l1 = addLink(doc, { cardId: card, url: "https://example.com/a", now: NOW, clientId: "1" });
+    const l2 = addLink(doc, { cardId: card, url: "https://example.com/b", now: NOW, clientId: "1" });
+    const l3 = addLink(doc, { cardId: card, url: "https://example.com/c", now: NOW, clientId: "1" });
+    return { doc, card, l1, l2, l3 };
+  }
+  const order = (doc: Y.Doc, card: string) => getCard(doc, card)!.links.map((l) => l.id);
+
+  it("reorders a link between neighbors", () => {
+    const { doc, card, l1, l2, l3 } = seedLinks();
+    expect(order(doc, card)).toEqual([l1, l2, l3]);
+    // Move l1 down: place it after l2, before l3 → [l2, l1, l3].
+    moveLink(doc, card, l1, { afterId: l2, beforeId: l3 }, "1", NOW);
+    expect(order(doc, card)).toEqual([l2, l1, l3]);
+  });
+
+  it("moves a link to the very start", () => {
+    const { doc, card, l1, l3 } = seedLinks();
+    moveLink(doc, card, l3, { afterId: null, beforeId: l1 }, "1", NOW);
+    expect(order(doc, card)[0]).toBe(l3);
   });
 });
 

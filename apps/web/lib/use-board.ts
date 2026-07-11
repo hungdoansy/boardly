@@ -26,6 +26,7 @@ import {
   deleteLabel,
   execute,
   moveChecklistItem,
+  moveLink,
   recolorLabel,
   removeLink,
   renameCard,
@@ -321,6 +322,7 @@ export function useChecklistActions(boardId: string): ChecklistActions {
 export interface LinkActions {
   add(cardId: string, url: string): Promise<void>;
   remove(cardId: string, linkId: string): void;
+  move(cardId: string, linkId: string, neighbors: { afterId?: string | null; beforeId?: string | null }): void;
 }
 
 export function useLinkActions(boardId: string): LinkActions {
@@ -342,6 +344,18 @@ export function useLinkActions(boardId: string): LinkActions {
     remove: useCallback(
       (cardId: string, linkId: string) => {
         execute(removeLink, ctx, { boardId, cardId, linkId });
+      },
+      [ctx, boardId],
+    ),
+    move: useCallback(
+      (cardId, linkId, neighbors) => {
+        execute(moveLink, ctx, {
+          boardId,
+          cardId,
+          linkId,
+          afterId: neighbors.afterId ?? null,
+          beforeId: neighbors.beforeId ?? null,
+        });
       },
       [ctx, boardId],
     ),

@@ -288,7 +288,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 5: Reorder links in the ticket drawer**
+- [x] **Unit 5: Reorder links in the ticket drawer**
 
 **Goal:** Let the user reorder a card's links in the drawer; the card-face cluster follows the new order.
 
