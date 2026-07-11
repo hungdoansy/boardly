@@ -225,7 +225,7 @@ function GroupEditor({
               type="button"
               aria-label="Remove group"
               onClick={onRemove}
-              className="ml-auto grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="ml-auto grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <X className="size-3" />
             </button>
@@ -279,7 +279,7 @@ function Conjunction({ op, onChange }: { op: "and" | "or"; onChange: (op: "and" 
           onClick={() => onChange(v)}
           className={cn(
             "px-2 py-0.5 text-xs capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
-            op === v ? "bg-overlay text-fg" : "text-fg-muted hover:bg-overlay/60",
+            op === v ? "bg-overlay text-fg" : "text-fg-muted hover:bg-hover",
           )}
         >
           {v === "and" ? "all" : "any"}
@@ -345,7 +345,7 @@ function ClauseChip({
           <button
             type="button"
             aria-label={`Edit ${FIELD_LABELS[clause.field]} filter`}
-            className="flex items-center gap-1 px-2 py-1 text-fg hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex items-center gap-1 px-2 py-1 text-fg hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span className="text-fg-muted">{FIELD_LABELS[clause.field]}</span>
             <span className="text-fg-faint">{def.label}</span>
@@ -364,7 +364,7 @@ function ClauseChip({
                   "rounded-[var(--radius-sm)] px-2 py-0.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                   op.condition === clause.condition
                     ? "bg-overlay text-fg"
-                    : "text-fg-muted hover:bg-overlay/60",
+                    : "text-fg-muted hover:bg-hover",
                 )}
               >
                 {op.label}
@@ -378,7 +378,7 @@ function ClauseChip({
         type="button"
         aria-label={`Remove ${FIELD_LABELS[clause.field]} filter`}
         onClick={onRemove}
-        className="grid size-7 place-items-center border-l border-line text-fg-faint hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        className="grid size-7 place-items-center border-l border-line text-fg-faint hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       >
         <X className="size-3.5" />
       </button>
@@ -446,7 +446,7 @@ function ValueEditor({
           aria-selected={selected.has(o.value)}
           onClick={() => toggle(o.value)}
           className={cn(
-            "flex items-center justify-between rounded-[var(--radius-sm)] px-2 py-1 text-left text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+            "flex items-center justify-between rounded-[var(--radius-sm)] px-2 py-1 text-left text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
             selected.has(o.value) ? "text-fg" : "text-fg-muted",
           )}
         >

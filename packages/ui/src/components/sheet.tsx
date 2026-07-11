@@ -42,7 +42,7 @@ export function SheetContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-3 top-3 grid size-6 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <DialogPrimitive.Close className="absolute right-3 top-3 grid size-6 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <X className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

@@ -20,6 +20,10 @@
   --bg-surface: #0e0f11;
   --bg-elevated: #161719;
   --bg-overlay: #1c1d21;
+  /* Interactive hover fill — TRANSLUCENT so it lifts on ANY surface, including
+     overlay/popover ones (a solid `--bg-overlay` hover is invisible on a
+     popover that is itself `--bg-overlay`). */
+  --bg-hover: rgba(255, 255, 255, 0.07);
   --bg-selected: rgba(94, 106, 210, 0.14);
 
   /* Borders (low-alpha white — quiet chrome) */
@@ -72,6 +76,7 @@
   --bg-surface: #fbfbfc;
   --bg-elevated: #ffffff;
   --bg-overlay: #ffffff;
+  --bg-hover: rgba(0, 0, 0, 0.05);
   --bg-selected: rgba(94, 106, 210, 0.1);
 
   --border-subtle: rgba(0, 0, 0, 0.06);
@@ -124,6 +129,7 @@
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
   --color-overlay: var(--bg-overlay);
+  --color-hover: var(--bg-hover);
   --color-selected: var(--bg-selected);
   --color-line: var(--border-default);
   --color-line-subtle: var(--border-subtle);

@@ -29,7 +29,7 @@ export function PrioritySelect({
         <button
           type="button"
           aria-label="Priority"
-          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <PriorityIcon level={value} />
           {PRIORITY_META[value].name}
@@ -46,7 +46,7 @@ export function PrioritySelect({
               onChange(p);
               setOpen(false);
             }}
-            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <PriorityIcon level={p} />
             <span className="flex-1 text-left text-fg">{PRIORITY_META[p].name}</span>

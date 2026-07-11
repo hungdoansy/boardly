@@ -12,8 +12,8 @@ const buttonVariants = cva(
       variant: {
         primary:
           "bg-primary text-primary-foreground hover:bg-[var(--accent-hover)] active:bg-[var(--accent-active)]",
-        ghost: "text-fg-muted hover:bg-overlay hover:text-fg",
-        outline: "border border-line text-fg hover:border-line-strong hover:bg-overlay",
+        ghost: "text-fg-muted hover:bg-hover hover:text-fg",
+        outline: "border border-line text-fg hover:border-line-strong hover:bg-hover",
         danger: "bg-[var(--danger)] text-white hover:opacity-90",
       },
       size: {

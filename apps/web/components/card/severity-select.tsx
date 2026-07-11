@@ -23,7 +23,7 @@ export function SeveritySelect({
         <button
           type="button"
           aria-label="Severity"
-          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {value ? <SeverityBadge severity={value} /> : <span className="text-fg-faint">None</span>}
         </button>
@@ -39,7 +39,7 @@ export function SeveritySelect({
               onChange(s);
               setOpen(false);
             }}
-            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <span className="flex-1 text-left">
               {s ? <SeverityBadge severity={s} /> : <span className="text-fg-faint">None</span>}

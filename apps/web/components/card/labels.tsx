@@ -71,7 +71,7 @@ export function CardLabels({ boardId, card }: { boardId: string; card: Card }) {
                   onClick={() =>
                     on ? actions.unassign(card.id, l.id) : actions.assign(card.id, l.id)
                   }
-                  className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
                   <span className="size-2.5 rounded-full" style={{ backgroundColor: l.color }} />
                   <span className="flex-1 text-left text-fg">{l.name}</span>

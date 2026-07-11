@@ -70,7 +70,7 @@ function LabelRow({ label, actions }: { label: Label; actions: LabelActions }) {
   };
 
   return (
-    <li className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay">
+    <li className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover">
       <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: label.color }} />
       <input
         aria-label={`Rename ${label.name}`}

@@ -29,7 +29,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
             return (
               <li
                 key={link.id}
-                className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay"
+                className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover"
               >
                 <a
                   href={isSafeHttpUrl(link.url) ? link.url : "#"}
@@ -44,7 +44,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
                   type="button"
                   aria-label={`Remove link ${label}`}
                   onClick={() => actions.remove(card.id, link.id)}
-                  className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-[opacity,color,background-color] duration-[var(--dur-fast)] hover:bg-overlay hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+                  className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-[opacity,color,background-color] duration-[var(--dur-fast)] hover:bg-hover hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
                 >
                   <X className="size-3.5" />
                 </button>

@@ -32,7 +32,7 @@ export function BadgeConfig({ boardId }: { boardId: string }) {
       {enabled.map((key, index) => (
         <div
           key={key}
-          className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay"
+          className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover"
         >
           <input
             type="checkbox"
@@ -65,7 +65,7 @@ export function BadgeConfig({ boardId }: { boardId: string }) {
       {disabled.map((field) => (
         <label
           key={field.key}
-          className="flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay"
+          className="flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover"
         >
           <input
             type="checkbox"

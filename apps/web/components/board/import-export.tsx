@@ -161,7 +161,7 @@ function MenuItem({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
     >
       <span className="text-fg-faint">{icon}</span>
       {children}

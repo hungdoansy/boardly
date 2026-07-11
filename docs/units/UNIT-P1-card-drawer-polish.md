@@ -75,7 +75,34 @@ Prereqs: Node 22.17.1; Docker `boardly-db` up.
   ambiguous with the new "Add card with details" button (Playwright role-name is substring by
   default).
 
+## Follow-up fix — hover invisible on overlay/popover surfaces
+
+The first pass wired hover states through the base components, but they were
+**invisible inside the drawer and popovers**. Root cause (confirmed live via a
+computed-style probe): the drawer is `bg-popover` and menus are
+`PopoverContent`, both resolving to `--bg-overlay` (`#1c1d21` in dark). The
+hover fill was `hover:bg-overlay` — the **same** `#1c1d21` — so hovering changed
+nothing (probe: drawer `rgb(28,29,33)`, Status button hovered `rgb(28,29,33)`).
+
+Fix: hover is a *different concept* from the elevation surface, so it gets its
+own **translucent** token that lifts on any background:
+
+- `--bg-hover: rgba(255,255,255,0.07)` (dark) / `rgba(0,0,0,0.05)` (light),
+  mapped to the `bg-hover` utility via `--color-hover` (`packages/ui/src/theme.css`).
+- Every `hover:bg-overlay` / `hover:bg-overlay/60` in the source (44 spots across
+  the base `Button` ghost/outline variants, the `Sheet` close, and all
+  board/card/menu components) → `hover:bg-hover`. Being translucent it layers
+  visibly on canvas, surface, elevated, **and** overlay/popover alike.
+
+Re-probed after the fix: Status button hover is now `rgba(255,255,255,0.07)`,
+distinct from the drawer, and reads clearly in the dark screenshot.
+
 ## Follow-ups / known gaps
+
+- **Selected/active `bg-overlay` (non-hover) on popover surfaces** has the same
+  invisibility (e.g. the selected saved-view chip, the Sort direction toggle).
+  Not addressed here (this pass was scoped to hover); a follow-up could route
+  those through `--bg-selected` or a translucent active token.
 
 - Other drawer inputs (WIP limit, view name, column/card rename) still hand-roll their field
   styling; they could migrate to the `Input` primitive in a later sweep.

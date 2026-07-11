@@ -19,7 +19,7 @@ export function CardFace({ card, labels, config, onOpen, onArchive }: CardFacePr
   return (
     <article
       aria-label={`Card: ${card.title}`}
-      className="group rounded-[var(--radius-md)] border border-line-subtle bg-elevated px-2.5 py-2 transition-colors duration-[var(--dur-fast)] hover:border-line hover:bg-overlay"
+      className="group rounded-[var(--radius-md)] border border-line-subtle bg-elevated px-2.5 py-2 transition-colors duration-[var(--dur-fast)] hover:border-line hover:bg-hover"
     >
       <div className="flex items-start gap-1">
         <button

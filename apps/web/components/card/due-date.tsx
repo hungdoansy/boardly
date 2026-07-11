@@ -64,7 +64,7 @@ export function DueDatePicker({
         <button
           type="button"
           aria-label="Due date"
-          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           {value ? <DueChip due={value} /> : <span className="text-fg-faint">Set due date</span>}
         </button>
@@ -103,7 +103,7 @@ export function DueDatePicker({
                 onChange(null);
                 setOpen(false);
               }}
-              className="flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm text-fg-muted transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm text-fg-muted transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <X className="size-3.5" />
               Clear

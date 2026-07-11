@@ -33,7 +33,7 @@ export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
           type="button"
           data-nav-composer
           onClick={() => setAdding(true)}
-          className="flex h-7 flex-1 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-sm text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 flex-1 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-sm text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Plus className="size-3.5" />
           Add card
@@ -44,7 +44,7 @@ export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
             aria-label="Add card with details"
             title="Add card with details"
             onClick={onCreateDetailed}
-            className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <PanelRight className="size-3.5" />
           </button>

@@ -96,7 +96,7 @@ function Shell() {
                 type="button"
                 aria-label="Sign out"
                 onClick={() => void apiClient.logout()}
-                className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <LogOut className="size-3.5" />
               </button>
@@ -276,7 +276,7 @@ function LayoutSwitch({
           className={
             layout === value
               ? "grid size-7 place-items-center bg-overlay text-fg"
-              : "grid size-7 place-items-center text-fg-muted transition-colors hover:bg-overlay/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              : "grid size-7 place-items-center text-fg-muted transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           }
         >
           <Icon className="size-3.5" />

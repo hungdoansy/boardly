@@ -102,7 +102,7 @@ export function BoardColumn({
           type="button"
           aria-label={`Delete ${column.title}`}
           onClick={onDelete}
-          className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+          className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
         >
           <Trash2 className="size-3.5" />
         </button>
@@ -149,7 +149,7 @@ function WipBadge({
         <button
           type="button"
           aria-label={`WIP limit for ${columnTitle}`}
-          className={`rounded-[var(--radius-sm)] px-1 text-xs tabular-nums transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+          className={`rounded-[var(--radius-sm)] px-1 text-xs tabular-nums transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
             over ? "font-medium text-[var(--danger)]" : "text-fg-faint"
           }`}
         >
@@ -187,7 +187,7 @@ function WipBadge({
                 onSetWipLimit(null);
                 setOpen(false);
               }}
-              className="h-7 rounded-[var(--radius-sm)] px-2 text-sm text-fg-muted hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="h-7 rounded-[var(--radius-sm)] px-2 text-sm text-fg-muted hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               Clear
             </button>

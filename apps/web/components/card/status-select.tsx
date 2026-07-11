@@ -26,7 +26,7 @@ export function StatusSelect({
         <button
           type="button"
           aria-label="Status"
-          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="flex h-7 items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 text-sm text-fg transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <StatusIcon variant={value as StatusVariant} color={meta.color} />
           {meta.name}
@@ -45,7 +45,7 @@ export function StatusSelect({
                 onChange(s);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <StatusIcon variant={s as StatusVariant} color={m.color} />
               <span className="flex-1 text-left text-fg">{m.name}</span>

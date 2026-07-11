@@ -149,9 +149,7 @@ export function SortMenu({
                   aria-pressed={sort.direction === dir}
                   onClick={() => onChange({ field: sort.field, direction: dir })}
                   className={`flex flex-1 items-center justify-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
-                    sort.direction === dir
-                      ? "bg-overlay text-fg"
-                      : "text-fg-muted hover:bg-overlay/60"
+                    sort.direction === dir ? "bg-overlay text-fg" : "text-fg-muted hover:bg-hover"
                   }`}
                 >
                   {dir === "asc" ? (
@@ -184,7 +182,7 @@ function MenuRow({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-left text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+      className={`flex items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1 text-left text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
         selected ? "text-fg" : "text-fg-muted"
       }`}
     >
@@ -272,7 +270,7 @@ export function ViewsMenu({
                 key={view.id}
                 type="button"
                 onClick={() => applyView(view)}
-                className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
+                className={`inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-2 py-1 text-sm hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
                   active.view?.id === view.id ? "bg-overlay text-fg" : "text-fg-muted"
                 }`}
               >

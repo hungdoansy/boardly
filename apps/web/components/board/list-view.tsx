@@ -201,7 +201,7 @@ function ListRow({
       // Cheap windowing: the browser skips layout/paint for offscreen rows,
       // keeping hundreds of rows smooth without a virtualization dependency.
       style={{ contentVisibility: "auto", containIntrinsicSize: "auto 37px" }}
-      className="group flex h-[37px] cursor-pointer items-center gap-2 border-b border-line-subtle px-4 text-sm outline-none transition-colors hover:bg-overlay/60 focus-visible:bg-overlay focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
+      className="group flex h-[37px] cursor-pointer items-center gap-2 border-b border-line-subtle px-4 text-sm outline-none transition-colors hover:bg-hover focus-visible:bg-overlay focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
     >
       <StatusIcon
         variant={card.status}

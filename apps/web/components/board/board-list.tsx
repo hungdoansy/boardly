@@ -26,7 +26,7 @@ export function BoardList() {
           type="button"
           aria-label="New board"
           onClick={handleCreate}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <Plus className="size-3.5" />
         </button>
@@ -112,7 +112,7 @@ function BoardRow({
     <div
       className={cn(
         "group flex h-7 items-center gap-1 rounded-[var(--radius-sm)] pr-1 transition-colors duration-[var(--dur-fast)]",
-        active ? "bg-selected" : "hover:bg-overlay",
+        active ? "bg-selected" : "hover:bg-hover",
       )}
     >
       <button
@@ -133,7 +133,7 @@ function BoardRow({
         type="button"
         aria-label={`Archive ${board.title}`}
         onClick={onArchive}
-        className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+        className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
       >
         <X className="size-3.5" />
       </button>

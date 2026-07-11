@@ -107,7 +107,7 @@ function ChecklistRow({
     });
 
   return (
-    <li className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-overlay">
+    <li className="group flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover">
       <input
         type="checkbox"
         aria-label={`Toggle ${item.text}`}
@@ -134,7 +134,7 @@ function ChecklistRow({
           aria-label="Move up"
           disabled={index === 0}
           onClick={moveUp}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronUp className="size-3.5" />
         </button>
@@ -143,7 +143,7 @@ function ChecklistRow({
           aria-label="Move down"
           disabled={index === items.length - 1}
           onClick={moveDown}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronDown className="size-3.5" />
         </button>
@@ -151,7 +151,7 @@ function ChecklistRow({
           type="button"
           aria-label={`Delete ${item.text}`}
           onClick={() => actions.remove(cardId, item.id)}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-[var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-[var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <X className="size-3.5" />
         </button>
