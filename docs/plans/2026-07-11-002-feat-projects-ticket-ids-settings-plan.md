@@ -259,7 +259,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 4: Card-face link cluster (first 5 icons + `+N`)**
+- [x] **Unit 4: Card-face link cluster (first 5 icons + `+N`)**
 
 **Goal:** On the card face, render at most the first 5 links as overlapping provider icons; show a `+N` overflow chip when there are more.
 
