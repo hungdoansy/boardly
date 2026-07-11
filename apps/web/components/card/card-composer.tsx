@@ -1,17 +1,28 @@
 "use client";
 
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+} from "@boardly/ui";
 import { PanelRight, Plus } from "lucide-react";
 import { useState } from "react";
 
 interface CardComposerProps {
   onAdd: (title: string) => void;
-  /** Create a card and open its detail drawer straight away (title + links in one go). */
-  onCreateDetailed?: () => void;
+  /** Create a card (with the given title) and open its detail drawer, once confirmed. */
+  onCreateDetailed?: (title: string) => void;
 }
 
 export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
+  const [detailedOpen, setDetailedOpen] = useState(false);
+  const [detailedDraft, setDetailedDraft] = useState("");
 
   const submit = (): void => {
     const title = draft.trim();
@@ -26,6 +37,14 @@ export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
     setAdding(false);
   };
 
+  const confirmDetailed = (): void => {
+    const title = detailedDraft.trim();
+    if (!title) return;
+    onCreateDetailed?.(title);
+    setDetailedDraft("");
+    setDetailedOpen(false);
+  };
+
   if (!adding) {
     return (
       <div className="flex items-center gap-0.5">
@@ -33,21 +52,58 @@ export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
           type="button"
           data-nav-composer
           onClick={() => setAdding(true)}
-          className="flex h-7 flex-1 items-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-sm text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          aria-label="Add card"
+          title="Add card"
         >
           <Plus className="size-3.5" />
-          Add card
         </button>
         {onCreateDetailed ? (
-          <button
-            type="button"
-            aria-label="Add card with details"
-            title="Add card with details"
-            onClick={onCreateDetailed}
-            className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            <PanelRight className="size-3.5" />
-          </button>
+          <>
+            <button
+              type="button"
+              aria-label="Add card with details"
+              title="Add card with details"
+              onClick={() => setDetailedOpen(true)}
+              className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              <PanelRight className="size-3.5" />
+            </button>
+            <Dialog
+              open={detailedOpen}
+              onOpenChange={(open) => {
+                setDetailedOpen(open);
+                if (!open) setDetailedDraft("");
+              }}
+            >
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Add card with details</DialogTitle>
+                </DialogHeader>
+                <Input
+                  autoFocus
+                  aria-label="New card title"
+                  placeholder="Card title…"
+                  value={detailedDraft}
+                  onChange={(e) => setDetailedDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      confirmDetailed();
+                    }
+                  }}
+                />
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setDetailedOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={confirmDetailed} disabled={!detailedDraft.trim()}>
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         ) : null}
       </div>
     );

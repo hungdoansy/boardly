@@ -72,12 +72,32 @@ describe("cards", () => {
     expect(onOpenCard).toHaveBeenCalledWith("card-1");
   });
 
-  it("creates a card and opens its detail via the 'with details' button", () => {
+  it("only creates a card via the 'with details' button once confirmed", () => {
     const { ctx, boardId, columnId, onOpenCard } = setup();
     fireEvent.click(screen.getByRole("button", { name: "Add card with details" }));
+    expect(cardsInColumn(ctx.getBoardDoc(boardId), columnId)).toHaveLength(0);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "New card title" }), {
+      target: { value: "Detailed card" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
     const created = cardsInColumn(ctx.getBoardDoc(boardId), columnId);
     expect(created).toHaveLength(1);
+    expect(created[0]!.title).toBe("Detailed card");
     expect(onOpenCard).toHaveBeenCalledWith(created[0]!.id);
+  });
+
+  it("creates nothing when the 'with details' dialog is cancelled", () => {
+    const { ctx, boardId, columnId, onOpenCard } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Add card with details" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "New card title" }), {
+      target: { value: "Never created" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(cardsInColumn(ctx.getBoardDoc(boardId), columnId)).toHaveLength(0);
+    expect(onOpenCard).not.toHaveBeenCalled();
   });
 
   it("archives a card", () => {
