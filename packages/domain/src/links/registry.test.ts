@@ -41,6 +41,47 @@ describe("detectProvider", () => {
     expect(detectProvider("https://zoom.us/j/123456")).toBe(LinkProvider.Zoom);
     expect(detectProvider("https://app.asana.com/0/1/2")).toBe(LinkProvider.Asana);
     expect(detectProvider("https://airtable.com/app123/tbl456")).toBe(LinkProvider.Airtable);
+    expect(detectProvider("https://www.facebook.com/acme/posts/1")).toBe(LinkProvider.Facebook);
+    expect(detectProvider("https://x.com/acme/status/1")).toBe(LinkProvider.Twitter);
+    expect(detectProvider("https://twitter.com/acme/status/1")).toBe(LinkProvider.Twitter);
+    expect(detectProvider("https://www.instagram.com/p/abc")).toBe(LinkProvider.Instagram);
+    expect(detectProvider("https://www.linkedin.com/in/acme")).toBe(LinkProvider.LinkedIn);
+    expect(
+      detectProvider("https://www.reddit.com/r/programming/comments/1/title"),
+    ).toBe(LinkProvider.Reddit);
+    expect(detectProvider("https://discord.com/channels/1/2")).toBe(LinkProvider.Discord);
+    expect(detectProvider("https://www.tiktok.com/@acme/video/1")).toBe(LinkProvider.TikTok);
+    expect(detectProvider("https://www.pinterest.com/pin/1")).toBe(LinkProvider.Pinterest);
+    expect(detectProvider("https://wa.me/1234567890")).toBe(LinkProvider.WhatsApp);
+    expect(detectProvider("https://t.me/acme")).toBe(LinkProvider.Telegram);
+    expect(detectProvider("https://medium.com/@acme/my-post-title-abc123def456")).toBe(
+      LinkProvider.Medium,
+    );
+    expect(
+      detectProvider("https://stackoverflow.com/questions/123/how-do-i-x"),
+    ).toBe(LinkProvider.StackOverflow);
+    expect(
+      detectProvider("https://gitlab.com/group/project/-/merge_requests/45"),
+    ).toBe(LinkProvider.GitLab);
+    expect(
+      detectProvider("https://gitlab.com/group/project/-/issues/123"),
+    ).toBe(LinkProvider.GitLab);
+    expect(detectProvider("https://gitlab.com/group/project")).toBe(LinkProvider.GitLab);
+    expect(detectProvider("https://bitbucket.org/acme/repo")).toBe(LinkProvider.Bitbucket);
+    expect(detectProvider("https://www.npmjs.com/package/react")).toBe(LinkProvider.Npm);
+    expect(detectProvider("https://hub.docker.com/r/library/node")).toBe(LinkProvider.DockerHub);
+    expect(detectProvider("https://open.spotify.com/track/1")).toBe(LinkProvider.Spotify);
+    expect(detectProvider("https://www.twitch.tv/acme")).toBe(LinkProvider.Twitch);
+    expect(detectProvider("https://vimeo.com/1")).toBe(LinkProvider.Vimeo);
+    expect(detectProvider("https://www.behance.net/gallery/1")).toBe(LinkProvider.Behance);
+    expect(detectProvider("https://dribbble.com/shots/1")).toBe(LinkProvider.Dribbble);
+    expect(detectProvider("https://codepen.io/acme/pen/1")).toBe(LinkProvider.CodePen);
+    expect(detectProvider("https://replit.com/@acme/project")).toBe(LinkProvider.Replit);
+    expect(detectProvider("https://meet.google.com/abc-defg-hij")).toBe(LinkProvider.GoogleMeet);
+    expect(detectProvider("https://stripe.com/docs")).toBe(LinkProvider.Stripe);
+    expect(detectProvider("https://en.wikipedia.org/wiki/Kanban_board")).toBe(
+      LinkProvider.Wikipedia,
+    );
     expect(detectProvider("https://example.com/page")).toBe(LinkProvider.Generic);
   });
 
@@ -73,6 +114,31 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://acme.atlassian.net/browse/ABC-123")).toBe("ABC-123");
     expect(shortLabelFor("https://acme.atlassian.net/wiki/spaces/X/pages/1")).toBe("Confluence");
     expect(shortLabelFor("https://docs.google.com/document/d/abc")).toBe("Google Doc");
+    expect(shortLabelFor("https://x.com/acme/status/1")).toBe("@acme");
+    expect(shortLabelFor("https://x.com/i/lists/1")).toBe("X");
+    expect(
+      shortLabelFor("https://www.reddit.com/r/programming/comments/1/hello-world"),
+    ).toBe("hello world");
+    expect(shortLabelFor("https://www.reddit.com/r/programming")).toBe("r/programming");
+    expect(shortLabelFor("https://medium.com/@acme/my-post-title-abc123def456")).toBe(
+      "my post title",
+    );
+    expect(shortLabelFor("https://medium.com/@acme")).toBe("Medium");
+    expect(shortLabelFor("https://stackoverflow.com/questions/123/how-do-i-x")).toBe(
+      "how do i x",
+    );
+    expect(shortLabelFor("https://gitlab.com/group/project/-/merge_requests/45")).toBe(
+      "group/project!45",
+    );
+    expect(shortLabelFor("https://gitlab.com/group/project/-/issues/123")).toBe(
+      "group/project#123",
+    );
+    expect(shortLabelFor("https://gitlab.com/group/project")).toBe("GitLab");
+    expect(shortLabelFor("https://www.npmjs.com/package/react")).toBe("react");
+    expect(shortLabelFor("https://www.npmjs.com/package/@boardly/domain")).toBe(
+      "@boardly/domain",
+    );
+    expect(shortLabelFor("https://en.wikipedia.org/wiki/Kanban_board")).toBe("Kanban board");
     expect(shortLabelFor("https://www.example.com/page")).toBe("example.com");
   });
 });

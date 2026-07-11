@@ -12,12 +12,20 @@ import { figma } from "./providers/figma";
 import { generic } from "./providers/generic";
 import { githubIssue } from "./providers/github-issue";
 import { githubPr } from "./providers/github-pr";
+import { gitlabIssue } from "./providers/gitlab-issue";
+import { gitlabMr } from "./providers/gitlab-mr";
 import { jira } from "./providers/jira";
 import { linear } from "./providers/linear";
+import { medium } from "./providers/medium";
 import { notion } from "./providers/notion";
+import { npm } from "./providers/npm";
+import { reddit } from "./providers/reddit";
 import { slack } from "./providers/slack";
+import { stackoverflow } from "./providers/stackoverflow";
 import { staticProvider } from "./providers/static-provider";
 import { trello } from "./providers/trello";
+import { twitter } from "./providers/twitter";
+import { wikipedia } from "./providers/wikipedia";
 
 export interface LinkProviderDef {
   id: LinkProvider;
@@ -39,6 +47,14 @@ export const PROVIDERS: LinkProviderDef[] = [
   trello,
   jira,
   confluence,
+  gitlabMr,
+  gitlabIssue,
+  twitter,
+  reddit,
+  medium,
+  stackoverflow,
+  npm,
+  wikipedia,
   staticProvider(LP.GoogleDocs, ["docs.google.com"], "Google Doc"),
   staticProvider(LP.GoogleSheets, ["sheets.google.com"], "Google Sheet"),
   staticProvider(LP.GoogleDrive, ["drive.google.com"], "Google Drive"),
@@ -50,6 +66,26 @@ export const PROVIDERS: LinkProviderDef[] = [
   staticProvider(LP.Zoom, ["zoom.us"], "Zoom"),
   staticProvider(LP.Asana, ["asana.com"], "Asana"),
   staticProvider(LP.Airtable, ["airtable.com"], "Airtable"),
+  staticProvider(LP.Facebook, ["facebook.com", "fb.com"], "Facebook"),
+  staticProvider(LP.Instagram, ["instagram.com"], "Instagram"),
+  staticProvider(LP.LinkedIn, ["linkedin.com"], "LinkedIn"),
+  staticProvider(LP.Discord, ["discord.com", "discord.gg"], "Discord"),
+  staticProvider(LP.TikTok, ["tiktok.com"], "TikTok"),
+  staticProvider(LP.Pinterest, ["pinterest.com"], "Pinterest"),
+  staticProvider(LP.WhatsApp, ["whatsapp.com", "wa.me"], "WhatsApp"),
+  staticProvider(LP.Telegram, ["telegram.org", "t.me"], "Telegram"),
+  staticProvider(LP.GitLab, ["gitlab.com"], "GitLab"),
+  staticProvider(LP.Bitbucket, ["bitbucket.org"], "Bitbucket"),
+  staticProvider(LP.DockerHub, ["hub.docker.com"], "Docker Hub"),
+  staticProvider(LP.Spotify, ["open.spotify.com"], "Spotify"),
+  staticProvider(LP.Twitch, ["twitch.tv"], "Twitch"),
+  staticProvider(LP.Vimeo, ["vimeo.com"], "Vimeo"),
+  staticProvider(LP.Behance, ["behance.net"], "Behance"),
+  staticProvider(LP.Dribbble, ["dribbble.com"], "Dribbble"),
+  staticProvider(LP.CodePen, ["codepen.io"], "CodePen"),
+  staticProvider(LP.Replit, ["replit.com"], "Replit"),
+  staticProvider(LP.GoogleMeet, ["meet.google.com"], "Google Meet"),
+  staticProvider(LP.Stripe, ["stripe.com"], "Stripe"),
   generic,
 ];
 
