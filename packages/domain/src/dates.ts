@@ -27,6 +27,16 @@ function formatTime(ms: number): string {
   return `${hours}:${String(minutes).padStart(2, "0")} ${ampm}`;
 }
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** Unambiguous absolute date: `YYYY/MM/DD` (or `YYYY/MM/DD HH:mm:ss` with time). */
+export function formatAbsoluteDate(at: number, withTime = false): string {
+  const d = new Date(at);
+  const date = `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+  if (!withTime) return date;
+  return `${date} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+}
+
 /** `Jul 12` (or `Jul 12, 3:00 PM` when timed). */
 export function formatDueDate(due: DueDate): string {
   const d = new Date(due.at);

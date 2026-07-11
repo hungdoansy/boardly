@@ -3,6 +3,7 @@
 import {
   type ActivityEntry,
   type Column,
+  formatAbsoluteDate,
   formatRelativeTime,
   PRIORITY_META,
   SEVERITY_META,
@@ -74,7 +75,7 @@ function ActivityRow({
       <time
         className="h-5 shrink-0 text-xs leading-5 tabular-nums text-fg-faint"
         dateTime={new Date(entry.at).toISOString()}
-        title={new Date(entry.at).toLocaleString()}
+        title={formatAbsoluteDate(entry.at, true)}
       >
         {formatRelativeTime(entry.at, Date.now())}
       </time>
@@ -152,7 +153,7 @@ function describe(
             <>Due date cleared</>
           ) : (
             <>
-              Due <span className={STRONG}>{new Date(entry.to).toLocaleDateString()}</span>
+              Due <span className={STRONG}>{formatAbsoluteDate(entry.to)}</span>
             </>
           ),
       };

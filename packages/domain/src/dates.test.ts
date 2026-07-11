@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeDueDate, formatDueDate, formatRelativeTime } from "./dates";
+import { describeDueDate, formatAbsoluteDate, formatDueDate, formatRelativeTime } from "./dates";
 
 // Fixed "now": Jul 10 2026, 12:00 local (constructed from local parts so the
 // helper's local-time formatting is deterministic on any runner TZ).
@@ -58,6 +58,15 @@ describe("formatDueDate", () => {
   it("date only vs timed", () => {
     expect(formatDueDate(dateOnly(2026, 6, 12))).toBe("Jul 12");
     expect(formatDueDate(timed(2026, 6, 12, 15, 0))).toBe("Jul 12, 3:00 PM");
+  });
+});
+
+describe("formatAbsoluteDate", () => {
+  it("date only vs with time, always YYYY/MM/DD order", () => {
+    expect(formatAbsoluteDate(new Date(2026, 6, 5).getTime())).toBe("2026/07/05");
+    expect(formatAbsoluteDate(new Date(2026, 6, 5, 9, 5, 3).getTime(), true)).toBe(
+      "2026/07/05 09:05:03",
+    );
   });
 });
 
