@@ -84,6 +84,17 @@ function ActivityRow({
 
 const STRONG = "font-medium text-fg";
 
+/** "<field> → <value>" with the transition arrow as an SVG (not a glyph). */
+function Transition({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {label}
+      <ArrowRight className="size-3 shrink-0 text-fg-faint" aria-hidden />
+      <span className={STRONG}>{children}</span>
+    </span>
+  );
+}
+
 /** Map an entry to an icon + human-readable description. */
 function describe(
   entry: ActivityEntry,
@@ -117,31 +128,20 @@ function describe(
     case "status":
       return {
         icon: <CircleDot className={cls} />,
-        text: (
-          <>
-            Status → <span className={STRONG}>{STATUS_META[entry.to].name}</span>
-          </>
-        ),
+        text: <Transition label="Status">{STATUS_META[entry.to].name}</Transition>,
       };
     case "priority":
       return {
         icon: <Flag className={cls} />,
-        text: (
-          <>
-            Priority → <span className={STRONG}>{PRIORITY_META[entry.to].name}</span>
-          </>
-        ),
+        text: <Transition label="Priority">{PRIORITY_META[entry.to].name}</Transition>,
       };
     case "severity":
       return {
         icon: <Signal className={cls} />,
         text: (
-          <>
-            Severity →{" "}
-            <span className={STRONG}>
-              {entry.to === null ? "None" : SEVERITY_META[entry.to].name}
-            </span>
-          </>
+          <Transition label="Severity">
+            {entry.to === null ? "None" : SEVERITY_META[entry.to].name}
+          </Transition>
         ),
       };
     case "due":

@@ -3,7 +3,7 @@
 import type { Card } from "@boardly/domain";
 import { isSafeHttpUrl, shortLabelFor } from "@boardly/domain";
 import { Button, Input } from "@boardly/ui";
-import { Plus, X } from "lucide-react";
+import { ArrowUpRight, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 import { useLinkActions } from "../../lib/use-board";
@@ -25,7 +25,12 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
       {card.links.length > 0 ? (
         <ul className="flex flex-col gap-0.5">
           {card.links.map((link) => {
-            const label = link.title ?? shortLabelFor(link.url);
+            const raw = link.title ?? shortLabelFor(link.url);
+            // Provider short-labels flag a deep link (Slack thread, Claude
+            // session) with a trailing arrow marker — render it as an SVG, not
+            // a glyph.
+            const deepLink = raw.endsWith(" →");
+            const label = deepLink ? raw.slice(0, -2) : raw;
             return (
               <li
                 key={link.id}
@@ -39,6 +44,9 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
                 >
                   <ProviderIcon provider={link.provider} />
                   <span className="truncate">{label}</span>
+                  {deepLink ? (
+                    <ArrowUpRight className="size-3 shrink-0 text-fg-faint" aria-hidden />
+                  ) : null}
                 </a>
                 <button
                   type="button"
