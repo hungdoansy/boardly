@@ -93,6 +93,33 @@
   transition: filter var(--dur-base) var(--ease-standard);
 }
 
+/* Theme-aware scrollbar (DESIGN.md tokens): thin, transparent track, subtle
+   thumb that only darkens on hover — Linear-style, not a default OS bar.
+   Applied globally so every scrollable element picks it up automatically. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-tertiary);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Respect reduced motion globally (DESIGN.md §6). */
 @media (prefers-reduced-motion: reduce) {
   *,
