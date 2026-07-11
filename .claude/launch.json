@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "PATH=/Users/hunggggg/.nvm/versions/node/v22.17.1/bin:/usr/local/bin:/usr/bin:/bin",
+        "pnpm",
+        "--filter",
+        "@boardly/web",
+        "dev"
+      ],
+      "port": 3000
+    }
+  ]
+}
