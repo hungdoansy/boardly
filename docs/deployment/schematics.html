@@ -1,0 +1,728 @@
+<title>Boardly — Deployment Schematics</title>
+<style>
+  :root {
+    --canvas: #0d1b2e;
+    --surface: #132840;
+    --surface-2: #0f2136;
+    --ink: #eaf2fb;
+    --muted: #93a8c2;
+    --accent: #5ad1e6;
+    --accent-ink: #04222a;
+    --line: #2a4363;
+    --line-strong: #3d5c81;
+    --local: #6bcf7f;
+    --network: #f2b84b;
+    --public: #f2735c;
+    --local-bg: rgba(107, 207, 127, 0.1);
+    --network-bg: rgba(242, 184, 75, 0.1);
+    --public-bg: rgba(242, 115, 92, 0.1);
+
+    --font-display: "Futura", "Century Gothic", "Avenir Next", "Segoe UI", sans-serif;
+    --font-body: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", "Roboto Mono", monospace;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --canvas: #f3f6fa;
+      --surface: #ffffff;
+      --surface-2: #eaf1f8;
+      --ink: #142438;
+      --muted: #4d6883;
+      --accent: #0f7a99;
+      --accent-ink: #ffffff;
+      --line: #c7d6e6;
+      --line-strong: #a9c0d8;
+      --local: #2f9c53;
+      --network: #b5751f;
+      --public: #c14a34;
+      --local-bg: rgba(47, 156, 83, 0.08);
+      --network-bg: rgba(181, 117, 31, 0.08);
+      --public-bg: rgba(193, 74, 52, 0.08);
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #0d1b2e;
+    --surface: #132840;
+    --surface-2: #0f2136;
+    --ink: #eaf2fb;
+    --muted: #93a8c2;
+    --accent: #5ad1e6;
+    --accent-ink: #04222a;
+    --line: #2a4363;
+    --line-strong: #3d5c81;
+    --local: #6bcf7f;
+    --network: #f2b84b;
+    --public: #f2735c;
+    --local-bg: rgba(107, 207, 127, 0.1);
+    --network-bg: rgba(242, 184, 75, 0.1);
+    --public-bg: rgba(242, 115, 92, 0.1);
+  }
+  :root[data-theme="light"] {
+    --canvas: #f3f6fa;
+    --surface: #ffffff;
+    --surface-2: #eaf1f8;
+    --ink: #142438;
+    --muted: #4d6883;
+    --accent: #0f7a99;
+    --accent-ink: #ffffff;
+    --line: #c7d6e6;
+    --line-strong: #a9c0d8;
+    --local: #2f9c53;
+    --network: #b5751f;
+    --public: #c14a34;
+    --local-bg: rgba(47, 156, 83, 0.08);
+    --network-bg: rgba(181, 117, 31, 0.08);
+    --public-bg: rgba(193, 74, 52, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+
+  .sheetset {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 6rem;
+  }
+
+  /* ---------- Title block (engineering drawing header) ---------- */
+  .titleblock {
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    margin-bottom: 3rem;
+    background: var(--surface);
+  }
+  .titleblock-main {
+    padding: 1.5rem 1.75rem;
+    border-right: 1px solid var(--line);
+  }
+  .titleblock-main .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .titleblock-main h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    letter-spacing: 0.01em;
+    margin: 0.35rem 0 0.5rem;
+    text-wrap: balance;
+  }
+  .titleblock-main p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 52ch;
+  }
+  .titleblock-meta {
+    display: grid;
+    grid-auto-rows: 1fr;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    min-width: 156px;
+  }
+  .titleblock-meta div {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    justify-content: center;
+  }
+  .titleblock-meta div:last-child { border-bottom: none; }
+  .titleblock-meta span.label { text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+  .titleblock-meta span.val { color: var(--ink); font-size: 0.82rem; }
+
+  /* ---------- legend ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--muted);
+  }
+  .legend .item { display: flex; align-items: center; gap: 0.5rem; }
+  .legend .swatch { width: 0.85rem; height: 0.85rem; border-radius: 2px; flex: none; }
+
+  /* ---------- sheets ---------- */
+  .sheet {
+    margin-bottom: 4.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+  }
+  .sheet:first-of-type { border-top: none; padding-top: 0; }
+
+  .sheet-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    margin-bottom: 0.35rem;
+  }
+  .sheet-num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    padding: 0.1rem 0.45rem;
+    letter-spacing: 0.04em;
+  }
+  .sheet-head h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 3vw, 1.55rem);
+    margin: 0;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+  .sheet-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 62ch;
+    margin: 0 0 1.5rem;
+  }
+
+  .diagram-frame {
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 24px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 100%,
+      var(--surface-2);
+    background-blend-mode: normal;
+    padding: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+  .diagram-frame svg { display: block; min-width: 640px; width: 100%; height: auto; }
+
+  svg text { font-family: var(--font-mono); }
+  .node-label { font-size: 12.5px; fill: var(--ink); }
+  .node-sub { font-size: 10px; fill: var(--muted); }
+  .flow-label { font-size: 10px; fill: var(--muted); }
+  .boundary-label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .specs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  @media (min-width: 760px) {
+    .specs.two-col { grid-template-columns: 1fr 1fr; }
+  }
+
+  .spec-block h3 {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.6rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  table.envtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+  .table-scroll { overflow-x: auto; }
+  table.envtable th, table.envtable td {
+    text-align: left;
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  table.envtable td:last-child, table.envtable th:last-child { white-space: normal; }
+  table.envtable th {
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
+  table.envtable td.var { color: var(--accent); }
+
+  ul.notes {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.92rem;
+  }
+  ul.notes li { margin-bottom: 0.5rem; }
+  ul.notes li:last-child { margin-bottom: 0; }
+  .gap {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--public);
+    background: var(--public-bg);
+    border: 1px solid var(--public);
+    border-radius: 2px;
+    padding: 0.05rem 0.4rem;
+    margin-right: 0.4rem;
+    vertical-align: 1px;
+  }
+
+  .foot {
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  a { color: var(--accent); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .sheet { transition: opacity 0.2s ease; }
+  }
+</style>
+
+<div class="sheetset">
+
+  <div class="titleblock">
+    <div class="titleblock-main">
+      <div class="kicker">Boardly · Infrastructure Set</div>
+      <h1>Deployment Schematics</h1>
+      <p>Five configurations, from a single offline desktop to a hosted commercial service — what runs where, what crosses a network boundary, and the env vars each one needs.</p>
+    </div>
+    <div class="titleblock-meta">
+      <div><span class="label">Sheets</span><span class="val">01–05</span></div>
+      <div><span class="label">Stack</span><span class="val">Tauri / Next / Fastify</span></div>
+      <div><span class="label">Sync</span><span class="val">Yjs + Hocuspocus</span></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="item"><span class="swatch" style="background:var(--local)"></span> local machine — never leaves the device</div>
+    <div class="item"><span class="swatch" style="background:var(--network)"></span> private/tunneled network — TLS required</div>
+    <div class="item"><span class="swatch" style="background:var(--public)"></span> public internet — TLS + hardening required</div>
+    <div class="item"><span class="gap" style="margin-right:0">GAP</span> not built in the codebase yet</div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SHEET 01 — Solo, desktop-only, single device -->
+  <!-- ============================================================ -->
+  <section class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-num">01 / 05</span>
+      <h2>Solo — desktop only, one device</h2>
+    </div>
+    <p class="sheet-sub">Everything on one machine, bound to loopback. Nothing crosses the network. Today's codebase requires the server to run locally for login, even though there's no one else to sync with.</p>
+
+    <div class="diagram-frame">
+      <svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="760" height="180" rx="3" fill="none" stroke="var(--local)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="34" y="14" class="boundary-label" fill="var(--local)">one machine — loopback only, nothing exposed</text>
+
+        <!-- Desktop node -->
+        <rect x="55" y="75" width="180" height="70" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="145" y="103" text-anchor="middle" class="node-label" font-weight="600">Desktop App</text>
+        <text x="145" y="120" text-anchor="middle" class="node-sub">Tauri + WebView</text>
+        <text x="145" y="134" text-anchor="middle" class="node-sub">tauri.localhost</text>
+
+        <line x1="235" y1="110" x2="320" y2="110" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+        <text x="277" y="100" text-anchor="middle" class="flow-label">http/ws :8787</text>
+
+        <!-- Server node -->
+        <rect x="320" y="75" width="190" height="70" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="415" y="98" text-anchor="middle" class="node-label" font-weight="600">Server</text>
+        <text x="415" y="114" text-anchor="middle" class="node-sub">Fastify + Hocuspocus</text>
+        <text x="415" y="128" text-anchor="middle" class="node-sub">127.0.0.1:8787</text>
+
+        <line x1="510" y1="110" x2="595" y2="110" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+        <text x="552" y="100" text-anchor="middle" class="flow-label">:5433</text>
+
+        <!-- Postgres node -->
+        <rect x="595" y="75" width="150" height="70" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="670" y="103" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        <text x="670" y="120" text-anchor="middle" class="node-sub">Docker volume</text>
+        <text x="670" y="134" text-anchor="middle" class="node-sub">127.0.0.1:5433</text>
+
+        <defs>
+          <marker id="arrow-local" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--local)"/></marker>
+          <marker id="arrow-net" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--network)"/></marker>
+          <marker id="arrow-pub" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--public)"/></marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="specs">
+      <div class="spec-block">
+        <h3>Env — server (.env.production)</h3>
+        <div class="table-scroll">
+          <table class="envtable">
+            <thead><tr><th>Var</th><th>Value</th><th>Note</th></tr></thead>
+            <tbody>
+              <tr><td class="var">DATABASE_URL</td><td>postgres://boardly:&lt;real-pw&gt;@127.0.0.1:5433/boardly</td><td>swap the boardly/boardly default even though it's loopback-only</td></tr>
+              <tr><td class="var">HOST</td><td>0.0.0.0</td><td>container-internal; map compose port as 127.0.0.1:8787:8787, not 8787:8787</td></tr>
+              <tr><td class="var">PORT</td><td>8787</td><td>unchanged</td></tr>
+              <tr><td class="var">NODE_ENV</td><td>production</td><td></td></tr>
+              <tr><td class="var">CORS_ORIGINS</td><td>https://tauri.localhost</td><td>the default (localhost:3000) is the <em>web</em> dev origin, not desktop's</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="spec-block">
+        <h3>Build &amp; packaging</h3>
+        <ul class="notes">
+          <li>New: <code>apps/server/Dockerfile</code> + <code>docker-compose.prod.yml</code> — neither exists yet.</li>
+          <li>Desktop build: no <code>NEXT_PUBLIC_API_URL</code> override needed — <code>http://localhost:8787</code> is already the default and already CSP-allowed.</li>
+          <li><code>pnpm --filter @boardly/web build &amp;&amp; pnpm --filter @boardly/desktop tauri:build</code></li>
+          <li>Back up the Postgres volume before restarting the server with new code — migrations run automatically on boot.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SHEET 02 — Solo, own multiple devices -->
+  <!-- ============================================================ -->
+  <section class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-num">02 / 05</span>
+      <h2>Solo — your own multiple devices</h2>
+    </div>
+    <p class="sheet-sub">One server becomes the shared source of truth; every device reaches it over a real network. The desktop CSP already allows <code>https:</code>/<code>wss:</code> to any host — only plain <code>http</code>/<code>ws</code> is locked to localhost — so a TLS-fronted server is a build-time env change, not a code change.</p>
+
+    <div class="diagram-frame">
+      <svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+        <!-- Desktop 1 -->
+        <rect x="30" y="30" width="160" height="60" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="110" y="55" text-anchor="middle" class="node-label" font-weight="600">Desktop #1</text>
+        <text x="110" y="72" text-anchor="middle" class="node-sub">laptop</text>
+
+        <!-- Desktop 2 -->
+        <rect x="30" y="150" width="160" height="60" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="110" y="175" text-anchor="middle" class="node-label" font-weight="600">Desktop #2</text>
+        <text x="110" y="192" text-anchor="middle" class="node-sub">home machine</text>
+
+        <!-- boundary -->
+        <line x1="230" y1="10" x2="230" y2="250" stroke="var(--network)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="238" y="24" class="boundary-label" fill="var(--network)">tailscale / TLS reverse proxy</text>
+
+        <line x1="190" y1="60" x2="330" y2="115" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <line x1="190" y1="180" x2="330" y2="130" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <text x="270" y="90" text-anchor="middle" class="flow-label">wss:// (build-time host)</text>
+
+        <!-- Server -->
+        <rect x="330" y="100" width="200" height="70" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="430" y="123" text-anchor="middle" class="node-label" font-weight="600">Server</text>
+        <text x="430" y="139" text-anchor="middle" class="node-sub">Fastify + Hocuspocus</text>
+        <text x="430" y="153" text-anchor="middle" class="node-sub">one box / NAS</text>
+
+        <line x1="530" y1="135" x2="605" y2="135" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+
+        <!-- Postgres -->
+        <rect x="605" y="100" width="150" height="70" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="680" y="128" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        <text x="680" y="145" text-anchor="middle" class="node-sub">same box</text>
+
+        <defs>
+          <marker id="arrow-local" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--local)"/></marker>
+          <marker id="arrow-net" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--network)"/></marker>
+          <marker id="arrow-pub" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--public)"/></marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="specs">
+      <div class="spec-block">
+        <h3>Env changes vs. sheet 01</h3>
+        <div class="table-scroll">
+          <table class="envtable">
+            <thead><tr><th>Var</th><th>Value</th><th>Where</th></tr></thead>
+            <tbody>
+              <tr><td class="var">HOST</td><td>0.0.0.0</td><td>server — Caddy/Tailscale must reach it</td></tr>
+              <tr><td class="var">CORS_ORIGINS</td><td>https://tauri.localhost</td><td>server — unchanged, all devices run desktop</td></tr>
+              <tr><td class="var">NEXT_PUBLIC_API_URL</td><td>https://your-name.ts.net</td><td>web build, baked in before <code>tauri:build</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="spec-block">
+        <h3>Notes</h3>
+        <ul class="notes">
+          <li>Recommended path: Tailscale Serve/Funnel on the box running the server — real HTTPS cert, zero public exposure, zero manual TLS.</li>
+          <li>Alternative: small VPS + Caddy for automatic Let's Encrypt.</li>
+          <li>Rebuild once with the new <code>NEXT_PUBLIC_API_URL</code> — the same installer goes on every device.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SHEET 03 — Desktop + Web -->
+  <!-- ============================================================ -->
+  <section class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-num">03 / 05</span>
+      <h2>Desktop + Web, same person</h2>
+    </div>
+    <p class="sheet-sub">Adds a browser client alongside desktop. The web build serves as a static export from anywhere; the browser talks to the same server desktop uses. Auth diverges here — web uses an httpOnly cookie, desktop uses the OS keychain — so same-site hosting keeps the cookie path simple.</p>
+
+    <div class="diagram-frame">
+      <svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+        <rect x="30" y="30" width="160" height="60" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="110" y="55" text-anchor="middle" class="node-label" font-weight="600">Desktop App</text>
+        <text x="110" y="72" text-anchor="middle" class="node-sub">keychain auth</text>
+
+        <rect x="30" y="150" width="160" height="60" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="110" y="175" text-anchor="middle" class="node-label" font-weight="600">Browser</text>
+        <text x="110" y="192" text-anchor="middle" class="node-sub">httpOnly cookie</text>
+
+        <line x1="230" y1="10" x2="230" y2="250" stroke="var(--network)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="238" y="24" class="boundary-label" fill="var(--network)">public internet — TLS</text>
+
+        <!-- browser to static host -->
+        <line x1="190" y1="170" x2="330" y2="70" stroke="var(--public)" stroke-width="1.5" marker-end="url(#arrow-pub)"/>
+        <text x="255" y="120" text-anchor="middle" class="flow-label" transform="rotate(-30 255 120)">static assets</text>
+        <rect x="330" y="40" width="200" height="55" rx="3" fill="var(--surface)" stroke="var(--public)" stroke-width="1.5"/>
+        <text x="430" y="62" text-anchor="middle" class="node-label" font-weight="600">Static host / CDN</text>
+        <text x="430" y="78" text-anchor="middle" class="node-sub">apps/web/out</text>
+
+        <!-- both clients to server -->
+        <line x1="190" y1="60" x2="330" y2="150" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <line x1="190" y1="180" x2="330" y2="165" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <rect x="330" y="130" width="200" height="70" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="430" y="153" text-anchor="middle" class="node-label" font-weight="600">Server</text>
+        <text x="430" y="169" text-anchor="middle" class="node-sub">Fastify + Hocuspocus</text>
+        <text x="430" y="183" text-anchor="middle" class="node-sub">api.yourdomain</text>
+
+        <line x1="530" y1="165" x2="605" y2="165" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+        <rect x="605" y="130" width="150" height="70" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="680" y="158" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        <text x="680" y="175" text-anchor="middle" class="node-sub">same box</text>
+
+        <defs>
+          <marker id="arrow-local" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--local)"/></marker>
+          <marker id="arrow-net" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--network)"/></marker>
+          <marker id="arrow-pub" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--public)"/></marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="specs">
+      <div class="spec-block">
+        <h3>Env changes vs. sheet 02</h3>
+        <div class="table-scroll">
+          <table class="envtable">
+            <thead><tr><th>Var</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td class="var">CORS_ORIGINS</td><td>https://tauri.localhost,https://boardly.yourdomain.com</td></tr>
+              <tr><td class="var">NEXT_PUBLIC_API_URL</td><td>https://api.yourdomain.com (web build)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="spec-block">
+        <h3>Notes</h3>
+        <ul class="notes">
+          <li>Deploy <code>apps/web/out</code> to Vercel/Cloudflare Pages/Netlify, or serve it as static files from the same box via Caddy.</li>
+          <li>Keep web and API on subdomains of one domain — avoids cross-domain cookie <code>SameSite</code>/<code>Secure</code> edge cases entirely.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SHEET 04 — Distribute to a few people, independent -->
+  <!-- ============================================================ -->
+  <section class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-num">04 / 05</span>
+      <h2>Distributed to a few people, independent</h2>
+    </div>
+    <p class="sheet-sub">Every recipient gets sheet 01's recipe and runs their own stack. No shared server, no shared env, no dependency between the boxes below — and no one but each person owns their own uptime or backups.</p>
+
+    <div class="diagram-frame">
+      <svg viewBox="0 0 800 190" xmlns="http://www.w3.org/2000/svg">
+        <g>
+          <rect x="20" y="20" width="230" height="150" rx="3" fill="none" stroke="var(--local)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="30" y="14" class="boundary-label" fill="var(--local)">you</text>
+          <rect x="40" y="45" width="190" height="45" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="135" y="72" text-anchor="middle" class="node-label" font-weight="600">Desktop + Server</text>
+          <line x1="135" y1="90" x2="135" y2="115" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+          <rect x="40" y="115" width="190" height="40" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="135" y="139" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        </g>
+        <g>
+          <rect x="285" y="20" width="230" height="150" rx="3" fill="none" stroke="var(--local)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="295" y="14" class="boundary-label" fill="var(--local)">friend A</text>
+          <rect x="305" y="45" width="190" height="45" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="400" y="72" text-anchor="middle" class="node-label" font-weight="600">Desktop + Server</text>
+          <line x1="400" y1="90" x2="400" y2="115" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+          <rect x="305" y="115" width="190" height="40" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="400" y="139" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        </g>
+        <g>
+          <rect x="550" y="20" width="230" height="150" rx="3" fill="none" stroke="var(--local)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="560" y="14" class="boundary-label" fill="var(--local)">friend B</text>
+          <rect x="570" y="45" width="190" height="45" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="665" y="72" text-anchor="middle" class="node-label" font-weight="600">Desktop + Server</text>
+          <line x1="665" y1="90" x2="665" y2="115" stroke="var(--local)" stroke-width="1.5" marker-end="url(#arrow-local)"/>
+          <rect x="570" y="115" width="190" height="40" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+          <text x="665" y="139" text-anchor="middle" class="node-label" font-weight="600">Postgres</text>
+        </g>
+        <!-- explicit "no line" marker between boxes -->
+        <text x="267" y="100" text-anchor="middle" class="flow-label" fill="var(--muted)">no link</text>
+        <text x="532" y="100" text-anchor="middle" class="flow-label" fill="var(--muted)">no link</text>
+        <defs>
+          <marker id="arrow-local" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--local)"/></marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="specs">
+      <div class="spec-block">
+        <h3>What you hand over</h3>
+        <ul class="notes">
+          <li>The repo + sheet 01's <code>docker-compose.prod.yml</code> / <code>.env.production</code> template.</li>
+          <li>Before anyone else installs it: change <code>identifier</code> in <code>tauri.conf.json</code> off the placeholder <code>vn.moonbase.boardly</code>.</li>
+        </ul>
+      </div>
+      <div class="spec-block">
+        <h3>The alternative, and why sheet 04 isn't it</h3>
+        <p style="margin:0; font-size:0.92rem; color:var(--muted);">You could host one server and give everyone accounts on it — the auth/signup system already supports multiple users. That's a real commitment (sheet 05, not this one): you'd own their data durability, not just your own.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SHEET 05 — Commercial, multi-tenant, users w/ multiple devices -->
+  <!-- ============================================================ -->
+  <section class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-num">05 / 05</span>
+      <h2>Commercial — hosted, many users, each on multiple devices</h2>
+    </div>
+    <p class="sheet-sub">Now you own the uptime. Every user's own devices sync through infrastructure you run for all of them at once — which means the single in-memory server from sheets 01–04 becomes the bottleneck. This sheet is deliberately the busiest: it's the one where complexity is real, not decorative.</p>
+
+    <div class="diagram-frame">
+      <svg viewBox="0 0 800 340" xmlns="http://www.w3.org/2000/svg">
+        <!-- clients -->
+        <rect x="20" y="20" width="150" height="46" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="95" y="47" text-anchor="middle" class="node-label" font-weight="600">User A · desktop</text>
+        <rect x="20" y="76" width="150" height="46" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="95" y="103" text-anchor="middle" class="node-label" font-weight="600">User A · phone web</text>
+        <rect x="20" y="150" width="150" height="46" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="95" y="177" text-anchor="middle" class="node-label" font-weight="600">User B · desktop</text>
+        <rect x="20" y="206" width="150" height="46" rx="3" fill="var(--surface)" stroke="var(--local)" stroke-width="1.5"/>
+        <text x="95" y="233" text-anchor="middle" class="node-label" font-weight="600">User B · laptop</text>
+        <text x="95" y="290" text-anchor="middle" class="node-sub" fill="var(--muted)">… every user, every device</text>
+
+        <line x1="230" y1="10" x2="230" y2="330" stroke="var(--public)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="238" y="24" class="boundary-label" fill="var(--public)">public internet — TLS</text>
+
+        <!-- CDN -->
+        <line x1="170" y1="43" x2="290" y2="40" stroke="var(--public)" stroke-width="1.5" marker-end="url(#arrow-pub)"/>
+        <rect x="290" y="18" width="150" height="46" rx="3" fill="var(--surface)" stroke="var(--public)" stroke-width="1.5"/>
+        <text x="365" y="38" text-anchor="middle" class="node-label" font-weight="600">CDN</text>
+        <text x="365" y="54" text-anchor="middle" class="node-sub">static web build</text>
+
+        <!-- load balancer -->
+        <line x1="170" y1="90" x2="290" y2="140" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <line x1="170" y1="170" x2="290" y2="150" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <line x1="170" y1="225" x2="290" y2="160" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <rect x="290" y="120" width="150" height="50" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="365" y="141" text-anchor="middle" class="node-label" font-weight="600">Load balancer</text>
+        <text x="365" y="157" text-anchor="middle" class="node-sub">TLS termination</text>
+
+        <!-- server instances -->
+        <line x1="440" y1="140" x2="500" y2="115" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <line x1="440" y1="155" x2="500" y2="185" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <rect x="500" y="90" width="150" height="50" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="575" y="111" text-anchor="middle" class="node-label" font-weight="600">Server A</text>
+        <text x="575" y="127" text-anchor="middle" class="node-sub">Fastify + Hocuspocus</text>
+        <rect x="500" y="160" width="150" height="50" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="575" y="181" text-anchor="middle" class="node-label" font-weight="600">Server B</text>
+        <text x="575" y="197" text-anchor="middle" class="node-sub">Fastify + Hocuspocus</text>
+
+        <!-- redis fan-out -->
+        <line x1="650" y1="115" x2="700" y2="135" stroke="var(--public)" stroke-width="1.5" marker-end="url(#arrow-pub)"/>
+        <line x1="650" y1="185" x2="700" y2="155" stroke="var(--public)" stroke-width="1.5" marker-end="url(#arrow-pub)"/>
+        <rect x="700" y="120" width="85" height="50" rx="3" fill="var(--surface)" stroke="var(--public)" stroke-width="1.5"/>
+        <text x="742" y="141" text-anchor="middle" class="node-label" font-weight="600" font-size="11">Redis</text>
+        <text x="742" y="156" text-anchor="middle" class="node-sub" font-size="9">pub/sub</text>
+        <text x="742" y="100" text-anchor="middle" class="boundary-label" fill="var(--public)" font-size="9">GAP — not built</text>
+
+        <!-- postgres -->
+        <line x1="575" y1="210" x2="575" y2="290" stroke="var(--network)" stroke-width="1.5" marker-end="url(#arrow-net)"/>
+        <rect x="480" y="290" width="190" height="46" rx="3" fill="var(--surface)" stroke="var(--network)" stroke-width="1.5"/>
+        <text x="575" y="311" text-anchor="middle" class="node-label" font-weight="600">Managed Postgres</text>
+        <text x="575" y="327" text-anchor="middle" class="node-sub">HA + automated backups/PITR</text>
+
+        <defs>
+          <marker id="arrow-local" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--local)"/></marker>
+          <marker id="arrow-net" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--network)"/></marker>
+          <marker id="arrow-pub" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--public)"/></marker>
+        </defs>
+      </svg>
+    </div>
+
+    <div class="specs two-col">
+      <div class="spec-block">
+        <h3>Env additions vs. sheet 03</h3>
+        <div class="table-scroll">
+          <table class="envtable">
+            <thead><tr><th>Var</th><th>Value</th><th>Note</th></tr></thead>
+            <tbody>
+              <tr><td class="var">DATABASE_URL</td><td>…?sslmode=require</td><td>managed provider (RDS/Neon/etc.), TLS required</td></tr>
+              <tr><td class="var">REDIS_URL</td><td>rediss://…</td><td><span class="gap">GAP</span>no Redis extension wired yet — see below</td></tr>
+              <tr><td class="var">CORS_ORIGINS</td><td>https://app.yourproduct.com</td><td>your real production domain(s)</td></tr>
+              <tr><td class="var">LOGIN_RATE_MAX</td><td>tune upward</td><td>legitimate concurrent signups vs. abuse — retest the default</td></tr>
+              <tr><td class="var">ACCESS_TOKEN_TTL_SECONDS</td><td>retune</td><td>revisit for a public-facing security posture</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="spec-block">
+        <h3>What's a real gap today, not a config flip</h3>
+        <ul class="notes">
+          <li><span class="gap">GAP</span><code>@hocuspocus/extension-database</code> is the only extension wired (<code>apps/server/package.json</code>) — there's no cross-instance pub/sub. Two users on <em>different</em> server instances in the same room won't see each other's edits live until reconnect. Needs a Redis (or equivalent) extension before running &gt;1 instance.</li>
+          <li><span class="gap">GAP</span> the updater's signing key was deliberately discarded per <code>docs/units/UNIT-5.2-tauri-plugins.md</code> — a real release pipeline needs a real keypair.</li>
+          <li><span class="gap">GAP</span> <code>identifier</code> is still the placeholder <code>vn.moonbase.boardly</code>; commercial distribution needs a real bundle id plus macOS notarization / Windows code signing.</li>
+          <li>Auth/signup multi-tenancy itself already works — this sheet is infrastructure scale-out, not a data-model change.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>Boardly / infrastructure set / 5 sheets</span>
+    <span>local = green · network = amber · public = coral</span>
+  </div>
+
+</div>
