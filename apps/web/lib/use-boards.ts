@@ -1,14 +1,17 @@
 "use client";
 
 import type { WorkspaceBoardRef } from "@boardly/domain";
+import { formatTicketRef, parseTicketRef } from "@boardly/domain";
+import type { CommandContext } from "@boardly/commands";
 import { addColumn, archiveBoard, createBoard, execute, renameBoard } from "@boardly/commands";
-import { listBoards, liveColumns, workspaceBoards } from "@boardly/sync";
+import { getBoard, getCard, listBoards, liveColumns, workspaceBoards } from "@boardly/sync";
 import { getWorkspaceDoc } from "@boardly/sync/client";
 import { useY } from "@boardly/sync/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiClient } from "./api-client";
 import { LOCAL_USER, useBoardlyContext } from "./boardly-context";
+import { useAllCards } from "./use-board";
 
 /** Columns every new board starts with. */
 const DEFAULT_COLUMNS = ["To Do", "Doing", "Done"];
@@ -66,74 +69,101 @@ export function useBoardActions(): BoardActions {
   return { create, rename, archive };
 }
 
-/**
- * The URL hash routes the workspace, static-export friendly (no server route
- * per board): `#board/<boardId>` or, with a card open, `#board/<boardId>/card/<cardId>`.
- */
-const HASH_RE = /^#board\/([^/]+)(?:\/card\/([^/]+))?$/;
+// Single-board routing (static-export friendly): the URL hash names only the
+// open ticket, Linear-style — `#TEC-42-fix-login` or, with an empty prefix,
+// `#42-fix-login`. The board is implicit (there is exactly one). The hash
+// resolves by its integer; the prefix and slug are cosmetic (a stale prefix or
+// edited title still opens the right card). An empty hash means no card open.
 
-interface HashRoute {
-  boardId: string | null;
-  cardId: string | null;
-}
-
-function readHash(): HashRoute {
-  const match = HASH_RE.exec(window.location.hash);
-  return { boardId: match?.[1] ?? null, cardId: match?.[2] ?? null };
-}
-
-function useHashRoute(): HashRoute {
-  const [route, setRoute] = useState<HashRoute>({ boardId: null, cardId: null });
+/** The ticket number named by the URL hash, reactive to hashchange. */
+function useHashTicketNumber(): number | null {
+  const [n, setN] = useState<number | null>(null);
   useEffect(() => {
-    const read = (): void => setRoute(readHash());
-    read();
-    window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
+    const sync = (): void => {
+      const ref = window.location.hash.replace(/^#/, "");
+      setN(ref ? parseTicketRef(ref) : null);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
   }, []);
-  return route;
+  return n;
 }
 
-function writeHash(boardId: string | null, cardId: string | null): void {
-  if (!boardId) {
+/** Write (or clear) the Linear-style ticket hash for a card on the given board. */
+function writeCardHash(
+  getBoardDoc: CommandContext["getBoardDoc"],
+  boardId: string,
+  cardId: string,
+): void {
+  const doc = getBoardDoc(boardId);
+  const card = getCard(doc, cardId);
+  if (!card) {
     window.location.hash = "";
     return;
   }
-  window.location.hash = cardId ? `board/${boardId}/card/${cardId}` : `board/${boardId}`;
+  window.location.hash = formatTicketRef(
+    getBoard(doc, boardId).shortIdPrefix,
+    card.number,
+    card.title,
+  );
 }
 
-/** The currently-open board id (opening a board clears any open card). */
+/**
+ * The single board's id (Boardly is single-board). Derived from the boards list,
+ * not the URL. `select` is retained for API compatibility but is a no-op — there
+ * is nothing to switch between.
+ */
 export function useSelectedBoard(): [string | null, (id: string | null) => void] {
-  const { boardId } = useHashRoute();
-  const select = useCallback((next: string | null) => writeHash(next, null), []);
+  const boards = useBoards();
+  const boardId = boards[0]?.id ?? null;
+  const select = useCallback(() => {}, []);
   return [boardId, select];
 }
 
 /**
- * The open card id for the current board, and a setter that preserves the board
- * segment. Used by the board view (detail sheet) and by search/palette to deep
- * link to a card.
+ * The open card id (uuid) for the single board plus a setter, bridged to the
+ * Linear-style ticket hash. Reads resolve the hash's integer to a card id over
+ * the live card list; the setter serializes a card id back to `PREFIX-N-slug`.
  */
 export function useSelectedCard(): [string | null, (cardId: string | null) => void] {
-  const { boardId, cardId } = useHashRoute();
-  const setCard = useCallback((next: string | null) => writeHash(boardId, next), [boardId]);
+  const ctx = useBoardlyContext();
+  const [boardId] = useSelectedBoard();
+  const number = useHashTicketNumber();
+  const cards = useAllCards(boardId ?? "");
+  const cardId = number != null ? (cards.find((c) => c.number === number)?.id ?? null) : null;
+
+  const setCard = useCallback(
+    (next: string | null) => {
+      if (!next || !boardId) {
+        window.location.hash = "";
+        return;
+      }
+      writeCardHash(ctx.getBoardDoc, boardId, next);
+    },
+    [ctx, boardId],
+  );
   return [cardId, setCard];
 }
 
-/** Open a specific card on a specific board in one hash write (cross-board safe). */
+/** Open a specific card (used by search/palette). Board is the single board. */
 export function useOpenCardNav(): (boardId: string, cardId: string) => void {
-  return useCallback((boardId: string, cardId: string) => writeHash(boardId, cardId), []);
+  const ctx = useBoardlyContext();
+  return useCallback(
+    (boardId: string, cardId: string) => writeCardHash(ctx.getBoardDoc, boardId, cardId),
+    [ctx],
+  );
 }
 
 /**
- * Boardly is single-board: ensure exactly one board exists and stays selected.
- * On first run (empty workspace) this creates the one "Main board" (with default
- * columns + server registration) and opens it; afterwards it just keeps a valid
- * board selected. Idempotent — a `creating` ref guards against a double-create
+ * Boardly is single-board: ensure exactly one board exists. On first run (empty
+ * workspace, after IndexedDB hydration) this creates the one "Main board" with
+ * default columns + server registration. Selection is automatic — `useSelectedBoard`
+ * derives the board from the list. A `creating` ref guards against a double-create
  * before the workspace doc update propagates (React strict-mode / re-renders).
  */
 export function useEnsureBoard(): void {
   const boards = useBoards();
-  const [selected, select] = useSelectedBoard();
   const { create } = useBoardActions();
   const creating = useRef(false);
   const [hydrated, setHydrated] = useState(false);
@@ -152,15 +182,10 @@ export function useEnsureBoard(): void {
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || creating.current) return;
     if (boards.length === 0) {
-      if (creating.current) return;
       creating.current = true;
-      select(create(MAIN_BOARD_TITLE, MAIN_BOARD_ID));
-      return;
+      create(MAIN_BOARD_TITLE, MAIN_BOARD_ID);
     }
-    if (!selected || !boards.some((b) => b.id === selected)) {
-      select(boards[0]!.id);
-    }
-  }, [hydrated, boards, selected, create, select]);
+  }, [hydrated, boards, create]);
 }

@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createMemoryContext } from "@boardly/commands";
-import { cardsInColumn, listBoards, liveColumns } from "@boardly/sync";
+import { addColumn, createBoard, createMemoryContext, execute } from "@boardly/commands";
+import { cardsInColumn, liveColumns } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { CommandPalette } from "./palette";
 
-function renderPalette() {
+/** Render the palette over a memory context, optionally seeding the one board. */
+function renderPalette(seedBoard = true) {
   const ctx = createMemoryContext();
+  if (seedBoard) {
+    const board = execute(createBoard, ctx, { title: "Main board", id: "main" });
+    execute(addColumn, ctx, { boardId: board.id, title: "To Do" });
+  }
   render(
     <BoardlyProvider context={ctx}>
       <CommandPalette />
@@ -38,16 +43,13 @@ describe("CommandPalette", () => {
 
     pressCmdK();
     expect(screen.getByPlaceholderText(/type a command/i)).toBeInTheDocument();
-    expect(screen.getByText("Create board")).toBeInTheDocument();
   });
 
-  it("creates a board through the command layer and closes", () => {
-    const ctx = renderPalette();
+  it("offers no board-creation command (Boardly is single-board)", () => {
+    renderPalette();
     pressCmdK();
-    fireEvent.click(screen.getByText("Create board"));
-
-    expect(listBoards(ctx.getWorkspaceDoc())).toHaveLength(1);
-    expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Create board")).not.toBeInTheDocument();
+    expect(screen.queryByText(/jump to board/i)).not.toBeInTheDocument();
   });
 
   it("shows an empty state when nothing matches the query", () => {
@@ -59,20 +61,12 @@ describe("CommandPalette", () => {
     expect(screen.getByText("No results.")).toBeInTheDocument();
   });
 
-  it("offers a 'new card' action once a board is selected and creates in the first column", () => {
+  it("offers a 'new card' action for the single board and creates in the first column", () => {
     const ctx = renderPalette();
-    // Create + select a board first.
     pressCmdK();
-    fireEvent.click(screen.getByText("Create board"));
-    const board = listBoards(ctx.getWorkspaceDoc())[0]!;
-    // useSelectedBoard reads the hash; the create action selects the new board.
-    fireEvent(window, new HashChangeEvent("hashchange"));
+    fireEvent.click(screen.getByText(/new card in/i));
 
-    pressCmdK();
-    const newCard = screen.getByText(/new card in/i);
-    fireEvent.click(newCard);
-
-    const boardDoc = ctx.getBoardDoc(board.id);
+    const boardDoc = ctx.getBoardDoc("main");
     const firstColumn = liveColumns(boardDoc)[0]!;
     expect(cardsInColumn(boardDoc, firstColumn.id)).toHaveLength(1);
   });

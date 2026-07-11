@@ -229,7 +229,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 3: Linear-style ticket deep-link URLs**
+- [x] **Unit 3: Linear-style ticket deep-link URLs**
 
 **Goal:** Opening a ticket yields a URL like `#TEC-1234-some-description-here` (or `#1234-...` when no prefix); the id resolves by its integer.
 

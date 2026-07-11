@@ -107,14 +107,15 @@ describe("SearchDialog", () => {
   });
 
   it("filters to matching cards and deep-links on select", async () => {
-    const { boardId, cardA } = seed();
+    seed();
     fireEvent.change(screen.getByPlaceholderText(/search cards/i), { target: { value: "auth" } });
 
     const hit = await screen.findByText("Auth service");
     expect(screen.queryByText("Redesign landing")).not.toBeInTheDocument();
 
     fireEvent.click(hit);
-    expect(window.location.hash).toBe(`#board/${boardId}/card/${cardA}`);
+    // Linear-style ticket hash: first card → number 1, empty prefix → "#1-<slug>".
+    expect(window.location.hash).toBe("#1-auth-service");
   });
 
   it("shows an empty state when nothing matches", async () => {

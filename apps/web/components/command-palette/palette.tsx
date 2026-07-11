@@ -8,19 +8,17 @@ import {
   CommandItem,
   CommandList,
 } from "@boardly/ui";
-import { FileText, LayoutGrid, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useColumns } from "../../lib/use-board";
-import { useBoardActions, useBoards, useOpenCardNav, useSelectedBoard } from "../../lib/use-boards";
+import { useOpenCardNav, useSelectedBoard } from "../../lib/use-boards";
 import { useSearchDocs } from "../search/use-search";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const boards = useBoards();
-  const boardActions = useBoardActions();
-  const [selected, select] = useSelectedBoard();
+  const [selected] = useSelectedBoard();
   const searchDocs = useSearchDocs();
   const openCard = useOpenCardNav();
 
@@ -57,29 +55,9 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
 
-        <CommandGroup heading="Actions">
-          <CommandItem
-            value="create board new"
-            onSelect={() => run(() => select(boardActions.create()))}
-          >
-            <Plus className="size-4" />
-            Create board
-          </CommandItem>
-          {selected ? <NewCardItem boardId={selected} onRun={() => setOpen(false)} /> : null}
-        </CommandGroup>
-
-        {boards.length > 0 ? (
-          <CommandGroup heading="Jump to board">
-            {boards.map((board) => (
-              <CommandItem
-                key={board.id}
-                value={`board ${board.title}`}
-                onSelect={() => run(() => select(board.id))}
-              >
-                <LayoutGrid className="size-4" />
-                {board.title}
-              </CommandItem>
-            ))}
+        {selected ? (
+          <CommandGroup heading="Actions">
+            <NewCardItem boardId={selected} onRun={() => setOpen(false)} />
           </CommandGroup>
         ) : null}
 

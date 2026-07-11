@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   formatShortId,
   formatTicketId,
+  formatTicketRef,
   newId,
   normalizeTicketPrefix,
   parseShortId,
+  parseTicketRef,
   repairTicketNumbers,
+  slugify,
 } from "./ids";
 
 describe("formatTicketId", () => {
@@ -35,6 +38,51 @@ describe("normalizeTicketPrefix", () => {
   it("allows an empty result", () => {
     expect(normalizeTicketPrefix("")).toBe("");
     expect(normalizeTicketPrefix("---")).toBe("");
+  });
+});
+
+describe("slugify", () => {
+  it("kebab-cases a title", () => {
+    expect(slugify("Fix the login bug!")).toBe("fix-the-login-bug");
+  });
+
+  it("folds diacritics and drops symbols", () => {
+    expect(slugify("Café — déjà vu")).toBe("cafe-deja-vu");
+  });
+
+  it("returns empty for a title with no alphanumerics", () => {
+    expect(slugify("!!! ??? ---")).toBe("");
+  });
+});
+
+describe("formatTicketRef", () => {
+  it("joins the display id and slug", () => {
+    expect(formatTicketRef("TEC", 42, "Fix login")).toBe("TEC-42-fix-login");
+    expect(formatTicketRef("", 42, "Fix login")).toBe("42-fix-login");
+  });
+
+  it("omits the trailing hyphen when the title has no slug", () => {
+    expect(formatTicketRef("TEC", 42, "!!!")).toBe("TEC-42");
+    expect(formatTicketRef("", 7, "")).toBe("7");
+  });
+});
+
+describe("parseTicketRef", () => {
+  it("extracts the integer, tolerating prefix and slug", () => {
+    expect(parseTicketRef("TEC-42-fix-login")).toBe(42);
+    expect(parseTicketRef("42-fix-login")).toBe(42);
+    expect(parseTicketRef("TEC-42")).toBe(42);
+    expect(parseTicketRef("42")).toBe(42);
+  });
+
+  it("resolves by number regardless of a stale prefix or slug", () => {
+    // Same card (number 42) linked with a different prefix/slug still resolves.
+    expect(parseTicketRef("OLD-42-whatever")).toBe(42);
+  });
+
+  it("returns null when there is no number", () => {
+    expect(parseTicketRef("nope")).toBeNull();
+    expect(parseTicketRef("")).toBeNull();
   });
 });
 

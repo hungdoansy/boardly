@@ -34,6 +34,44 @@ export function normalizeTicketPrefix(input: string): string {
     .slice(0, 5);
 }
 
+/**
+ * Kebab-case a title for a decorative URL slug: fold diacritics, lowercase,
+ * collapse non-alphanumerics to single hyphens, trim, and cap length. The slug
+ * is cosmetic — ticket URLs resolve by their integer, never by the slug.
+ */
+export function slugify(title: string): string {
+  return title
+    .normalize("NFKD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 60)
+    .replace(/-+$/, "");
+}
+
+/**
+ * Build the Linear-style ticket URL reference (the part after `#`): the display
+ * id plus a decorative title slug. `formatTicketRef("TEC", 42, "Fix login")` →
+ * `"TEC-42-fix-login"`; empty prefix → `"42-fix-login"`.
+ */
+export function formatTicketRef(prefix: string, number: number, title: string): string {
+  const id = prefix === "" ? `${number}` : `${prefix}-${number}`;
+  const slug = slugify(title);
+  return slug ? `${id}-${slug}` : id;
+}
+
+/**
+ * Extract the integer ticket number from a URL reference, tolerating an optional
+ * `PREFIX-` and a trailing `-slug`. Resolution is by number only (prefix/slug are
+ * cosmetic), so a stale prefix or edited title still resolves. Null if malformed.
+ * `"TEC-42-fix"`, `"42-fix"`, `"TEC-42"`, `"42"` → 42.
+ */
+export function parseTicketRef(ref: string): number | null {
+  const match = /^(?:[A-Za-z][A-Za-z0-9]*-)?(\d+)(?:-.*)?$/.exec(ref);
+  return match ? Number(match[1]) : null;
+}
+
 /** Format a legacy prefixed short id, e.g. `formatShortId("BRD", 142)` → `"BRD-142"`. */
 export function formatShortId(prefix: string, seq: number): string {
   return `${prefix}-${seq}`;
