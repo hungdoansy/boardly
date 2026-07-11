@@ -8,7 +8,6 @@ import {
   LayoutGrid,
   List,
   LogOut,
-  Plus,
   Search,
   SlidersHorizontal,
   Tag,
@@ -19,7 +18,7 @@ import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
-import { useBoardActions, useBoards, useSelectedBoard } from "../../lib/use-boards";
+import { useBoards, useEnsureBoard, useSelectedBoard } from "../../lib/use-boards";
 import { BadgeConfig } from "../board/badge-config";
 import { BoardList } from "../board/board-list";
 import { BoardView } from "../board/board-view";
@@ -50,6 +49,8 @@ export function WorkspaceApp() {
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { userId } = useAuthSession();
+  // Single-board: provision + keep the one board selected (Unit 2).
+  useEnsureBoard();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -132,7 +133,6 @@ function Shell() {
 function MainArea() {
   const boards = useBoards();
   const [selected, select] = useSelectedBoard();
-  const actions = useBoardActions();
   const active = boards.find((b) => b.id === selected) ?? null;
 
   const [activeView, setActiveView] = useState<ActiveView>({
@@ -154,15 +154,11 @@ function MainArea() {
   }, [selected]);
   const filter = isEmptyFilter(activeView.filter) ? undefined : activeView.filter;
 
-  const createAndOpen = (): void => {
-    select(actions.create());
-  };
-
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-canvas">
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-line-subtle px-4">
         <h1 className="text-md font-semibold tracking-[-0.01em] text-fg">
-          {active ? active.title : "Welcome"}
+          {active ? active.title : "Boardly"}
         </h1>
         <div className="flex items-center gap-2">
           {active ? (
@@ -239,25 +235,12 @@ function MainArea() {
           )}
         </main>
       ) : (
-        <main className="grid flex-1 place-items-center p-6">
-          <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-            <div className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-elevated text-fg-faint">
-              <LayoutGrid className="size-5" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-fg">
-                No board selected
-              </h2>
-              <p className="text-base text-fg-muted">
-                Create a board to start organizing your work. Everything stays local and syncs
-                across your devices.
-              </p>
-            </div>
-            <Button className="mt-1" onClick={createAndOpen}>
-              <Plus className="size-4" />
-              Create board
-            </Button>
-          </div>
+        <main className="grid flex-1 place-items-center p-6" aria-busy="true">
+          <div
+            className="size-5 animate-spin rounded-full border-2 border-line border-t-transparent"
+            role="status"
+            aria-label="Loading board"
+          />
         </main>
       )}
     </div>

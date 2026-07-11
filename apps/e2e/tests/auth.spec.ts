@@ -6,8 +6,9 @@ test.describe("auth", () => {
   test("signup establishes a session and lands on the app", async ({ page }) => {
     await signUp(page);
     await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
-    // The empty workspace prompts to create a board.
-    await expect(page.getByRole("button", { name: "Create board" })).toBeVisible();
+    // Boardly auto-provisions a single "Main board" (no create-board prompt).
+    await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create board" })).toHaveCount(0);
   });
 
   test("an unauthenticated visit redirects to /login", async ({ page }) => {

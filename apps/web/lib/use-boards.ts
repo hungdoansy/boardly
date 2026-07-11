@@ -2,15 +2,22 @@
 
 import type { WorkspaceBoardRef } from "@boardly/domain";
 import { addColumn, archiveBoard, createBoard, execute, renameBoard } from "@boardly/commands";
-import { listBoards, workspaceBoards } from "@boardly/sync";
+import { listBoards, liveColumns, workspaceBoards } from "@boardly/sync";
+import { getWorkspaceDoc } from "@boardly/sync/client";
 import { useY } from "@boardly/sync/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiClient } from "./api-client";
-import { useBoardlyContext } from "./boardly-context";
+import { LOCAL_USER, useBoardlyContext } from "./boardly-context";
 
 /** Columns every new board starts with. */
 const DEFAULT_COLUMNS = ["To Do", "Doing", "Done"];
+
+/** The single auto-provisioned board (Boardly is single-board — Unit 2). The id is
+ * deterministic so two devices provisioning independently converge on one board
+ * (the workspace index keys by id) rather than creating phantom duplicates. */
+export const MAIN_BOARD_ID = "main";
+export const MAIN_BOARD_TITLE = "Main board";
 
 /** Live list of the user's (non-archived) boards, sorted by ord. */
 export function useBoards(): WorkspaceBoardRef[] {
@@ -20,7 +27,7 @@ export function useBoards(): WorkspaceBoardRef[] {
 }
 
 export interface BoardActions {
-  create(title?: string): string;
+  create(title?: string, id?: string): string;
   rename(boardId: string, title: string): void;
   archive(boardId: string): void;
 }
@@ -28,10 +35,14 @@ export interface BoardActions {
 export function useBoardActions(): BoardActions {
   const ctx = useBoardlyContext();
   const create = useCallback(
-    (title = "New board") => {
-      const board = execute(createBoard, ctx, { title });
-      for (const columnTitle of DEFAULT_COLUMNS) {
-        execute(addColumn, ctx, { boardId: board.id, title: columnTitle });
+    (title = "New board", id?: string) => {
+      const board = execute(createBoard, ctx, id ? { title, id } : { title });
+      // Seed default columns only if this board has none yet — idempotent across
+      // reloads and across a well-known board provisioned on two devices.
+      if (liveColumns(ctx.getBoardDoc(board.id)).length === 0) {
+        for (const columnTitle of DEFAULT_COLUMNS) {
+          execute(addColumn, ctx, { boardId: board.id, title: columnTitle });
+        }
       }
       // Register ownership server-side so the board's sync room authorizes
       // (Unit 3.8). Fire-and-forget; offline creates reconcile later (SyncBridge).
@@ -111,4 +122,45 @@ export function useSelectedCard(): [string | null, (cardId: string | null) => vo
 /** Open a specific card on a specific board in one hash write (cross-board safe). */
 export function useOpenCardNav(): (boardId: string, cardId: string) => void {
   return useCallback((boardId: string, cardId: string) => writeHash(boardId, cardId), []);
+}
+
+/**
+ * Boardly is single-board: ensure exactly one board exists and stays selected.
+ * On first run (empty workspace) this creates the one "Main board" (with default
+ * columns + server registration) and opens it; afterwards it just keeps a valid
+ * board selected. Idempotent — a `creating` ref guards against a double-create
+ * before the workspace doc update propagates (React strict-mode / re-renders).
+ */
+export function useEnsureBoard(): void {
+  const boards = useBoards();
+  const [selected, select] = useSelectedBoard();
+  const { create } = useBoardActions();
+  const creating = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Wait for the workspace doc to hydrate from IndexedDB before deciding the
+  // workspace is empty — otherwise the first render sees no boards and would
+  // provision a phantom board that then collides with the persisted one.
+  useEffect(() => {
+    let mounted = true;
+    void getWorkspaceDoc(LOCAL_USER).whenSynced.then(() => {
+      if (mounted) setHydrated(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (boards.length === 0) {
+      if (creating.current) return;
+      creating.current = true;
+      select(create(MAIN_BOARD_TITLE, MAIN_BOARD_ID));
+      return;
+    }
+    if (!selected || !boards.some((b) => b.id === selected)) {
+      select(boards[0]!.id);
+    }
+  }, [hydrated, boards, selected, create, select]);
 }

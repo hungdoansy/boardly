@@ -200,7 +200,7 @@ Repo rule (`CLAUDE.md` §1, §6): each unit also gets a committed doc `docs/unit
 
 ---
 
-- [ ] **Unit 2: Single main board — auto-provision and remove board creation**
+- [x] **Unit 2: Single main board — auto-provision and remove board creation**
 
 **Goal:** Guarantee exactly one board, auto-created and always selected; strip every create/archive-board affordance.
 

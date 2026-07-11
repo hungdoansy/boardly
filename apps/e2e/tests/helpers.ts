@@ -33,16 +33,12 @@ export async function logIn(page: Page, email: string): Promise<void> {
 /** The columns a freshly created board is seeded with (see web `use-boards`). */
 export const DEFAULT_COLUMNS = ["To Do", "Doing", "Done"] as const;
 
-/** Create a board (via the empty-state CTA or the sidebar +) and open it. */
+/**
+ * Wait for the single auto-provisioned board to be open with its default columns.
+ * Boardly is single-board (Unit 2): the board is created and selected on first
+ * load, so there is nothing to click — specs just wait for it to be ready.
+ */
 export async function createBoard(page: Page): Promise<void> {
-  const cta = page.getByRole("button", { name: "Create board" });
-  if (await cta.isVisible().catch(() => false)) {
-    await cta.click();
-  } else {
-    await page.getByLabel("New board", { exact: true }).click();
-  }
-  // The board view renders its "Add column" affordance once a board is open,
-  // then seeds the default columns — wait for the last one so specs can use them.
   await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Column: Done" })).toBeVisible();
 }
