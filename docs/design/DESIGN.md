@@ -223,6 +223,24 @@ don't inherit `currentColor` or `size-*` cleanly, and can't align to the icon gr
 - Size with `size-*`/`className`, color via `currentColor` (text tokens), `aria-hidden`
   when decorative (give the control its own `aria-label`).
 
+### 7.2 Focus mode (appearance preference)
+
+A one-keypress way to quiet the board when the badges/color pull too much attention. Cycles with
+**Shift+F** (and a toolbar `Focus` indicator) through three levels, stamped as `data-focus` on
+`<html>` and persisted per-device (`localStorage["boardly-focus"]`, no-FOUC pre-paint stamp) — an
+**appearance preference, not a saved-view lens**:
+
+- **Off** — normal (all badges, full color).
+- **Calm** — all badges kept, color **muted** via `filter: saturate(var(--focus-saturate))`
+  (`0.4` dark / `0.5` light — **muted, never grayscale**, so the overdue/urgent signal stays
+  faintly perceptible).
+- **Zen** — card face + list row collapse to **title + a single muted status marker** (all other
+  badges hidden, reusing the badge config → `["status"]`).
+
+The filter is scoped to the content region (`[data-focus-scope]` on `<main>`), so the portaled
+**detail drawer and popovers stay full-color** — quiet board, full context on the one card you open.
+The `--focus-saturate` token is per-theme; the toggle transition respects `prefers-reduced-motion`.
+
 ---
 
 ## 8. Key screens (layout intent)

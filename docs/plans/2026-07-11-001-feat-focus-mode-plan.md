@@ -1,8 +1,9 @@
 ---
 title: "feat: Focus mode — cycle Off → Calm → Zen to quiet the board"
 type: feat
-status: active
+status: complete
 date: 2026-07-11
+focus_mode_completed: 2026-07-11
 ---
 
 # feat: Focus mode — cycle Off → Calm → Zen to quiet the board
@@ -10,7 +11,7 @@ date: 2026-07-11
 ## Overview
 
 An appearance-only "Focus mode" that reduces the board's visual noise so the user can
-concentrate. It is a **preference**, not a data lens: it changes how loud cards *look*, never
+concentrate. It is a **preference**, not a data lens: it changes how loud cards _look_, never
 which cards show. Three states cycle with one keyboard shortcut (`Shift+F`) and a toolbar
 indicator:
 
@@ -60,7 +61,7 @@ shared, and clumsy. Focus mode gives a one-keypress, reversible, personal volume
 - **No** per-badge granular controls, no slider, no 4th level. The "Quiet / single-signal" middle
   level explored in discussion is intentionally **dropped** (decision below).
 - Sidebar and header chrome are **not** muted — only the board/list content region.
-- Light-theme *fine-tuning* beyond "legible and clearly quieter" is acceptable to iterate later;
+- Light-theme _fine-tuning_ beyond "legible and clearly quieter" is acceptable to iterate later;
   the unit must still ship a working, verified light appearance (R6), not defer it.
 
 ## Context & Research
@@ -105,8 +106,8 @@ shared, and clumsy. Focus mode gives a one-keypress, reversible, personal volume
 ## Key Technical Decisions
 
 - **Muted, not grayscale (R2).** Calm uses `filter: saturate(var(--focus-saturate))`, not
-  `grayscale()`. Grayscale destroys the *meaning* of color (overdue-red and done-green collapse to
-  the same gray); saturate only lowers the *loudness*, so the one signal worth glancing for
+  `grayscale()`. Grayscale destroys the _meaning_ of color (overdue-red and done-green collapse to
+  the same gray); saturate only lowers the _loudness_, so the one signal worth glancing for
   survives. This was the central design finding.
 - **Attribute on `<html>`, filter scoped to the content region.** `applyFocus()` stamps
   `data-focus="calm|zen"` on `document.documentElement` (mirroring the theme class), but the CSS
@@ -129,11 +130,11 @@ shared, and clumsy. Focus mode gives a one-keypress, reversible, personal volume
 
 ### Resolved During Planning
 
-- *How many levels?* → Off / Calm / Zen (middle level dropped).
-- *Global vs per-view?* → Global appearance preference (per-device), not a saved view.
-- *Board only or list too?* → **Both** surfaces.
-- *Grayscale or muted for Calm?* → Muted (`saturate`), never grayscale.
-- *Where does the drawer land?* → Stays full-color (portals out of the filtered `main`).
+- _How many levels?_ → Off / Calm / Zen (middle level dropped).
+- _Global vs per-view?_ → Global appearance preference (per-device), not a saved view.
+- _Board only or list too?_ → **Both** surfaces.
+- _Grayscale or muted for Calm?_ → Muted (`saturate`), never grayscale.
+- _Where does the drawer land?_ → Stays full-color (portals out of the filtered `main`).
 
 ### Deferred to Implementation
 
@@ -147,16 +148,16 @@ shared, and clumsy. Focus mode gives a one-keypress, reversible, personal volume
 
 ## High-Level Technical Design
 
-> *This illustrates the intended approach and is directional guidance for review, not implementation
-> specification. The implementing agent should treat it as context, not code to reproduce.*
+> _This illustrates the intended approach and is directional guidance for review, not implementation
+> specification. The implementing agent should treat it as context, not code to reproduce._
 
 Level → effect matrix (the two axes move together, monotonically):
 
-| Level | `data-focus` | Color (on `main`)            | Card face / list row badges          | Drawer & popovers |
-|-------|--------------|------------------------------|--------------------------------------|-------------------|
-| Off   | (absent)     | full                         | full `config`                        | full color        |
-| Calm  | `calm`       | `saturate(--focus-saturate)` | full `config`                        | full color        |
-| Zen   | `zen`        | `saturate(--focus-saturate)` | `["status"]` only (title + dot)      | full color        |
+| Level | `data-focus` | Color (on `main`)            | Card face / list row badges     | Drawer & popovers |
+| ----- | ------------ | ---------------------------- | ------------------------------- | ----------------- |
+| Off   | (absent)     | full                         | full `config`                   | full color        |
+| Calm  | `calm`       | `saturate(--focus-saturate)` | full `config`                   | full color        |
+| Zen   | `zen`        | `saturate(--focus-saturate)` | `["status"]` only (title + dot) | full color        |
 
 Data flow (mirrors theme):
 
@@ -183,6 +184,7 @@ Unit 2).
 **Unit doc (DoD):** `docs/units/UNIT-F1-focus-mode-core.md`
 
 **Files:**
+
 - Create: `apps/web/lib/focus-mode.ts` (store; mirror of `lib/theme.ts`)
 - Create: `apps/web/lib/focus-mode.test.ts`
 - Create: `apps/web/components/app/focus-toggle.tsx` (toolbar indicator; mirror of `theme-toggle.tsx`)
@@ -196,6 +198,7 @@ Unit 2).
 - Test: `apps/web/lib/focus-mode.test.ts` + `apps/e2e/tests/focus-mode.spec.ts`
 
 **Approach:**
+
 - `focus-mode.ts`: `type FocusLevel = "off" | "calm" | "zen"`; `useSyncExternalStore`-backed store;
   `STORAGE_KEY = "boardly-focus"`; `applyFocus(level)` sets/removes `data-focus` on
   `document.documentElement`; `cycle()` advances off→calm→zen→off; `useFocusMode()` returns
@@ -215,6 +218,7 @@ Unit 2).
 the `/`-shortcut effect in `workspace-app.tsx`.
 
 **Test scenarios:**
+
 - Happy path (store): `cycle()` advances `off → calm → zen → off` and wraps.
 - Happy path (store): `setLevel("calm")` persists `"calm"` to `localStorage["boardly-focus"]`;
   a fresh store read hydrates to the persisted level.
@@ -244,6 +248,7 @@ marker; all other badges are hidden. Reuses the badge config.
 **Unit doc (DoD):** `docs/units/UNIT-F2-focus-mode-zen.md`
 
 **Files:**
+
 - Create: `docs/units/UNIT-F2-focus-mode-zen.md`
 - Modify: `apps/web/components/board/column-cards.tsx` (compute effective `config` from
   `useFocusMode()` → `["status"]` when Zen; pass to cards)
@@ -256,6 +261,7 @@ marker; all other badges are hidden. Reuses the badge config.
   `apps/web/components/board/list-view.test.tsx`; e2e Zen screenshots (dark + light)
 
 **Approach:**
+
 - Read `useFocusMode()` **once per container** (board column list, list-view container), not per
   card — toggling then re-renders the card lists once. Effective config: `zen ? ["status"] : config`.
 - Board: `BadgeRow` with `["status"]` renders just the `StatusBadge` (the muted status dot, via the
@@ -267,6 +273,7 @@ marker; all other badges are hidden. Reuses the badge config.
 `BadgeRow` in `apps/web/components/card/badge-row.tsx`.
 
 **Test scenarios:**
+
 - Happy path: with the focus store set to `"zen"`, a rendered board card shows the status badge and
   **no** priority/severity/due/label/link/checklist badges; title still renders.
 - Happy path: with `"zen"`, a list row renders shortId + title + leading status icon and **no**
@@ -354,7 +361,7 @@ Suggested loop command:
   card-context popover still render correctly while Calm/Zen is active.
 - **Performance (R2/pillar R2):** `saturate` is a compositor-friendly filter, but it repaints the
   scrolled region; verify no scroll/drag jank on a large board (the demo board is a good stress
-  case). Do not animate the filter on every scroll — only transition on level *change* (and disable
+  case). Do not animate the filter on every scroll — only transition on level _change_ (and disable
   under reduced motion).
 - **API surface parity:** none — no command-layer, Yjs, or `SavedView` change. Focus is client-only
   appearance state.
@@ -363,13 +370,13 @@ Suggested loop command:
 
 ## Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| `filter` on `main` clips/affects an inline (non-portaled) overlay | Audit: Radix `Sheet`/`Popover` + dnd `DragOverlay` all portal to `body`; e2e-verify drawer + a card popover render full-color and correctly positioned while active. |
-| Light theme reads muddy or the muting is imperceptible at the dark-tuned factor | `--focus-saturate` is a per-theme token; tune light by eye in the running app; screenshot both (R6). |
-| No-FOUC script drift vs `focus-mode.ts` | Keep the `layout.tsx` stamp minimal and carry the same "keep in sync" note the theme script uses; both read the same `localStorage` key + attribute contract. |
-| Per-card store subscription causes re-render churn | Read `useFocusMode()` at the container level and pass config down; do not subscribe per card. |
-| Reduced-motion users get a jarring filter transition | Gate the `transition` behind `@media (prefers-reduced-motion: reduce)`. |
+| Risk                                                                            | Mitigation                                                                                                                                                           |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filter` on `main` clips/affects an inline (non-portaled) overlay               | Audit: Radix `Sheet`/`Popover` + dnd `DragOverlay` all portal to `body`; e2e-verify drawer + a card popover render full-color and correctly positioned while active. |
+| Light theme reads muddy or the muting is imperceptible at the dark-tuned factor | `--focus-saturate` is a per-theme token; tune light by eye in the running app; screenshot both (R6).                                                                 |
+| No-FOUC script drift vs `focus-mode.ts`                                         | Keep the `layout.tsx` stamp minimal and carry the same "keep in sync" note the theme script uses; both read the same `localStorage` key + attribute contract.        |
+| Per-card store subscription causes re-render churn                              | Read `useFocusMode()` at the container level and pass config down; do not subscribe per card.                                                                        |
+| Reduced-motion users get a jarring filter transition                            | Gate the `transition` behind `@media (prefers-reduced-motion: reduce)`.                                                                                              |
 
 ## Documentation / Operational Notes
 
