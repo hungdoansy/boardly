@@ -33,7 +33,7 @@ afterEach(() => {
 describe("cards", () => {
   it("quick-adds cards which append to the bottom of the column", () => {
     const { ctx, boardId, columnId } = setup();
-    fireEvent.click(screen.getByRole("button", { name: /add card/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
 
     fireEvent.change(composerInput(), { target: { value: "First" } });
     fireEvent.keyDown(composerInput(), { key: "Enter" });
@@ -49,7 +49,7 @@ describe("cards", () => {
 
   it("rejects a whitespace-only title", () => {
     const { ctx, boardId, columnId } = setup();
-    fireEvent.click(screen.getByRole("button", { name: /add card/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
     fireEvent.change(composerInput(), { target: { value: "   " } });
     fireEvent.keyDown(composerInput(), { key: "Enter" });
     expect(cardsInColumn(ctx.getBoardDoc(boardId), columnId)).toHaveLength(0);
@@ -61,6 +61,14 @@ describe("cards", () => {
     });
     fireEvent.click(screen.getByText("Open me"));
     expect(onOpenCard).toHaveBeenCalledWith("card-1");
+  });
+
+  it("creates a card and opens its detail via the 'with details' button", () => {
+    const { ctx, boardId, columnId, onOpenCard } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Add card with details" }));
+    const created = cardsInColumn(ctx.getBoardDoc(boardId), columnId);
+    expect(created).toHaveLength(1);
+    expect(onOpenCard).toHaveBeenCalledWith(created[0]!.id);
   });
 
   it("archives a card", () => {

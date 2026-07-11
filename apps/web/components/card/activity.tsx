@@ -69,10 +69,10 @@ function ActivityRow({
   const { icon, text } = describe(entry, columnName);
   return (
     <li className="flex items-start gap-2 text-sm">
-      <span className="mt-0.5 grid size-4 shrink-0 place-items-center text-fg-faint">{icon}</span>
-      <span className="min-w-0 flex-1 text-fg-muted">{text}</span>
+      <span className="grid h-5 w-4 shrink-0 place-items-center text-fg-faint">{icon}</span>
+      <span className="min-w-0 flex-1 leading-5 text-fg-muted">{text}</span>
       <time
-        className="shrink-0 text-xs tabular-nums text-fg-faint"
+        className="h-5 shrink-0 text-xs leading-5 tabular-nums text-fg-faint"
         dateTime={new Date(entry.at).toISOString()}
         title={new Date(entry.at).toLocaleString()}
       >

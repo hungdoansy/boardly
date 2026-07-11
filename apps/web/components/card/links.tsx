@@ -2,6 +2,7 @@
 
 import type { Card } from "@boardly/domain";
 import { isSafeHttpUrl, shortLabelFor } from "@boardly/domain";
+import { Button, Input } from "@boardly/ui";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 
@@ -43,7 +44,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
                   type="button"
                   aria-label={`Remove link ${label}`}
                   onClick={() => actions.remove(card.id, link.id)}
-                  className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity hover:text-[var(--danger)] focus-visible:opacity-100 group-hover:opacity-100"
+                  className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-[opacity,color,background-color] duration-[var(--dur-fast)] hover:bg-overlay hover:text-[var(--danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -54,7 +55,7 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
       ) : null}
 
       <div className="flex gap-1">
-        <input
+        <Input
           aria-label="New link URL"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -62,16 +63,16 @@ export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
             if (e.key === "Enter") add();
           }}
           placeholder="Paste a URL…"
-          className="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] bg-elevated px-2 text-sm text-fg outline-none ring-1 ring-line focus-visible:ring-[var(--accent)] placeholder:text-fg-faint"
         />
-        <button
+        <Button
           type="button"
+          size="iconSm"
           aria-label="Add link"
           onClick={add}
-          className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-primary text-primary-foreground hover:bg-[var(--accent-hover)]"
+          disabled={!url.trim()}
         >
-          <Plus className="size-4" />
-        </button>
+          <Plus />
+        </Button>
       </div>
     </div>
   );

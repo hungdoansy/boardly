@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@boardly/ui";
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from "@boardly/ui";
 import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -120,17 +120,19 @@ function CardDetailBody({
       </div>
 
       <div className="border-t border-line-subtle p-3">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => {
             actions.archive(card.id);
             onClose();
           }}
-          className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-sm text-[var(--danger)] transition-colors hover:bg-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          className="text-[var(--danger)] hover:text-[var(--danger)]"
         >
           <Archive className="size-3.5" />
           Archive card
-        </button>
+        </Button>
       </div>
     </>
   );

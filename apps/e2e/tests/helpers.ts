@@ -57,7 +57,8 @@ export async function addColumn(page: Page, title: string): Promise<void> {
 
 export async function addCard(page: Page, columnTitle: string, cardTitle: string): Promise<void> {
   const column = page.getByRole("region", { name: `Column: ${columnTitle}` });
-  await column.getByRole("button", { name: "Add card" }).click();
+  // `exact` so we don't also match the "Add card with details" icon button.
+  await column.getByRole("button", { name: "Add card", exact: true }).click();
   const input = page.getByRole("textbox", { name: "New card title" });
   await input.fill(cardTitle);
   await input.press("Enter");

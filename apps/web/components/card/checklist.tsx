@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card, ChecklistItem } from "@boardly/domain";
-import { cn } from "@boardly/ui";
+import { Button, cn, Input } from "@boardly/ui";
 import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -50,7 +50,7 @@ export function Checklist({ boardId, card }: { boardId: string; card: Card }) {
       </ul>
 
       <div className="flex gap-1">
-        <input
+        <Input
           aria-label="New checklist item"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -58,16 +58,16 @@ export function Checklist({ boardId, card }: { boardId: string; card: Card }) {
             if (e.key === "Enter") addItem();
           }}
           placeholder="Add an item…"
-          className="h-7 min-w-0 flex-1 rounded-[var(--radius-sm)] bg-elevated px-2 text-sm text-fg outline-none ring-1 ring-line focus-visible:ring-[var(--accent)] placeholder:text-fg-faint"
         />
-        <button
+        <Button
           type="button"
+          size="iconSm"
           aria-label="Add checklist item"
           onClick={addItem}
-          className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-primary text-primary-foreground hover:bg-[var(--accent-hover)]"
+          disabled={!draft.trim()}
         >
-          <Plus className="size-4" />
-        </button>
+          <Plus />
+        </Button>
       </div>
     </div>
   );
@@ -134,7 +134,7 @@ function ChecklistRow({
           aria-label="Move up"
           disabled={index === 0}
           onClick={moveUp}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint hover:text-fg disabled:opacity-30"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronUp className="size-3.5" />
         </button>
@@ -143,7 +143,7 @@ function ChecklistRow({
           aria-label="Move down"
           disabled={index === items.length - 1}
           onClick={moveDown}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint hover:text-fg disabled:opacity-30"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronDown className="size-3.5" />
         </button>
@@ -151,7 +151,7 @@ function ChecklistRow({
           type="button"
           aria-label={`Delete ${item.text}`}
           onClick={() => actions.remove(cardId, item.id)}
-          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint hover:text-[var(--danger)]"
+          className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-overlay hover:text-[var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <X className="size-3.5" />
         </button>

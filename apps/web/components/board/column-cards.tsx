@@ -50,7 +50,10 @@ export function ColumnCards({
           />
         ))}
       </SortableContext>
-      <CardComposer onAdd={(title) => actions.create(columnId, title)} />
+      <CardComposer
+        onAdd={(title) => actions.create(columnId, title)}
+        onCreateDetailed={() => onOpenCard(actions.create(columnId, "New card"))}
+      />
     </>
   );
 }
