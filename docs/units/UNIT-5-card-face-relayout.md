@@ -135,7 +135,10 @@ that line).
 ## Design
 
 - No new tokens — reuses `CHIP`/`CHIP_ICON` (`apps/web/components/card/chip.ts`)
-  and the existing `mt-1.5 flex flex-wrap items-center gap-1.5` row rhythm.
+  and the existing `mt-1.5 flex flex-wrap items-center gap-1.5` row rhythm for
+  lines 1 and 4. The labels row (line 3) uses a tighter `gap-0.5` — label
+  chips sit close enough together to read as one group, distinct from the
+  more deliberate spacing between different fields on the other lines.
 - No new transitions — this is a structural reflow of existing elements, not
   a new interactive affordance.
 - Dark mode: verified live against the demo account (`demo@boardly.app`) —

@@ -90,7 +90,7 @@ export function CardFace({ card, labels, project, config, onOpen }: CardFaceProp
       </div>
 
       {labelNodes.length > 0 ? (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">{labelNodes}</div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-0.5">{labelNodes}</div>
       ) : null}
 
       {showLine3 ? (
