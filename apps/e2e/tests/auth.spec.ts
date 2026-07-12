@@ -5,7 +5,7 @@ import { logIn, signUp, uniqueEmail } from "./helpers";
 test.describe("auth", () => {
   test("signup establishes a session and lands on the app", async ({ page }) => {
     await signUp(page);
-    await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
     // Boardly auto-provisions a single "Main board" (no create-board prompt).
     await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create board" })).toHaveCount(0);
@@ -31,6 +31,6 @@ test.describe("auth", () => {
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login\/?$/);
     await logIn(page, email);
-    await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
   });
 });

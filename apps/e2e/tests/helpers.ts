@@ -17,7 +17,7 @@ export async function signUp(page: Page): Promise<string> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
   return email;
 }
 
@@ -27,7 +27,7 @@ export async function logIn(page: Page, email: string): Promise<void> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
 }
 
 /** The columns a freshly created board is seeded with (see web `use-boards`). */

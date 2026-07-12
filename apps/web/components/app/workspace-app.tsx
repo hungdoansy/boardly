@@ -12,7 +12,6 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useBoards, useEnsureBoard, useSelectedBoard, useSettingsRoute } from "../../lib/use-boards";
 import { useSelectedProject } from "../../lib/use-projects";
-import { BoardList } from "../board/board-list";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
 import { BoardView } from "../board/board-view";
@@ -86,7 +85,6 @@ function Shell() {
           </Button>
         </div>
 
-        <BoardList />
         {boardId ? <ProjectList boardId={boardId} /> : null}
 
         <div className="border-t border-line-subtle p-2">

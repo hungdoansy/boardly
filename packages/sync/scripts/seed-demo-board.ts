@@ -43,9 +43,12 @@ import {
   addChecklistItem,
   addColumn,
   addLabel,
+  archiveBoardRef,
   assignLabel,
   addLink,
   initBoard,
+  listBoards,
+  liveColumns,
   saveView,
   setBadgeConfig,
   setCardDescription,
@@ -457,7 +460,10 @@ async function main(): Promise<void> {
   const { token, userId } = await authenticate();
   const mintTicket = makeTicketMinter(token);
 
-  const boardId = newId();
+  // Deterministic id so re-running never multiplies boards (Boardly is
+  // single-board): the workspace index keys by id, so we always target the one
+  // "demo" board rather than minting a fresh one each run.
+  const boardId = "demo";
   console.log(`→ registering board ${boardId}`);
   await registerBoard(token, boardId, BOARD_TITLE);
 
@@ -469,8 +475,22 @@ async function main(): Promise<void> {
   console.log("→ waiting for initial sync…");
   await Promise.all([ws.synced, bd.synced]);
 
-  console.log("→ building the demo board…");
-  buildBoard(workspaceDoc, boardDoc, boardId, userId);
+  // Clean up any boards left by earlier non-idempotent runs — single-board means
+  // only the deterministic "demo" board should remain in the workspace list.
+  const stale = listBoards(workspaceDoc).filter((b) => b.id !== boardId);
+  if (stale.length > 0) {
+    console.log(`→ archiving ${stale.length} stale board(s) from earlier runs…`);
+    for (const b of stale) archiveBoardRef(workspaceDoc, b.id);
+  }
+
+  // Only populate a fresh board; skip on re-run so content isn't duplicated.
+  if (liveColumns(boardDoc).length === 0) {
+    console.log("→ building the demo board…");
+    buildBoard(workspaceDoc, boardDoc, boardId, userId);
+  } else {
+    console.log("→ demo board already populated; ensuring its workspace ref…");
+    addBoardRef(workspaceDoc, { id: boardId, title: BOARD_TITLE, icon: "🗂️", clientId: CLIENT_ID });
+  }
 
   // Give Hocuspocus time to receive + debounce-persist the updates.
   console.log("→ flushing to the server…");

@@ -8,7 +8,7 @@ test.describe("accessibility / keyboard", () => {
     await createBoard(page);
     // Sidebar + header controls are named for AT / keyboard users.
     await expect(page.getByRole("button", { name: "Search /" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Switch to (light|dark) theme/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
@@ -37,7 +37,7 @@ test.describe("accessibility / keyboard", () => {
     if (await toLight.isVisible().catch(() => false)) await toLight.click();
     await expect(page.locator("html")).toHaveClass(/light/);
     await page.reload();
-    await expect(page.getByRole("navigation", { name: "Boards" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
     await expect(page.locator("html")).toHaveClass(/light/);
   });
 });
