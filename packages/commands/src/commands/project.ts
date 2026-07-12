@@ -15,13 +15,12 @@ export const createProject = defineCommand({
   name: "createProject",
   description: "Create a project (a grouping under the board).",
   input: z.object({
-    boardId: z.string(),
     name: z.string().min(1),
     color: z.string().optional(),
     id: z.string().optional(),
   }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     const id = addProject(doc, {
       id: input.id,
       name: input.name,
@@ -36,9 +35,9 @@ export const createProject = defineCommand({
 export const renameProject = defineCommand({
   name: "renameProject",
   description: "Rename a project.",
-  input: z.object({ boardId: z.string(), projectId: z.string(), name: z.string().min(1) }),
+  input: z.object({ projectId: z.string(), name: z.string().min(1) }),
   run: (ctx, input) => {
-    syncRenameProject(ctx.getBoardDoc(input.boardId), input.projectId, input.name, ctx.now());
+    syncRenameProject(ctx.getBoardDoc(), input.projectId, input.name, ctx.now());
     return { id: input.projectId };
   },
 });
@@ -46,9 +45,9 @@ export const renameProject = defineCommand({
 export const recolorProject = defineCommand({
   name: "recolorProject",
   description: "Change a project's color.",
-  input: z.object({ boardId: z.string(), projectId: z.string(), color: z.string().min(1) }),
+  input: z.object({ projectId: z.string(), color: z.string().min(1) }),
   run: (ctx, input) => {
-    syncRecolorProject(ctx.getBoardDoc(input.boardId), input.projectId, input.color, ctx.now());
+    syncRecolorProject(ctx.getBoardDoc(), input.projectId, input.color, ctx.now());
     return { id: input.projectId };
   },
 });
@@ -56,9 +55,9 @@ export const recolorProject = defineCommand({
 export const archiveProject = defineCommand({
   name: "archiveProject",
   description: "Archive a project (hidden from the list; cards keep their projectId).",
-  input: z.object({ boardId: z.string(), projectId: z.string() }),
+  input: z.object({ projectId: z.string() }),
   run: (ctx, input) => {
-    syncArchiveProject(ctx.getBoardDoc(input.boardId), input.projectId, ctx.now());
+    syncArchiveProject(ctx.getBoardDoc(), input.projectId, ctx.now());
     return { id: input.projectId, archived: true };
   },
 });
@@ -66,20 +65,19 @@ export const archiveProject = defineCommand({
 export const listProjectsCommand = defineCommand({
   name: "listProjects",
   description: "List the board's (non-archived) projects.",
-  input: z.object({ boardId: z.string() }),
-  run: (ctx, input) => listProjects(ctx.getBoardDoc(input.boardId)),
+  input: z.object({}),
+  run: (ctx) => listProjects(ctx.getBoardDoc()),
 });
 
 export const setCardProject = defineCommand({
   name: "setCardProject",
   description: "Assign a card to a project, or clear it with null.",
   input: z.object({
-    boardId: z.string(),
     cardId: z.string(),
     projectId: z.string().nullable(),
   }),
   run: (ctx, input) => {
-    syncSetCardProject(ctx.getBoardDoc(input.boardId), input.cardId, input.projectId, ctx.now());
+    syncSetCardProject(ctx.getBoardDoc(), input.cardId, input.projectId, ctx.now());
     return { cardId: input.cardId, projectId: input.projectId };
   },
 });

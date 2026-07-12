@@ -320,7 +320,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 2 — Collapse surfaces
 
-- [ ] **Unit 3: Commands — drop `boardId`; context resolves the single doc; prune board-entity commands**
+- [x] **Unit 3: Commands — drop `boardId`; context resolves the single doc; prune board-entity commands**
 
 **Goal:** Make every command operate on the caller's doc with no `boardId`, and remove board create/list/archive.
 

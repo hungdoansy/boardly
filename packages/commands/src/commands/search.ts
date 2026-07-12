@@ -8,9 +8,9 @@ import { defineCommand } from "../command";
 export const searchCards = defineCommand({
   name: "searchCards",
   description: "Search a board's cards by title or short id (substring, case-insensitive).",
-  input: z.object({ boardId: z.string(), query: z.string() }),
+  input: z.object({ query: z.string() }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     const all = [
       ...liveColumns(doc).flatMap((col) => cardsInColumn(doc, col.id)),
       ...reclaimCards(doc),

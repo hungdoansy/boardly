@@ -2,14 +2,7 @@
 // enumerate this and derive their schemas from each command's zod `input`, so
 // the agent surface is generated from — and cannot drift from — the UI's.
 import type { Command } from "./command";
-import {
-  archiveBoard,
-  createBoard,
-  listBoards,
-  renameBoard,
-  setBadgeConfig,
-  setTicketPrefix,
-} from "./commands/board";
+import { renameBoard, setBadgeConfig, setTicketPrefix } from "./commands/board";
 import {
   addChecklistItem,
   archiveCard,
@@ -56,12 +49,9 @@ import { setCardStatus } from "./commands/status";
 import { deleteView, saveView } from "./commands/view";
 
 export const commands = [
-  createBoard,
   renameBoard,
-  archiveBoard,
   setBadgeConfig,
   setTicketPrefix,
-  listBoards,
   addColumn,
   renameColumn,
   moveColumn,

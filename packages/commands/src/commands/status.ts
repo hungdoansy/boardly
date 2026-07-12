@@ -10,9 +10,9 @@ const statusInput = z.enum(STATUS_VALUES as [Status, ...Status[]]);
 export const setCardStatus = defineCommand({
   name: "setCardStatus",
   description: "Set a card's workflow status (independent of its column).",
-  input: z.object({ boardId: z.string(), cardId: z.string(), status: statusInput }),
+  input: z.object({ cardId: z.string(), status: statusInput }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     syncSetStatus(doc, input.cardId, input.status, ctx.now(), ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },

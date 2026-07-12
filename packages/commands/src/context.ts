@@ -5,10 +5,8 @@
 import * as Y from "yjs";
 
 export interface CommandContext {
-  /** The board doc for a given board id (persists + broadcasts on the server). */
-  getBoardDoc(boardId: string): Y.Doc;
-  /** The workspace index doc for the current user. */
-  getWorkspaceDoc(): Y.Doc;
+  /** The caller's single board doc, resolved from the authenticated user (persists + broadcasts on the server). */
+  getBoardDoc(): Y.Doc;
   /** Tie-breaker for fractional ordering (typically the Yjs clientID as string). */
   clientId: string;
   /** Timestamp source (injected: Date.now on the client, server clock on the server). */
@@ -29,7 +27,8 @@ export interface MemoryContextOptions {
 
 /**
  * An in-memory CommandContext with no persistence — used by tests and any
- * headless caller. Docs live only in the returned `docs` map.
+ * headless caller. The single per-user board doc lives only in the returned
+ * `docs` map (keyed by room, so distinct user ids resolve distinct docs).
  */
 export function createMemoryContext(options: MemoryContextOptions = {}): MemoryContext {
   const docs = new Map<string, Y.Doc>();
@@ -44,8 +43,7 @@ export function createMemoryContext(options: MemoryContextOptions = {}): MemoryC
   };
   return {
     docs,
-    getBoardDoc: (boardId) => get(`board:${boardId}`),
-    getWorkspaceDoc: () => get(`workspace:${userId}`),
+    getBoardDoc: () => get(`board:${userId}`),
     clientId: options.clientId ?? "mem",
     now: options.now ?? (() => 0),
     userId,

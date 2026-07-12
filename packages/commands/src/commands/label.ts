@@ -16,13 +16,12 @@ export const createLabel = defineCommand({
   name: "createLabel",
   description: "Create a label in the board palette.",
   input: z.object({
-    boardId: z.string(),
     name: z.string().min(1),
     color: z.string().optional(),
     id: z.string().optional(),
   }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     const id = addLabel(doc, {
       id: input.id,
       name: input.name,
@@ -37,9 +36,9 @@ export const createLabel = defineCommand({
 export const renameLabel = defineCommand({
   name: "renameLabel",
   description: "Rename a label (updates everywhere it is used).",
-  input: z.object({ boardId: z.string(), labelId: z.string(), name: z.string().min(1) }),
+  input: z.object({ labelId: z.string(), name: z.string().min(1) }),
   run: (ctx, input) => {
-    syncRenameLabel(ctx.getBoardDoc(input.boardId), input.labelId, input.name, ctx.now());
+    syncRenameLabel(ctx.getBoardDoc(), input.labelId, input.name, ctx.now());
     return { id: input.labelId };
   },
 });
@@ -47,9 +46,9 @@ export const renameLabel = defineCommand({
 export const recolorLabel = defineCommand({
   name: "recolorLabel",
   description: "Change a label's color (updates everywhere it is used).",
-  input: z.object({ boardId: z.string(), labelId: z.string(), color: z.string().min(1) }),
+  input: z.object({ labelId: z.string(), color: z.string().min(1) }),
   run: (ctx, input) => {
-    syncRecolorLabel(ctx.getBoardDoc(input.boardId), input.labelId, input.color, ctx.now());
+    syncRecolorLabel(ctx.getBoardDoc(), input.labelId, input.color, ctx.now());
     return { id: input.labelId };
   },
 });
@@ -57,9 +56,9 @@ export const recolorLabel = defineCommand({
 export const deleteLabel = defineCommand({
   name: "deleteLabel",
   description: "Delete a label from the palette and remove it from all cards.",
-  input: z.object({ boardId: z.string(), labelId: z.string() }),
+  input: z.object({ labelId: z.string() }),
   run: (ctx, input) => {
-    syncDeleteLabel(ctx.getBoardDoc(input.boardId), input.labelId, ctx.now());
+    syncDeleteLabel(ctx.getBoardDoc(), input.labelId, ctx.now());
     return { id: input.labelId, deleted: true };
   },
 });
@@ -67,9 +66,9 @@ export const deleteLabel = defineCommand({
 export const assignLabel = defineCommand({
   name: "assignLabel",
   description: "Assign a label to a card.",
-  input: z.object({ boardId: z.string(), cardId: z.string(), labelId: z.string() }),
+  input: z.object({ cardId: z.string(), labelId: z.string() }),
   run: (ctx, input) => {
-    syncAssignLabel(ctx.getBoardDoc(input.boardId), input.cardId, input.labelId, ctx.now());
+    syncAssignLabel(ctx.getBoardDoc(), input.cardId, input.labelId, ctx.now());
     return { cardId: input.cardId, labelId: input.labelId };
   },
 });
@@ -77,9 +76,9 @@ export const assignLabel = defineCommand({
 export const unassignLabel = defineCommand({
   name: "unassignLabel",
   description: "Remove a label from a card.",
-  input: z.object({ boardId: z.string(), cardId: z.string(), labelId: z.string() }),
+  input: z.object({ cardId: z.string(), labelId: z.string() }),
   run: (ctx, input) => {
-    syncUnassignLabel(ctx.getBoardDoc(input.boardId), input.cardId, input.labelId, ctx.now());
+    syncUnassignLabel(ctx.getBoardDoc(), input.cardId, input.labelId, ctx.now());
     return { cardId: input.cardId, labelId: input.labelId };
   },
 });

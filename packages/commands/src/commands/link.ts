@@ -14,14 +14,13 @@ export const addLink = defineCommand({
   description:
     "Attach a link to a card. The provider (Slack/Linear/Claude/generic) is auto-detected.",
   input: z.object({
-    boardId: z.string(),
     cardId: z.string(),
     url: z.string().min(1).refine(isSafeHttpUrl, "URL must be http(s)"),
     id: z.string().optional(),
     title: z.string().optional(),
   }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     const linkId = syncAddLink(doc, {
       cardId: input.cardId,
       id: input.id,
@@ -37,9 +36,9 @@ export const addLink = defineCommand({
 export const removeLink = defineCommand({
   name: "removeLink",
   description: "Remove a link from a card.",
-  input: z.object({ boardId: z.string(), cardId: z.string(), linkId: z.string() }),
+  input: z.object({ cardId: z.string(), linkId: z.string() }),
   run: (ctx, input) => {
-    syncRemoveLink(ctx.getBoardDoc(input.boardId), input.cardId, input.linkId, ctx.now());
+    syncRemoveLink(ctx.getBoardDoc(), input.cardId, input.linkId, ctx.now());
     return { cardId: input.cardId, linkId: input.linkId };
   },
 });
@@ -48,14 +47,13 @@ export const moveLink = defineCommand({
   name: "moveLink",
   description: "Reorder a link on a card to a position between two neighbor links.",
   input: z.object({
-    boardId: z.string(),
     cardId: z.string(),
     linkId: z.string(),
     afterId: z.string().nullish(),
     beforeId: z.string().nullish(),
   }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     syncMoveLink(
       doc,
       input.cardId,

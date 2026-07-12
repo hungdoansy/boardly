@@ -45,9 +45,9 @@ const viewSchema = z.object({
 export const saveView = defineCommand({
   name: "saveView",
   description: "Save (create or update) a named filter/sort view on a board.",
-  input: z.object({ boardId: z.string(), view: viewSchema }),
+  input: z.object({ view: viewSchema }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     // The schema validated the shape; cast the recursive filter to the domain type.
     syncSaveView(
       doc,
@@ -61,9 +61,9 @@ export const saveView = defineCommand({
 export const deleteView = defineCommand({
   name: "deleteView",
   description: "Delete a saved view from a board.",
-  input: z.object({ boardId: z.string(), viewId: z.string() }),
+  input: z.object({ viewId: z.string() }),
   run: (ctx, input) => {
-    const doc = ctx.getBoardDoc(input.boardId);
+    const doc = ctx.getBoardDoc();
     syncDeleteView(doc, input.viewId, ctx.now());
     return { id: input.viewId, views: listViews(doc).length };
   },
