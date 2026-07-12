@@ -92,13 +92,8 @@ function CardDetailBody({
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
-          <Checklist card={card} />
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Labels</h3>
-          <CardLabels card={card} />
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
+          <PropertyList card={card} actions={actions} />
         </section>
 
         <section className="flex flex-col gap-2">
@@ -107,8 +102,13 @@ function CardDetailBody({
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Properties</h3>
-          <PropertyList card={card} actions={actions} />
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
+          <Checklist card={card} />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Labels</h3>
+          <CardLabels card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
