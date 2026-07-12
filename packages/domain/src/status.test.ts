@@ -27,8 +27,8 @@ describe("status enum + metadata", () => {
     expect(STATUS_ORDER).toEqual([
       Status.Backlog,
       Status.Todo,
-      Status.InProgress,
       Status.Pending,
+      Status.InProgress,
       Status.InReview,
       Status.Done,
       Status.Canceled,

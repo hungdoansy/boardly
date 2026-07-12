@@ -52,13 +52,13 @@ export const STATUS_META: Record<Status, StatusMeta> = {
 
 /**
  * Display order for the fixed board columns and pickers (workflow left→right):
- * Backlog, Todo, In Progress, Pending, In Review, Done, Canceled, Duplicate.
+ * Backlog, Todo, Pending, In Progress, In Review, Done, Canceled, Duplicate.
  */
 export const STATUS_ORDER: Status[] = [
   Status.Backlog,
   Status.Todo,
-  Status.InProgress,
   Status.Pending,
+  Status.InProgress,
   Status.InReview,
   Status.Done,
   Status.Canceled,
