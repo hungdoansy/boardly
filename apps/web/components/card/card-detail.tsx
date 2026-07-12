@@ -6,6 +6,7 @@ import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
+import { useProjects } from "../../lib/use-projects";
 import { CardActivity } from "./activity";
 import { Checklist } from "./checklist";
 import { DueDatePicker } from "./due-date";
@@ -13,6 +14,7 @@ import { CardLabels } from "./labels";
 import { CardLinks } from "./links";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
+import { ProjectSelect } from "./project-select";
 import { StatusSelect } from "./status-select";
 
 interface CardDetailProps {
@@ -141,6 +143,7 @@ function PropertyList({
   card: Card;
   actions: ReturnType<typeof useCardActions>;
 }) {
+  const projects = useProjects();
   return (
     <div className="grid grid-cols-[6rem_1fr] items-center gap-x-4 gap-y-1 text-sm">
       <span className="text-fg-faint">Status</span>
@@ -151,6 +154,13 @@ function PropertyList({
 
       <span className="text-fg-faint">Due</span>
       <DueDatePicker value={card.dueDate} onChange={(d) => actions.setDueDate(card.id, d)} />
+
+      <span className="text-fg-faint">Project</span>
+      <ProjectSelect
+        value={card.projectId}
+        projects={projects}
+        onChange={(projectId) => actions.setProject(card.id, projectId)}
+      />
     </div>
   );
 }

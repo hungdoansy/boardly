@@ -29,6 +29,7 @@ import {
   setCardDescription,
   setCardDueDate,
   setCardPriority,
+  setCardProject,
   setCardStatus,
   setChecklistItemText,
   setShowEmptyColumns,
@@ -219,6 +220,7 @@ export interface CardActions {
   setPriority(cardId: string, priority: PriorityValue): void;
   setStatus(cardId: string, status: Status): void;
   setDueDate(cardId: string, dueDate: DueDate | null): void;
+  setProject(cardId: string, projectId: string | null): void;
   archive(cardId: string): void;
 }
 
@@ -262,6 +264,12 @@ export function useCardActions(): CardActions {
     },
     [ctx],
   );
+  const setProject = useCallback(
+    (cardId: string, projectId: string | null) => {
+      execute(setCardProject, ctx, { cardId, projectId });
+    },
+    [ctx],
+  );
   const archive = useCallback(
     (cardId: string) => {
       execute(archiveCard, ctx, { cardId });
@@ -275,6 +283,7 @@ export function useCardActions(): CardActions {
     setPriority,
     setStatus,
     setDueDate,
+    setProject,
     archive,
   };
 }

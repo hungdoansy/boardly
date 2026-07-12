@@ -41,6 +41,11 @@ reuse a number namespace). The plans, newest last:
   - `UNIT-8.1` — local production packaging: containerize the sync/API server, one-command Docker
     backend, disable the Tauri updater, build the installable macOS desktop app + the runbook
     (`docs/GUIDE-local-production.md`).
+- Interactive, ad hoc (no dedicated plan file):
+  - `UNIT-P6` — project select in the card detail drawer (a card's project was previously
+    only set at creation).
+  - `UNIT-P7` — card detail drawer section reorder (Description, Properties, Links,
+    Checklist, Labels, Activity).
 
 ## Convention
 
