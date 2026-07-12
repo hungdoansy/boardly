@@ -26,7 +26,6 @@ function card(over: Partial<Card>): Card {
     shortId: "#1",
     title: "Card",
     description: "",
-    columnId: "col",
     ord: "a0",
     status: Status.Todo,
     priority: Priority.None,

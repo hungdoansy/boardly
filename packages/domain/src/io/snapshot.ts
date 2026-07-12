@@ -1,7 +1,8 @@
 // Board import/export snapshot: a plain, JSON-serializable, full-fidelity
-// mirror of a board (columns, cards, all fields, labels, order). The zod schema
-// is the validation boundary for imported files (Unit 4.4) and is reused by the
-// `importBoard` command so the agent surface validates identically.
+// mirror of a board (cards, all fields, labels, order). Since Unit 7 there is
+// no `Column` entity and no `columnId`: a card's placement is its `status`. The
+// zod schema is the validation boundary for imported files (Unit 4.4) and is
+// reused by the `importBoard` command so the agent surface validates identically.
 import { z } from "zod";
 
 import { STATUS_VALUES, type Status } from "../status";
@@ -42,14 +43,6 @@ const labelSchema = z.object({
   ord: z.string(),
 });
 
-const columnSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  ord: z.string(),
-  wipLimit: z.number().int().positive().optional(),
-  archived: z.boolean().default(false),
-});
-
 const statusSchema = z.enum(STATUS_VALUES as [Status, ...Status[]]).default("todo");
 
 const cardSchema = z.object({
@@ -57,7 +50,6 @@ const cardSchema = z.object({
   number: z.number().int().nonnegative().default(0),
   title: z.string(),
   description: z.string().default(""),
-  columnId: z.string(),
   ord: z.string(),
   status: statusSchema,
   priority: z
@@ -88,11 +80,9 @@ export const boardSnapshotSchema = z.object({
     badgeConfig: z.array(z.string()).default([]),
   }),
   labels: z.array(labelSchema).default([]),
-  columns: z.array(columnSchema).default([]),
   cards: z.array(cardSchema).default([]),
 });
 
 export type BoardSnapshot = z.infer<typeof boardSnapshotSchema>;
-export type SnapshotColumn = z.infer<typeof columnSchema>;
 export type SnapshotCard = z.infer<typeof cardSchema>;
 export type SnapshotLabel = z.infer<typeof labelSchema>;

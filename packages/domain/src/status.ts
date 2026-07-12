@@ -1,13 +1,17 @@
-// Workflow status (Linear-style), independent of a card's column. The shared
-// enum the Yjs schema and command layer have needed since Unit 1.7; Unit 2.12
-// layers categories, per-status color/icon, and ordering on top.
+// Workflow status (Linear-style). Since Unit 7 `status` is the SINGLE placement
+// axis: a card's column IS its status. The board renders exactly these eight
+// fixed columns (no add/rename/reorder/WIP). The shared enum the Yjs schema and
+// command layer have needed since Unit 1.7; Unit 2.12 layered categories,
+// per-status color/icon, and ordering on top.
 export const Status = {
   Backlog: "backlog",
   Todo: "todo",
   InProgress: "in_progress",
+  Pending: "pending",
   InReview: "in_review",
   Done: "done",
   Canceled: "canceled",
+  Duplicate: "duplicate",
 } as const;
 export type Status = (typeof Status)[keyof typeof Status];
 
@@ -39,19 +43,26 @@ export const STATUS_META: Record<Status, StatusMeta> = {
   [Status.Backlog]: { name: "Backlog", category: StatusCategory.Unstarted, color: "#8a8f98" },
   [Status.Todo]: { name: "Todo", category: StatusCategory.Unstarted, color: "#a0a4ad" },
   [Status.InProgress]: { name: "In Progress", category: StatusCategory.Started, color: "#f2c94c" },
+  [Status.Pending]: { name: "Pending", category: StatusCategory.Started, color: "#e2b341" },
   [Status.InReview]: { name: "In Review", category: StatusCategory.Started, color: "#4cb782" },
   [Status.Done]: { name: "Done", category: StatusCategory.Completed, color: "#5e6ad2" },
   [Status.Canceled]: { name: "Canceled", category: StatusCategory.Canceled, color: "#6b7080" },
+  [Status.Duplicate]: { name: "Duplicate", category: StatusCategory.Canceled, color: "#565b66" },
 };
 
-/** Display order for pickers and status lanes (workflow left→right). */
+/**
+ * Display order for the fixed board columns and pickers (workflow left→right):
+ * Backlog, Todo, In Progress, Pending, In Review, Done, Canceled, Duplicate.
+ */
 export const STATUS_ORDER: Status[] = [
   Status.Backlog,
   Status.Todo,
   Status.InProgress,
+  Status.Pending,
   Status.InReview,
   Status.Done,
   Status.Canceled,
+  Status.Duplicate,
 ];
 
 export const isDoneStatus = (status: Status): boolean =>

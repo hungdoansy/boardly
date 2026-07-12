@@ -1,15 +1,15 @@
 // Yjs board document schema: top-level type accessors, scalar readers, and
 // Y → plain-domain converters. Mutations live in board-doc.ts. There is exactly
 // one content doc per user, addressed by the user's id. Shape follows the
-// plan's High-Level Technical Design: flat, id-keyed Y.Maps; `columnId` on the
-// card (no nested arrays); structured values (dueDate) as nested Y.Map, never
-// JSON strings; sets (labels) as Y.Map<id,true>; description as Y.Text.
+// plan's High-Level Technical Design: flat, id-keyed Y.Maps; a card's placement
+// is its `status` (no `columnId`, no `Column` entity); structured values
+// (dueDate) as nested Y.Map, never JSON strings; sets (labels) as
+// Y.Map<id,true>; description as Y.Text.
 import {
   type Board,
   type Card,
   type CardLink,
   type ChecklistItem,
-  type Column,
   type DueDate,
   type Label,
   type LinkProvider,
@@ -22,15 +22,13 @@ import {
 } from "@boardly/domain";
 import * as Y from "yjs";
 
-/** A card / column / label as stored in Yjs (an id-keyed sub-map). */
+/** A card / label as stored in Yjs (an id-keyed sub-map). */
 export type YCard = Y.Map<unknown>;
-export type YColumn = Y.Map<unknown>;
 export type YLabel = Y.Map<unknown>;
 
 // ----- Top-level document sections -----
 
 export const boardMeta = (doc: Y.Doc): Y.Map<unknown> => doc.getMap<unknown>("meta");
-export const boardColumns = (doc: Y.Doc): Y.Map<YColumn> => doc.getMap<YColumn>("columns");
 export const boardCards = (doc: Y.Doc): Y.Map<YCard> => doc.getMap<YCard>("cards");
 export const boardLabels = (doc: Y.Doc): Y.Map<YLabel> => doc.getMap<YLabel>("labels");
 export const boardProjects = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>
@@ -57,20 +55,6 @@ export function getBool(m: Y.Map<unknown>, key: string, fallback = false): boole
 }
 
 // ----- Converters (Y → plain, JSON-serializable domain types) -----
-
-export function columnToPlain(yc: YColumn): Column {
-  const col: Column = {
-    id: getString(yc, "id"),
-    title: getString(yc, "title"),
-    ord: getString(yc, "ord"),
-    archived: getBool(yc, "archived"),
-  };
-  const wip = yc.get("wipLimit");
-  if (typeof wip === "number") col.wipLimit = wip;
-  const del = yc.get("deletedAt");
-  if (typeof del === "number") col.deletedAt = del;
-  return col;
-}
 
 /**
  * Convert a stored card to its plain domain shape. `opts.prefix` is the board's
@@ -135,7 +119,6 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
     shortId: formatTicketId(prefix, number),
     title: getString(yc, "title"),
     description: description instanceof Y.Text ? description.toString() : "",
-    columnId: getString(yc, "columnId"),
     ord: getString(yc, "ord"),
     status: getString(yc, "status", DEFAULT_STATUS) as Status,
     priority: getNumber(yc, "priority", 0) as PriorityValue,
@@ -170,6 +153,8 @@ export function boardToPlain(doc: Y.Doc, userId: string): Board {
     shortIdPrefix: getString(meta, "shortIdPrefix", ""),
     shortIdSeq: getNumber(meta, "shortIdSeq"),
     badgeConfig: Array.isArray(badgeRaw) ? (badgeRaw as string[]) : [],
+    // Board toolbar preference (Unit 7); defaults to true when absent from meta.
+    showEmptyColumns: getBool(meta, "showEmptyColumns", true),
     createdAt: getNumber(meta, "createdAt"),
     updatedAt: getNumber(meta, "updatedAt"),
   };

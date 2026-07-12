@@ -4,35 +4,34 @@ import * as Y from "yjs";
 
 import {
   addCard,
-  addColumn,
   addLink,
   allLiveCards,
   archiveCard,
-  archiveColumn,
-  cardsInColumn,
+  cardsInStatus,
   getBoard,
   getCard,
   initBoard,
   listActivity,
-  liveColumns,
   moveCard,
   moveLink,
-  reclaimCards,
   setCardDescription,
   setCardPriority,
   setCardStatus,
+  setShowEmptyColumns,
 } from "./board-doc";
 import { boardCards } from "./schema";
 
 const NOW = 1_700_000_000_000;
 
+// Fixed status columns replace user-managed columns (Unit 7).
+const TODO = Status.Todo;
+const DOING = Status.InProgress;
+const DONE = Status.Done;
+
 function setup() {
   const doc = new Y.Doc();
   initBoard(doc, { title: "Test board", now: NOW });
-  const c1 = addColumn(doc, { title: "To Do", now: NOW, clientId: "1" });
-  const c2 = addColumn(doc, { title: "Doing", now: NOW, clientId: "1" });
-  const c3 = addColumn(doc, { title: "Done", now: NOW, clientId: "1" });
-  return { doc, c1, c2, c3 };
+  return { doc };
 }
 
 function clone(doc: Y.Doc): Y.Doc {
@@ -58,27 +57,36 @@ describe("board meta + creation", () => {
     expect(board.shortIdSeq).toBe(0);
   });
 
-  it("a brand-new (uninitialized) per-user doc reports no columns or cards", () => {
+  it("a brand-new (uninitialized) per-user doc reports no cards", () => {
     const doc = new Y.Doc();
-    expect(liveColumns(doc)).toEqual([]);
     expect(allLiveCards(doc)).toEqual([]);
+    for (const status of [TODO, DOING, DONE]) {
+      expect(cardsInStatus(doc, status)).toEqual([]);
+    }
   });
 
-  it("groups and sorts cards per column", () => {
-    const { doc, c1, c2 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
-    addCard(doc, { columnId: c2, title: "C", now: NOW, clientId: "1" });
+  it("groups and sorts cards by status", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addCard(doc, { status: DOING, title: "C", now: NOW, clientId: "1" });
 
-    expect(cardsInColumn(doc, c1).map((c) => c.id)).toEqual([a, b]);
-    expect(cardsInColumn(doc, c2).map((c) => c.title)).toEqual(["C"]);
-    expect(liveColumns(doc).map((c) => c.title)).toEqual(["To Do", "Doing", "Done"]);
+    expect(cardsInStatus(doc, TODO).map((c) => c.id)).toEqual([a, b]);
+    expect(cardsInStatus(doc, DOING).map((c) => c.title)).toEqual(["C"]);
+    expect(cardsInStatus(doc, DONE)).toEqual([]);
+  });
+
+  it("defaults a card with no explicit status to Todo", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { title: "A", now: NOW, clientId: "1" });
+    expect(getCard(doc, a)?.status).toBe(DEFAULT_STATUS);
+    expect(cardsInStatus(doc, DEFAULT_STATUS).map((c) => c.id)).toEqual([a]);
   });
 
   it("assigns sequential integer numbers, shown as #{number} with an empty prefix", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
     expect(getCard(doc, a)?.number).toBe(1);
     expect(getCard(doc, b)?.number).toBe(2);
     expect(getCard(doc, a)?.shortId).toBe("#1");
@@ -88,22 +96,21 @@ describe("board meta + creation", () => {
   it("derives {PREFIX}-{number} when the board has a prefix", () => {
     const doc = new Y.Doc();
     initBoard(doc, { title: "Prefixed", shortIdPrefix: "TEC", now: NOW });
-    const c1 = addColumn(doc, { title: "To Do", now: NOW, clientId: "1" });
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
     expect(getCard(doc, a)?.number).toBe(1);
     expect(getCard(doc, a)?.shortId).toBe("TEC-1");
   });
 
   it("repairs duplicate numbers from concurrent creation on read (no write)", () => {
-    const { doc, c1 } = setup();
-    const first = addCard(doc, { columnId: c1, title: "First", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const first = addCard(doc, { status: TODO, title: "First", now: NOW, clientId: "1" });
     // Simulate a merged offline sibling that grabbed the same number.
     const dupId = "dup-card";
     const dup = new Y.Map<unknown>();
     dup.set("id", dupId);
     dup.set("number", getCard(doc, first)!.number);
     dup.set("title", "Dup");
-    dup.set("columnId", c1);
+    dup.set("status", TODO);
     dup.set("ord", "a1");
     dup.set("archived", false);
     dup.set("createdAt", NOW + 1000); // later → the displaced one
@@ -116,66 +123,98 @@ describe("board meta + creation", () => {
   });
 });
 
-describe("moveCard", () => {
-  it("moves a card across columns (columnId + ord updated)", () => {
-    const { doc, c1, c2 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    moveCard(doc, a, c2, {}, "1", NOW);
-    expect(cardsInColumn(doc, c1).map((c) => c.id)).toEqual([]);
-    expect(cardsInColumn(doc, c2).map((c) => c.id)).toEqual([a]);
-    expect(getCard(doc, a)?.columnId).toBe(c2);
+describe("showEmptyColumns board meta", () => {
+  it("defaults to true and round-trips a false write", () => {
+    const { doc } = setup();
+    expect(getBoard(doc, "u1").showEmptyColumns).toBe(true);
+    setShowEmptyColumns(doc, false, NOW + 1);
+    expect(getBoard(doc, "u1").showEmptyColumns).toBe(false);
+    setShowEmptyColumns(doc, true, NOW + 2);
+    expect(getBoard(doc, "u1").showEmptyColumns).toBe(true);
   });
 
-  it("reorders within a column, placing strictly between neighbors", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
-    const c = addCard(doc, { columnId: c1, title: "C", now: NOW, clientId: "1" });
-    // Move C between A and B → A, C, B
-    moveCard(doc, c, c1, { afterId: a, beforeId: b }, "1", NOW);
-    expect(cardsInColumn(doc, c1).map((x) => x.id)).toEqual([a, c, b]);
+  it("defaults to true even on a brand-new (uninitialized) doc", () => {
+    const doc = new Y.Doc();
+    expect(getBoard(doc, "u1").showEmptyColumns).toBe(true);
+  });
+});
+
+describe("moveCard", () => {
+  it("moves a card to a different status (status + ord updated) and logs a status change", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    moveCard(doc, a, DOING, { afterId: null, beforeId: null }, "1", NOW + 1, "u1");
+    expect(cardsInStatus(doc, TODO).map((c) => c.id)).toEqual([]);
+    expect(cardsInStatus(doc, DOING).map((c) => c.id)).toEqual([a]);
+    expect(getCard(doc, a)?.status).toBe(DOING);
+
+    const statusLog = listActivity(doc).filter((e) => e.type === "status");
+    expect(statusLog).toHaveLength(1);
+    expect(statusLog[0]).toMatchObject({ type: "status", cardId: a, from: TODO, to: DOING });
+  });
+
+  it("places a moved card strictly between neighbors of the destination status", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: DOING, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: DOING, title: "B", now: NOW, clientId: "1" });
+    const c = addCard(doc, { status: TODO, title: "C", now: NOW, clientId: "1" });
+    // Move C into DOING between A and B → A, C, B
+    moveCard(doc, c, DOING, { afterId: a, beforeId: b }, "1", NOW + 1);
+    expect(cardsInStatus(doc, DOING).map((x) => x.id)).toEqual([a, c, b]);
+  });
+
+  it("reorders within the same status without a spurious status activity", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    const c = addCard(doc, { status: TODO, title: "C", now: NOW, clientId: "1" });
+    // Move C between A and B → A, C, B (same status)
+    moveCard(doc, c, TODO, { afterId: a, beforeId: b }, "1", NOW + 1);
+    expect(cardsInStatus(doc, TODO).map((x) => x.id)).toEqual([a, c, b]);
+    expect(getCard(doc, c)?.status).toBe(TODO);
+    // Pure reorder is not a status change.
+    expect(listActivity(doc).filter((e) => e.type === "status")).toHaveLength(0);
   });
 
   it("keeps repeated inserts into the same gap ordered", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
-    const x = addCard(doc, { columnId: c1, title: "X", now: NOW, clientId: "1" });
-    const y = addCard(doc, { columnId: c1, title: "Y", now: NOW, clientId: "1" });
-    moveCard(doc, x, c1, { afterId: a, beforeId: b }, "1", NOW);
-    moveCard(doc, y, c1, { afterId: a, beforeId: x }, "1", NOW);
-    expect(cardsInColumn(doc, c1).map((c) => c.id)).toEqual([a, y, x, b]);
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    const x = addCard(doc, { status: TODO, title: "X", now: NOW, clientId: "1" });
+    const y = addCard(doc, { status: TODO, title: "Y", now: NOW, clientId: "1" });
+    moveCard(doc, x, TODO, { afterId: a, beforeId: b }, "1", NOW);
+    moveCard(doc, y, TODO, { afterId: a, beforeId: x }, "1", NOW);
+    expect(cardsInStatus(doc, TODO).map((c) => c.id)).toEqual([a, y, x, b]);
   });
 
   it("computes a valid boundary ord at list start/end", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
     // Move B to the very start (before A)
-    moveCard(doc, b, c1, { afterId: null, beforeId: a }, "1", NOW);
-    expect(cardsInColumn(doc, c1).map((c) => c.id)).toEqual([b, a]);
+    moveCard(doc, b, TODO, { afterId: null, beforeId: a }, "1", NOW);
+    expect(cardsInStatus(doc, TODO).map((c) => c.id)).toEqual([b, a]);
   });
 });
 
 describe("soft-delete", () => {
   it("archiving a card removes it from selectors but keeps it in the map", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
     archiveCard(doc, a, NOW);
-    expect(cardsInColumn(doc, c1)).toEqual([]);
+    expect(cardsInStatus(doc, TODO)).toEqual([]);
     expect(boardCards(doc).has(a)).toBe(true);
     expect(getCard(doc, a)?.archived).toBe(true);
   });
 });
 
-describe("workflow status", () => {
-  it("records a status change in the activity log, leaving the column untouched", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+describe("workflow status (picker)", () => {
+  it("records a status change in the activity log", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
     setCardStatus(doc, a, Status.InProgress, NOW + 1, "actor-1");
 
     expect(getCard(doc, a)?.status).toBe(Status.InProgress);
-    expect(getCard(doc, a)?.columnId).toBe(c1);
     const statusLog = listActivity(doc).filter((e) => e.type === "status");
     expect(statusLog).toHaveLength(1);
     expect(statusLog[0]).toMatchObject({
@@ -185,34 +224,24 @@ describe("workflow status", () => {
       to: Status.InProgress,
       actor: "actor-1",
     });
+    // The card now lives in the matching column.
+    expect(cardsInStatus(doc, Status.InProgress).map((c) => c.id)).toEqual([a]);
   });
 
   it("no-ops (no status activity) when the status is unchanged", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
     setCardStatus(doc, a, DEFAULT_STATUS, NOW + 1);
     expect(listActivity(doc).filter((e) => e.type === "status")).toHaveLength(0);
-  });
-
-  it("is independent of the column: moving a card does not change its status", () => {
-    const { doc, c1, c2 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    setCardStatus(doc, a, Status.InReview, NOW + 1, "1");
-    moveCard(doc, a, c2, { afterId: null, beforeId: null }, "1", NOW + 2);
-
-    expect(getCard(doc, a)?.columnId).toBe(c2);
-    expect(getCard(doc, a)?.status).toBe(Status.InReview);
-    // The move added no status activity.
-    expect(listActivity(doc).filter((e) => e.type === "status")).toHaveLength(1);
   });
 });
 
 describe("allLiveCards", () => {
-  it("returns every non-archived card across columns, excluding archived", () => {
-    const { doc, c1, c2 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c2, title: "B", now: NOW, clientId: "1" });
-    const gone = addCard(doc, { columnId: c1, title: "Gone", now: NOW, clientId: "1" });
+  it("returns every non-archived card across statuses, excluding archived", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: DOING, title: "B", now: NOW, clientId: "1" });
+    const gone = addCard(doc, { status: TODO, title: "Gone", now: NOW, clientId: "1" });
     archiveCard(doc, gone, NOW);
     const ids = allLiveCards(doc)
       .map((c) => c.id)
@@ -223,8 +252,8 @@ describe("allLiveCards", () => {
 
 describe("moveLink", () => {
   function seedLinks() {
-    const { doc, c1 } = setup();
-    const card = addCard(doc, { columnId: c1, title: "Card", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const card = addCard(doc, { status: TODO, title: "Card", now: NOW, clientId: "1" });
     const l1 = addLink(doc, { cardId: card, url: "https://example.com/a", now: NOW, clientId: "1" });
     const l2 = addLink(doc, { cardId: card, url: "https://example.com/b", now: NOW, clientId: "1" });
     const l3 = addLink(doc, { cardId: card, url: "https://example.com/c", now: NOW, clientId: "1" });
@@ -249,8 +278,8 @@ describe("moveLink", () => {
 
 describe("field setters", () => {
   it("sets a typed field and bumps updatedAt", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
     setCardPriority(doc, a, Priority.Urgent, NOW + 5);
     const card = getCard(doc, a);
     expect(card?.priority).toBe(Priority.Urgent);
@@ -259,29 +288,29 @@ describe("field setters", () => {
 });
 
 describe("concurrency (merged docs)", () => {
-  it("two docs moving the same card to different columns converge to exactly one", () => {
-    const { doc, c1, c2, c3 } = setup();
-    const card = addCard(doc, { columnId: c1, title: "X", now: NOW, clientId: "1" });
+  it("two docs moving the same card to different statuses converge to exactly one", () => {
+    const { doc } = setup();
+    const card = addCard(doc, { status: TODO, title: "X", now: NOW, clientId: "1" });
     const docB = clone(doc);
 
-    moveCard(doc, card, c2, {}, "A", NOW);
-    moveCard(docB, card, c3, {}, "B", NOW);
+    moveCard(doc, card, DOING, {}, "A", NOW);
+    moveCard(docB, card, DONE, {}, "B", NOW);
     merge(doc, docB);
 
-    const colA = getCard(doc, card)?.columnId;
-    const colB = getCard(docB, card)?.columnId;
-    expect(colA).toBe(colB); // converged
-    expect([c2, c3]).toContain(colA);
+    const statusA = getCard(doc, card)?.status;
+    const statusB = getCard(docB, card)?.status;
+    expect(statusA).toBe(statusB); // converged
+    expect([DOING, DONE]).toContain(statusA);
 
-    // Present in exactly one column, never duplicated.
-    const inC2 = cardsInColumn(doc, c2).filter((c) => c.id === card).length;
-    const inC3 = cardsInColumn(doc, c3).filter((c) => c.id === card).length;
-    expect(inC2 + inC3).toBe(1);
+    // Present in exactly one status column, never duplicated.
+    const inDoing = cardsInStatus(doc, DOING).filter((c) => c.id === card).length;
+    const inDone = cardsInStatus(doc, DONE).filter((c) => c.id === card).length;
+    expect(inDoing + inDone).toBe(1);
   });
 
   it("merges concurrent description edits at different positions (Y.Text)", () => {
-    const { doc, c1 } = setup();
-    const card = addCard(doc, { columnId: c1, title: "X", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const card = addCard(doc, { status: TODO, title: "X", now: NOW, clientId: "1" });
     setCardDescription(doc, card, "hello", NOW);
     const docB = clone(doc); // both have "hello"
 
@@ -293,28 +322,5 @@ describe("concurrency (merged docs)", () => {
     expect(desc).toContain("A");
     expect(desc).toContain("B");
     expect(getCard(doc, card)?.description).toBe(getCard(docB, card)?.description);
-  });
-
-  it("column deleted in A while B adds a card to it → orphan surfaced by reclaim, not lost", () => {
-    const { doc, c1 } = setup();
-    const docB = clone(doc);
-
-    archiveColumn(doc, c1, NOW);
-    const orphan = addCard(docB, { columnId: c1, title: "orphan", now: NOW, clientId: "B" });
-    merge(doc, docB);
-
-    // Column is gone from the live set on both replicas.
-    expect(liveColumns(doc).some((c) => c.id === c1)).toBe(false);
-    expect(liveColumns(docB).some((c) => c.id === c1)).toBe(false);
-
-    // The added card is not lost, not duplicated, surfaced by reclaim.
-    const reclaim = reclaimCards(doc);
-    expect(reclaim.filter((c) => c.id === orphan)).toHaveLength(1);
-    for (const col of liveColumns(doc)) {
-      expect(cardsInColumn(doc, col.id).map((c) => c.id)).not.toContain(orphan);
-    }
-
-    // Both replicas converge on the card's column.
-    expect(getCard(doc, orphan)?.columnId).toBe(getCard(docB, orphan)?.columnId);
   });
 });

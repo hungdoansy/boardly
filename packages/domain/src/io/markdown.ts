@@ -1,8 +1,9 @@
 // Readable Markdown export. Produces an Obsidian-Kanban-compatible outline:
-// `# Board`, then `## Column` sections with `- [ ] card` / `- [x] card` items
-// (checked = done/canceled/archived). Card lines are the title only, so the
-// output round-trips structurally back through `parseObsidian`.
-import { isTerminalStatus } from "../status";
+// `# Board`, then one `## Status` section per non-empty status (in workflow
+// order) with `- [ ] card` / `- [x] card` items (checked = done/canceled). Card
+// lines are the title only, so the output round-trips structurally back through
+// `parseObsidian` (headings whose names match a status resolve to that status).
+import { STATUS_META, STATUS_ORDER, type Status, isTerminalStatus } from "../status";
 import type { BoardSnapshot } from "./snapshot";
 
 const byOrd = <T extends { ord: string }>(a: T, b: T): number =>
@@ -14,17 +15,18 @@ export function exportMarkdown(snapshot: BoardSnapshot): string {
     lines.push(snapshot.board.description, "");
   }
 
-  const columns = [...snapshot.columns].filter((c) => !c.archived).sort(byOrd);
-  const cardsByColumn = new Map<string, typeof snapshot.cards>();
+  const cardsByStatus = new Map<Status, typeof snapshot.cards>();
   for (const card of [...snapshot.cards].filter((c) => !c.archived).sort(byOrd)) {
-    const list = cardsByColumn.get(card.columnId) ?? [];
+    const list = cardsByStatus.get(card.status) ?? [];
     list.push(card);
-    cardsByColumn.set(card.columnId, list);
+    cardsByStatus.set(card.status, list);
   }
 
-  for (const column of columns) {
-    lines.push(`## ${column.title}`, "");
-    for (const card of cardsByColumn.get(column.id) ?? []) {
+  for (const status of STATUS_ORDER) {
+    const cards = cardsByStatus.get(status);
+    if (!cards || cards.length === 0) continue;
+    lines.push(`## ${STATUS_META[status].name}`, "");
+    for (const card of cards) {
       const checked = isTerminalStatus(card.status);
       lines.push(`- [${checked ? "x" : " "}] ${card.title}`);
     }

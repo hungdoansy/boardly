@@ -1,15 +1,13 @@
 // Typed accessors for a board Y.Doc. Every mutation is a single Yjs
 // transaction touching typed keys (never an opaque bag, never an array-of-ids
-// rewrite). A move is a `columnId` + `ord` write only. Soft-delete sets
-// `archived` + `deletedAt`; deleting a column does NOT reparent its cards —
-// `reclaimCards` surfaces orphans instead. `now` is injected so the logic
-// stays pure/testable.
+// rewrite). Since Unit 7 a card's placement IS its `status`: a move is a
+// `status` + `ord` write (no `columnId`, no `Column` entity). Soft-delete sets
+// `archived` + `deletedAt`. `now` is injected so the logic stays pure/testable.
 import {
   type ActivityEntry,
   type Board,
   type BoardSnapshot,
   type Card,
-  type Column,
   type DueDate,
   type Label,
   type LinkProvider,
@@ -37,13 +35,11 @@ import {
   type YCard,
   boardActivity,
   boardCards,
-  boardColumns,
   boardLabels,
   boardMeta,
   boardProjects,
   boardToPlain,
   cardToPlain,
-  columnToPlain,
   getBool,
   getString,
   getNumber,
@@ -61,19 +57,18 @@ function maxOrd(ords: string[]): string | null {
   return max;
 }
 
-function rawLiveCardsInColumn(doc: Y.Doc, columnId: string): YCard[] {
+function rawLiveCardsInStatus(doc: Y.Doc, status: Status): YCard[] {
   return [...boardCards(doc).values()].filter(
-    (c) => getString(c, "columnId") === columnId && !getBool(c, "archived"),
+    (c) => getStatus(c) === status && !getBool(c, "archived"),
   );
+}
+
+function getStatus(c: YCard): Status {
+  return getString(c, "status", DEFAULT_STATUS) as Status;
 }
 
 function ordOfCard(doc: Y.Doc, cardId: string): string | null {
   const c = boardCards(doc).get(cardId);
-  return c instanceof Y.Map ? getString(c, "ord") : null;
-}
-
-function ordOfColumn(doc: Y.Doc, columnId: string): string | null {
-  const c = boardColumns(doc).get(columnId);
   return c instanceof Y.Map ? getString(c, "ord") : null;
 }
 
@@ -141,6 +136,18 @@ export function setTicketPrefix(doc: Y.Doc, prefix: string, now: number): void {
   });
 }
 
+/**
+ * Toggle whether empty status columns are shown on the board (board meta,
+ * synced per-user). Defaults to `true` when never set (see `boardToPlain`).
+ */
+export function setShowEmptyColumns(doc: Y.Doc, show: boolean, now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    meta.set("showEmptyColumns", show);
+    meta.set("updatedAt", now);
+  });
+}
+
 // ----- saved views (Unit 4.1) -----
 
 /** The board's saved views (stored as a plain JSON array on `meta.views`). */
@@ -172,91 +179,12 @@ export function deleteView(doc: Y.Doc, viewId: string, now: number): void {
   });
 }
 
-// ----- columns -----
-
-export interface AddColumnParams {
-  id?: string;
-  title: string;
-  now: number;
-  clientId: string;
-}
-
-export function addColumn(doc: Y.Doc, params: AddColumnParams): string {
-  const id = params.id ?? newId();
-  doc.transact(() => {
-    const cols = boardColumns(doc);
-    const lastOrd = maxOrd(
-      [...cols.values()].filter((c) => !getBool(c, "archived")).map((c) => getString(c, "ord")),
-    );
-    const col = new Y.Map<unknown>();
-    col.set("id", id);
-    col.set("title", params.title);
-    col.set("ord", keyBetween(lastOrd, null, params.clientId));
-    col.set("archived", false);
-    cols.set(id, col);
-    boardMeta(doc).set("updatedAt", params.now);
-  });
-  return id;
-}
-
-export function renameColumn(doc: Y.Doc, columnId: string, title: string, now: number): void {
-  doc.transact(() => {
-    const col = boardColumns(doc).get(columnId);
-    if (!(col instanceof Y.Map)) return;
-    col.set("title", title);
-    boardMeta(doc).set("updatedAt", now);
-  });
-}
-
-/** Set (or clear, with `null`) a column's soft WIP limit. */
-export function setColumnWipLimit(
-  doc: Y.Doc,
-  columnId: string,
-  wipLimit: number | null,
-  now: number,
-): void {
-  doc.transact(() => {
-    const col = boardColumns(doc).get(columnId);
-    if (!(col instanceof Y.Map)) return;
-    if (wipLimit === null) col.delete("wipLimit");
-    else col.set("wipLimit", wipLimit);
-    boardMeta(doc).set("updatedAt", now);
-  });
-}
-
-export function moveColumn(
-  doc: Y.Doc,
-  columnId: string,
-  neighbors: Neighbors,
-  clientId: string,
-  now: number,
-): void {
-  doc.transact(() => {
-    const col = boardColumns(doc).get(columnId);
-    if (!(col instanceof Y.Map)) return;
-    const afterOrd = neighbors.afterId ? ordOfColumn(doc, neighbors.afterId) : null;
-    const beforeOrd = neighbors.beforeId ? ordOfColumn(doc, neighbors.beforeId) : null;
-    col.set("ord", keyBetween(afterOrd, beforeOrd, clientId));
-    boardMeta(doc).set("updatedAt", now);
-  });
-}
-
-/** Soft-delete a column. Cards keep their `columnId`; `reclaimCards` surfaces them. */
-export function archiveColumn(doc: Y.Doc, columnId: string, now: number): void {
-  doc.transact(() => {
-    const col = boardColumns(doc).get(columnId);
-    if (!(col instanceof Y.Map)) return;
-    col.set("archived", true);
-    col.set("deletedAt", now);
-    boardMeta(doc).set("updatedAt", now);
-  });
-}
-
 // ----- cards -----
 
 export interface AddCardParams {
   id?: string;
-  columnId: string;
+  /** Placement status; defaults to Todo. A card's column IS its status. */
+  status?: Status;
   title: string;
   projectId?: string;
   now: number;
@@ -266,23 +194,21 @@ export interface AddCardParams {
 
 export function addCard(doc: Y.Doc, params: AddCardParams): string {
   const id = params.id ?? newId();
+  const status = params.status ?? DEFAULT_STATUS;
   doc.transact(() => {
     const meta = boardMeta(doc);
     const cards = boardCards(doc);
     const seq = getNumber(meta, "shortIdSeq") + 1;
     meta.set("shortIdSeq", seq);
-    const lastOrd = maxOrd(
-      rawLiveCardsInColumn(doc, params.columnId).map((c) => getString(c, "ord")),
-    );
+    const lastOrd = maxOrd(rawLiveCardsInStatus(doc, status).map((c) => getString(c, "ord")));
     const card = new Y.Map<unknown>();
     card.set("id", id);
     card.set("number", seq);
     card.set("title", params.title);
     if (params.projectId !== undefined) card.set("projectId", params.projectId);
     card.set("description", new Y.Text());
-    card.set("columnId", params.columnId);
     card.set("ord", keyBetween(lastOrd, null, params.clientId));
-    card.set("status", DEFAULT_STATUS);
+    card.set("status", status);
     card.set("priority", Priority.None);
     card.set("severity", null);
     card.set("dueDate", null);
@@ -375,8 +301,10 @@ export function setCardSeverity(
 }
 
 /**
- * Set the workflow status (LWW key, independent of the column). When the value
- * actually changes, append a status-change entry to the board activity log.
+ * Set the workflow status (LWW key) without reordering — the card keeps its
+ * `ord` and simply moves to the matching status column. Used by the drawer
+ * status picker; `moveCard` is the drag path that also positions the card. When
+ * the value actually changes, append a status-change entry to the activity log.
  */
 export function setCardStatus(
   doc: Y.Doc,
@@ -742,14 +670,17 @@ export function moveLink(
 }
 
 /**
- * Move a card to `toColumnId` at the slot between the neighbors. A single
- * `columnId` + `ord` write — concurrent moves of the same card resolve by Yjs
- * LWW to exactly one column (no duplicate).
+ * Move a card to `toStatus` at the slot between the neighbors. A single
+ * `status` + `ord` write — concurrent moves of the same card resolve by Yjs LWW
+ * to exactly one status (no duplicate). Because a card's column IS its status,
+ * a move to a different status is a status change and logs a `status` activity
+ * entry; moving within the same status only reorders (`ord` changes) and logs
+ * nothing.
  */
 export function moveCard(
   doc: Y.Doc,
   cardId: string,
-  toColumnId: string,
+  toStatus: Status,
   neighbors: Neighbors,
   clientId: string,
   now: number,
@@ -758,20 +689,20 @@ export function moveCard(
   doc.transact(() => {
     const card = boardCards(doc).get(cardId);
     if (!(card instanceof Y.Map)) return;
-    const from = getString(card, "columnId");
+    const from = getStatus(card);
     const afterOrd = neighbors.afterId ? ordOfCard(doc, neighbors.afterId) : null;
     const beforeOrd = neighbors.beforeId ? ordOfCard(doc, neighbors.beforeId) : null;
-    card.set("columnId", toColumnId);
+    card.set("status", toStatus);
     card.set("ord", keyBetween(afterOrd, beforeOrd, clientId));
     card.set("updatedAt", now);
     boardMeta(doc).set("updatedAt", now);
-    // Only a column change is a "move" worth logging; pure reordering is not.
-    if (from !== toColumnId) {
+    // A status change is worth logging; pure reordering within a status is not.
+    if (from !== toStatus) {
       appendActivity(doc, {
-        type: "moved",
+        type: "status",
         cardId,
-        from: from || null,
-        to: toColumnId,
+        from,
+        to: toStatus,
         at: now,
         actor: actor ?? clientId,
       });
@@ -1006,29 +937,12 @@ function toPlain(c: YCard, prefix: string, overrides: Map<string, number>): Card
   return cardToPlain(c, { prefix, number: overrides.get(getString(c, "id")) });
 }
 
-export function liveColumns(doc: Y.Doc): Column[] {
-  return [...boardColumns(doc).values()]
-    .filter((c) => !getBool(c, "archived"))
-    .map(columnToPlain)
-    .sort(byOrd);
-}
-
-export function cardsInColumn(doc: Y.Doc, columnId: string): Card[] {
+/** Non-archived cards with the given `status` (i.e. in that fixed column), sorted by `ord`. */
+export function cardsInStatus(doc: Y.Doc, status: Status): Card[] {
   const prefix = boardPrefix(doc);
   const overrides = ticketNumberOverrides(doc);
   return [...boardCards(doc).values()]
-    .filter((c) => getString(c, "columnId") === columnId && !getBool(c, "archived"))
-    .map((c) => toPlain(c, prefix, overrides))
-    .sort(byOrd);
-}
-
-/** Non-archived cards whose `columnId` points at no live column ("Unsorted"). */
-export function reclaimCards(doc: Y.Doc): Card[] {
-  const live = new Set(liveColumns(doc).map((c) => c.id));
-  const prefix = boardPrefix(doc);
-  const overrides = ticketNumberOverrides(doc);
-  return [...boardCards(doc).values()]
-    .filter((c) => !getBool(c, "archived") && !live.has(getString(c, "columnId")))
+    .filter((c) => getStatus(c) === status && !getBool(c, "archived"))
     .map((c) => toPlain(c, prefix, overrides))
     .sort(byOrd);
 }
@@ -1038,7 +952,7 @@ export function getCard(doc: Y.Doc, cardId: string): Card | null {
   return c instanceof Y.Map ? toPlain(c, boardPrefix(doc), ticketNumberOverrides(doc)) : null;
 }
 
-/** Every non-archived card on the board (any column, incl. unsorted), number-repaired. */
+/** Every non-archived card on the board (any status), number-repaired. */
 export function allLiveCards(doc: Y.Doc): Card[] {
   const prefix = boardPrefix(doc);
   const overrides = ticketNumberOverrides(doc);
@@ -1050,8 +964,9 @@ export function allLiveCards(doc: Y.Doc): Card[] {
 // ----- import / export (Unit 4.4) -----
 
 /**
- * Read a full-fidelity snapshot of a board (live columns + cards + labels +
- * meta) for export. Archived items are excluded — a clean export.
+ * Read a full-fidelity snapshot of a board (cards + labels + meta) for export.
+ * Card placement is its `status`; there is no columns array. Archived items are
+ * excluded — a clean export.
  */
 export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
   const board = boardToPlain(doc, userId);
@@ -1065,13 +980,6 @@ export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
       badgeConfig: board.badgeConfig,
     },
     labels: listLabels(doc),
-    columns: liveColumns(doc).map((c) => ({
-      id: c.id,
-      title: c.title,
-      ord: c.ord,
-      ...(c.wipLimit !== undefined ? { wipLimit: c.wipLimit } : {}),
-      archived: false,
-    })),
     cards: allLiveCards(doc).map((c) => ({ ...c })),
   };
 }
@@ -1084,7 +992,6 @@ function buildCard(card: SnapshotCard): YCard {
   const desc = new Y.Text();
   if (card.description) desc.insert(0, card.description);
   yc.set("description", desc);
-  yc.set("columnId", card.columnId);
   yc.set("ord", card.ord);
   yc.set("status", card.status);
   yc.set("priority", card.priority);
@@ -1169,17 +1076,6 @@ export function buildBoardFromSnapshot(doc: Y.Doc, snapshot: BoardSnapshot, now:
       yl.set("color", label.color);
       yl.set("ord", label.ord);
       labels.set(label.id, yl);
-    }
-
-    const columns = boardColumns(doc);
-    for (const col of snapshot.columns) {
-      const yc = new Y.Map<unknown>();
-      yc.set("id", col.id);
-      yc.set("title", col.title);
-      yc.set("ord", col.ord);
-      yc.set("archived", false);
-      if (col.wipLimit !== undefined) yc.set("wipLimit", col.wipLimit);
-      columns.set(col.id, yc);
     }
 
     const cards = boardCards(doc);

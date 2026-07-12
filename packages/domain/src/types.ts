@@ -48,15 +48,6 @@ export interface CardLink {
   ord: string;
 }
 
-export interface Column {
-  id: Id;
-  title: string;
-  ord: string;
-  wipLimit?: number;
-  archived: boolean;
-  deletedAt?: number;
-}
-
 export interface Card {
   id: Id;
   /** Stored integer ticket sequence, from the board's single counter. */
@@ -68,10 +59,14 @@ export interface Card {
   shortId: string;
   title: string;
   description: string;
-  columnId: Id;
   /** The project this card belongs to (grouping only; unset = no project). */
   projectId?: Id;
   ord: string;
+  /**
+   * Workflow status — the SINGLE placement axis since Unit 7. A card renders in
+   * the fixed board column that matches its `status`; there is no separate
+   * `columnId`. Within a status group, cards are ordered by `ord`.
+   */
   status: Status;
   priority: PriorityValue;
   severity: SeverityValue | null;
@@ -102,6 +97,11 @@ export interface Board {
   shortIdSeq: number;
   /** Ordered field keys shown in the card-face badge row (Unit 2.6). */
   badgeConfig: string[];
+  /**
+   * Board toolbar toggle (Unit 7): when false, status columns with no cards are
+   * hidden. Synced board meta; defaults to `true` when absent.
+   */
+  showEmptyColumns: boolean;
   createdAt: number;
   updatedAt: number;
 }

@@ -4,7 +4,6 @@ import * as Y from "yjs";
 
 import {
   addCard,
-  addColumn,
   archiveCard,
   cardActivity,
   initBoard,
@@ -22,37 +21,35 @@ const NOW = 1_700_000_000_000;
 function setup() {
   const doc = new Y.Doc();
   initBoard(doc, { title: "Test board", now: NOW });
-  const c1 = addColumn(doc, { title: "To Do", now: NOW, clientId: "1" });
-  const c2 = addColumn(doc, { title: "Doing", now: NOW, clientId: "1" });
-  return { doc, c1, c2 };
+  return { doc };
 }
 
 describe("card activity log", () => {
   it("records a 'created' entry when a card is added", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1", createdBy: "u1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1", createdBy: "u1" });
     const log = cardActivity(doc, a);
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({ type: "created", cardId: a, actor: "u1" });
   });
 
-  it("appends correctly-typed entries for move + priority + status changes", () => {
-    const { doc, c1, c2 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    moveCard(doc, a, c2, { afterId: null, beforeId: null }, "1", NOW + 1, "u1");
+  it("logs a status change for a move to a different status, plus priority", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
+    // Drag to a new column = a status change.
+    moveCard(doc, a, Status.InProgress, { afterId: null, beforeId: null }, "1", NOW + 1, "u1");
     setCardPriority(doc, a, Priority.High, NOW + 2, "u1");
-    setCardStatus(doc, a, Status.InProgress, NOW + 3, "u1");
 
     // Newest-first for the card timeline.
     const log = cardActivity(doc, a);
-    expect(log.map((e) => e.type)).toEqual(["status", "priority", "moved", "created"]);
-    expect(log[2]).toMatchObject({ type: "moved", from: c1, to: c2 });
-    expect(log[1]).toMatchObject({ type: "priority", from: Priority.None, to: Priority.High });
+    expect(log.map((e) => e.type)).toEqual(["priority", "status", "created"]);
+    expect(log[1]).toMatchObject({ type: "status", from: Status.Todo, to: Status.InProgress });
+    expect(log[0]).toMatchObject({ type: "priority", from: Priority.None, to: Priority.High });
   });
 
   it("logs severity and due-date changes, and clearing them", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
     setCardSeverity(doc, a, Severity.S1, NOW + 1, "u1");
     setCardDueDate(doc, a, { at: NOW + 100, hasTime: false }, NOW + 2, "u1");
     setCardDueDate(doc, a, null, NOW + 3, "u1");
@@ -65,24 +62,25 @@ describe("card activity log", () => {
   });
 
   it("does not log a no-op change (same value)", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
     setCardPriority(doc, a, Priority.None, NOW + 1, "u1"); // unchanged
     setCardTitle(doc, a, "A", NOW + 2, "u1"); // unchanged
+    setCardStatus(doc, a, Status.Todo, NOW + 3, "u1"); // unchanged
     expect(cardActivity(doc, a).map((e) => e.type)).toEqual(["created"]);
   });
 
-  it("does not log pure reordering within the same column", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
-    moveCard(doc, b, c1, { afterId: a, beforeId: null }, "1", NOW + 1, "u1");
-    expect(cardActivity(doc, b).filter((e) => e.type === "moved")).toHaveLength(0);
+  it("does not log pure reordering within the same status", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: Status.Todo, title: "B", now: NOW, clientId: "1" });
+    moveCard(doc, b, Status.Todo, { afterId: a, beforeId: null }, "1", NOW + 1, "u1");
+    expect(cardActivity(doc, b).filter((e) => e.type === "status")).toHaveLength(0);
   });
 
   it("logs an 'archived' entry and is append-only across a merge", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
     setCardTitle(doc, a, "Renamed", NOW + 1, "u1");
     archiveCard(doc, a, NOW + 2, "u1");
 
@@ -98,9 +96,9 @@ describe("card activity log", () => {
   });
 
   it("cardActivity isolates one card from another", () => {
-    const { doc, c1 } = setup();
-    const a = addCard(doc, { columnId: c1, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: c1, title: "B", now: NOW, clientId: "1" });
+    const { doc } = setup();
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: Status.Todo, title: "B", now: NOW, clientId: "1" });
     setCardPriority(doc, b, Priority.Urgent, NOW + 1, "u1");
     expect(cardActivity(doc, a).map((e) => e.type)).toEqual(["created"]);
     expect(cardActivity(doc, b).map((e) => e.type)).toEqual(["priority", "created"]);

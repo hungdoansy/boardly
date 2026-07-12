@@ -17,17 +17,12 @@ const snapshot: BoardSnapshot = {
     badgeConfig: ["priority", "status"],
   },
   labels: [{ id: "l1", name: "bug", color: "#eb5757", ord: "a0" }],
-  columns: [
-    { id: "c1", title: "To Do", ord: "a0", archived: false },
-    { id: "c2", title: "Doing", ord: "a1", wipLimit: 3, archived: false },
-  ],
   cards: [
     {
       id: "k1",
       number: 1,
       title: "Fix login",
       description: "steps",
-      columnId: "c1",
       ord: "a0",
       status: Status.Todo,
       priority: Priority.High,
@@ -45,7 +40,6 @@ const snapshot: BoardSnapshot = {
       number: 2,
       title: "Ship it",
       description: "",
-      columnId: "c2",
       ord: "a0",
       status: Status.Done,
       priority: Priority.None,
@@ -62,7 +56,7 @@ const snapshot: BoardSnapshot = {
 };
 
 describe("JSON round-trip", () => {
-  it("export → parse reproduces the snapshot exactly (columns, cards, order, labels, fields)", () => {
+  it("export → parse reproduces the snapshot exactly (cards, status, order, labels, fields)", () => {
     const restored = parseJson(exportJson(snapshot));
     expect(restored).toEqual(snapshot);
   });
@@ -71,8 +65,7 @@ describe("JSON round-trip", () => {
     const restored = parseJson(
       JSON.stringify({
         board: { title: "Min" },
-        columns: [{ id: "c1", title: "A", ord: "a0" }],
-        cards: [{ id: "k1", title: "Card", columnId: "c1", ord: "a0" }],
+        cards: [{ id: "k1", title: "Card", ord: "a0" }],
       }),
     );
     expect(restored.board.shortIdPrefix).toBe("");
@@ -93,34 +86,34 @@ describe("malformed import is atomic", () => {
   });
 
   it("throws ImportError (with a path) when a required field is missing", () => {
-    // card missing columnId
+    // card missing ord
     const bad = JSON.stringify({
       board: { title: "B" },
-      columns: [{ id: "c1", title: "A", ord: "a0" }],
-      cards: [{ id: "k1", title: "Card", ord: "a0" }],
+      cards: [{ id: "k1", title: "Card" }],
     });
     expect(() => parseJson(bad)).toThrow(ImportError);
-    expect(() => parseJson(bad)).toThrow(/columnId/);
+    expect(() => parseJson(bad)).toThrow(/ord/);
   });
 
   it("rejects an out-of-range priority", () => {
     const bad = JSON.stringify({
       board: { title: "B" },
-      columns: [{ id: "c1", title: "A", ord: "a0" }],
-      cards: [{ id: "k1", title: "Card", columnId: "c1", ord: "a0", priority: 9 }],
+      cards: [{ id: "k1", title: "Card", ord: "a0", priority: 9 }],
     });
     expect(() => parseJson(bad)).toThrow(ImportError);
   });
 });
 
 describe("Markdown export", () => {
-  it("renders a readable outline with checked terminal cards", () => {
+  it("renders a readable outline grouped by status, checking terminal cards", () => {
     const md = exportMarkdown(snapshot);
     expect(md).toContain("# Roadmap");
-    expect(md).toContain("## To Do");
+    expect(md).toContain("## Todo");
     expect(md).toContain("- [ ] Fix login");
-    expect(md).toContain("## Doing");
+    expect(md).toContain("## Done");
     expect(md).toContain("- [x] Ship it"); // Done → checked
+    // Empty status sections are omitted.
+    expect(md).not.toContain("## Backlog");
   });
 });
 
@@ -150,36 +143,33 @@ describe("Obsidian-Kanban import", () => {
     "%%",
   ].join("\n");
 
-  it("maps ## headings to columns and tasks to cards in the right column", () => {
+  it("maps ## headings to statuses (by name) and unchecked tasks to that status", () => {
     const snap = parseObsidian(sample);
     expect(snap.board.title).toBe("My Board");
-    expect(snap.columns.map((c) => c.title)).toEqual(["Backlog", "In Progress", "Done"]);
-
-    const byColumn = (title: string) => {
-      const col = snap.columns.find((c) => c.title === title)!;
-      return snap.cards.filter((k) => k.columnId === col.id).map((k) => k.title);
-    };
-    expect(byColumn("Backlog")).toEqual(["Research options", "Draft spec"]);
-    expect(byColumn("In Progress")).toEqual(["Build prototype"]);
-    expect(byColumn("Done")).toEqual(["Kickoff meeting"]);
+    const statusOf = (title: string) => snap.cards.find((c) => c.title === title)!.status;
+    expect(statusOf("Research options")).toBe(Status.Backlog);
+    expect(statusOf("Draft spec")).toBe(Status.Backlog);
+    expect(statusOf("Build prototype")).toBe(Status.InProgress);
   });
 
-  it("checked tasks become Done status; unchecked stay Todo", () => {
+  it("checked tasks become Done status regardless of section", () => {
     const snap = parseObsidian(sample);
-    const done = snap.cards.find((c) => c.title === "Kickoff meeting")!;
-    const todo = snap.cards.find((c) => c.title === "Research options")!;
-    expect(done.status).toBe(Status.Done);
-    expect(todo.status).toBe(Status.Todo);
+    expect(snap.cards.find((c) => c.title === "Kickoff meeting")!.status).toBe(Status.Done);
+    expect(snap.cards.find((c) => c.title === "Research options")!.status).toBe(Status.Backlog);
   });
 
-  it("keeps cards ordered within a column", () => {
+  it("cards under an unknown heading default to Todo", () => {
+    const snap = parseObsidian(["## Icebox", "- [ ] Someday"].join("\n"));
+    expect(snap.cards[0]!.status).toBe(Status.Todo);
+  });
+
+  it("keeps cards ordered within a status", () => {
     const snap = parseObsidian(sample);
-    const backlog = snap.columns.find((c) => c.title === "Backlog")!;
-    const ords = snap.cards.filter((k) => k.columnId === backlog.id).map((k) => k.ord);
+    const ords = snap.cards.filter((k) => k.status === Status.Backlog).map((k) => k.ord);
     expect([...ords].sort()).toEqual(ords); // already ascending
   });
 
-  it("throws ImportError when there are no columns", () => {
+  it("throws ImportError when there are no sections", () => {
     expect(() => parseObsidian("just some text\nno headings")).toThrow(ImportError);
   });
 });

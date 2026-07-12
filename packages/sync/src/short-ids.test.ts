@@ -1,7 +1,8 @@
+import { Status } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
-import { addCard, addColumn, cardsInColumn, getCard, initBoard } from "./board-doc";
+import { addCard, cardsInStatus, getCard, initBoard } from "./board-doc";
 
 const NOW = 1_700_000_000_000;
 
@@ -22,9 +23,8 @@ describe("short ids", () => {
   it("assigns sequential ids on create (shown as #{number} with the empty default prefix)", () => {
     const doc = new Y.Doc();
     initBoard(doc, { title: "Board", now: NOW });
-    const col = addColumn(doc, { title: "To Do", now: NOW, clientId: "1" });
-    const a = addCard(doc, { columnId: col, title: "A", now: NOW, clientId: "1" });
-    const b = addCard(doc, { columnId: col, title: "B", now: NOW, clientId: "1" });
+    const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: Status.Todo, title: "B", now: NOW, clientId: "1" });
     expect(getCard(doc, a)?.shortId).toBe("#1");
     expect(getCard(doc, b)?.shortId).toBe("#2");
   });
@@ -32,12 +32,11 @@ describe("short ids", () => {
   it("repairs a merged number collision deterministically (stable across replicas)", () => {
     const docA = new Y.Doc();
     initBoard(docA, { title: "Board", now: NOW });
-    const col = addColumn(docA, { title: "To Do", now: NOW, clientId: "1" });
-    const docB = clone(docA); // both share the column + empty card set (seq 0)
+    const docB = clone(docA); // both share the empty card set (seq 0)
 
     // Two offline creates independently grab seq 1 → both stored as number 1.
-    addCard(docA, { id: "cardA", columnId: col, title: "A", now: NOW, clientId: "a" });
-    addCard(docB, { id: "cardB", columnId: col, title: "B", now: NOW, clientId: "b" });
+    addCard(docA, { id: "cardA", status: Status.Todo, title: "A", now: NOW, clientId: "a" });
+    addCard(docB, { id: "cardB", status: Status.Todo, title: "B", now: NOW, clientId: "b" });
     merge(docA, docB);
 
     const a = getCard(docA, "cardA")?.shortId;
@@ -51,7 +50,7 @@ describe("short ids", () => {
     expect(getCard(docB, "cardB")?.shortId).toBe(b);
 
     // Selector output has no duplicate ids.
-    const ids = cardsInColumn(docA, col).map((c) => c.shortId);
+    const ids = cardsInStatus(docA, Status.Todo).map((c) => c.shortId);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });

@@ -430,7 +430,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 4 — Linear status columns
 
-- [ ] **Unit 7: Domain + sync — eight statuses, collapse `columnId` into `status`, `showEmptyColumns` meta**
+- [x] **Unit 7: Domain + sync — eight statuses, collapse `columnId` into `status`, `showEmptyColumns` meta**
 
 **Goal:** Make `status` the single placement axis: extend the status enum to eight, remove the `Column` entity and the card's `columnId`/`wipLimit`, and add a synced `showEmptyColumns` board-meta flag.
 
