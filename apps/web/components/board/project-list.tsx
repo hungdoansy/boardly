@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@boardly/ui";
-import { Plus } from "lucide-react";
+import { Box, Boxes, Plus } from "lucide-react";
 
 import { useProjectActions, useProjects, useSelectedProject } from "../../lib/use-projects";
 
@@ -46,7 +46,7 @@ export function ProjectList() {
             onClick={() => select(null)}
             className={rowClass(selected === null)}
           >
-            <span className="size-1.5 shrink-0 rounded-full bg-[var(--text-tertiary)]" />
+            <Boxes className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
             <span className="truncate">All</span>
           </button>
         </li>
@@ -58,9 +58,10 @@ export function ProjectList() {
               onClick={() => select(project.id)}
               className={rowClass(selected === project.id)}
             >
-              <span
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: project.color }}
+              <Box
+                className="size-3.5 shrink-0"
+                style={{ color: project.color }}
+                aria-hidden="true"
               />
               <span className="truncate">{project.name}</span>
             </button>
