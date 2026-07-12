@@ -55,7 +55,6 @@ export function ColumnCards({
             project={zen || !card.projectId ? undefined : projectById.get(card.projectId)}
             config={effectiveConfig}
             onOpen={() => onOpenCard(card.id)}
-            onArchive={() => actions.archive(card.id)}
           />
         ))}
       </SortableContext>

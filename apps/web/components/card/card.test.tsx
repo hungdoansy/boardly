@@ -107,14 +107,6 @@ describe("cards", () => {
     expect(onOpenCard).not.toHaveBeenCalled();
   });
 
-  it("archives a card", () => {
-    setup((ctx, status) => {
-      execute(createCard, ctx, { status, title: "Bye" });
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Archive Bye" }));
-    expect(screen.queryByText("Bye")).not.toBeInTheDocument();
-  });
-
   it("collapses the card face to status only in Zen focus", () => {
     const seed = (ctx: MemoryContext, status: Status): void => {
       execute(createCard, ctx, { status, id: "c1", title: "Seeded" });

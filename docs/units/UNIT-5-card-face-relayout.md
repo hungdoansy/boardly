@@ -3,17 +3,20 @@
 - **Plan unit:** 5 (`docs/plans/2026-07-12-003-fix-card-polish-severity-removal-plan.md`)
 - **Status:** done
 - **Requirements:** R4
-- **Commit(s):** _this unit's commit_ + a follow-up refinement commit (see
-  "Follow-up refinement" below)
+- **Commit(s):** _this unit's commit_ + two follow-up commits (see
+  "Follow-up refinement" and "Second follow-up" below)
 
 ## What changed
+
+(Final state, after both follow-ups below — see those sections for the
+sequence of changes that got here.)
 
 - `apps/web/components/card/card.tsx` — restructured `CardFace`'s post-title
   content from two tiers (middle: project + severity + labels; bottom:
   priority + links left, due + checklist + id right) into four fixed lines:
   - **Line 1** — `card.shortId` (hand-placed, left) … `ml-auto` [due chip,
-    checklist meter, then the hover-only archive button] (right). Always
-    renders (it carries the ticket id and the archive affordance).
+    checklist meter] (right). Always renders (it carries the ticket id). No
+    archive affordance (removed — see "Second follow-up" below).
   - **Line 2** — status glyph + title (moved off the top row so line 1 leads).
   - **Line 3** — labels only (`config`-filtered to `["labels"]`); omitted
     entirely when the card has no labels.
@@ -63,6 +66,31 @@ Applied directly (small, well-understood UI reorder) rather than re-running
 bullet both now state the four lines explicitly so this ordering doesn't
 drift in future work.
 
+**Second follow-up, same day: the card-face archive button was removed.**
+The hover-only archive button added by the reorder above was pulled back
+out entirely, per direct user feedback ("remove the archive button in each
+card for now"). Archiving a card is still possible via the card detail
+drawer's "Archive card" button (`card-detail.tsx`) and the `e` keyboard
+shortcut (`keyboard-nav.tsx`) — neither of those routes through `CardFace`,
+so removing the card-face button doesn't touch either. Changes:
+- `card.tsx` — dropped the `Archive` import, the `onArchive` prop, and the
+  button; line 1's right-hand container now holds only
+  `line1RightNodes`. Also dropped the now-unused `group`/`group-hover`
+  classes from the `<article>` (nothing else uses the hover-reveal pattern).
+- `dnd.tsx` (`SortableCard`), `column-cards.tsx`, `swimlanes.tsx` — removed
+  the `onArchive` prop/callback threading that only existed to feed the
+  removed button. `swimlanes.tsx` also dropped its now-unused
+  `useCardActions()` call and import (it had no other use for `actions`).
+- `card.test.tsx` — removed the `"archives a card"` test, which asserted on
+  the now-removed `"Archive Bye"` button. Archive-from-keyboard coverage
+  already exists independently in `keyboard-nav.test.tsx` (mocked handler,
+  not dependent on `CardFace`'s DOM). No equivalent test exists yet for
+  `card-detail.tsx`'s own Archive button — pre-existing gap, out of scope
+  here.
+- `docs/design/DESIGN.md` §8 — dropped the "hover-only archive button" clause
+  from line 1's description; added a line noting archive lives in the detail
+  drawer and the `e` shortcut, not the card face.
+
 ## Why (decisions)
 
 - **Reused the existing hand-placed-tier architecture** (`collectBadgeNodes`
@@ -91,7 +119,7 @@ with per-tier key filters (`LINE1_RIGHT_KEYS = {dueDate, checklist}`,
 four fixed lines (post-refinement order — see "Follow-up refinement" above):
 
 ```
-line 1:          [shortId]  …ml-auto…  [line1RightNodes]  [archive (hover)]
+line 1:          [shortId]  …ml-auto…  [line1RightNodes]
 line 2:          [status glyph]  [title]
 line 3 (if any): [labelNodes]
 line 4 (if any): [line3Nodes]  …ml-auto…  [ProjectChip?]
@@ -112,14 +140,14 @@ that line).
   a new interactive affordance.
 - Dark mode: verified live against the demo account (`demo@boardly.app`) —
   the "Everything ticket" seed card renders line 1 (`BRD-1`, `Tomorrow` due,
-  `2/4` checklist), line 2 (title), line 3 (7 label chips wrapping), and
-  line 4 (priority icon, 7-link cluster with `+2` overflow, `Platform`
-  project chip pushed to the far right) in the documented order; confirmed
-  via `document.body.innerHTML`/DOM inspection that no `severity` reference
-  remains anywhere on the card face or in the card-detail drawer's
-  Properties/Activity sections, and via a direct DOM query (post-refinement)
-  that the archive button lives inside line 1 and the project chip carries a
-  non-zero `margin-left` from `ml-auto`.
+  `2/4` checklist, no archive affordance), line 2 (title), line 3 (7 label
+  chips wrapping), and line 4 (priority icon, 7-link cluster with `+2`
+  overflow, `Platform` project chip pushed to the far right) in the
+  documented order; confirmed via `document.body.innerHTML`/DOM inspection
+  that no `severity` reference remains anywhere on the card face or in the
+  card-detail drawer's Properties/Activity sections, and via a direct DOM
+  query that the project chip carries a non-zero `margin-left` from
+  `ml-auto`.
 
 ## How to test / verify
 
@@ -137,8 +165,8 @@ that line).
     ticket id.
   - Edge case: no priority/links/project → exactly 2 `metaRows` (line 4
     omitted).
-- `pnpm --filter @boardly/web exec vitest run` — 181 tests across 32 files,
-  all green (`card.test.tsx` alone: 13, including the 4 layout tests, updated
+- `pnpm --filter @boardly/web exec vitest run` — 180 tests across 32 files,
+  all green (`card.test.tsx` alone: 12, including the 4 layout tests, updated
   for the follow-up reorder); `tsc --noEmit` and `eslint` clean.
 - Manual (dark mode): see Design section above.
 

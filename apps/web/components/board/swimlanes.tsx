@@ -12,7 +12,7 @@ import {
 } from "@boardly/domain";
 import { type ReactNode, useMemo } from "react";
 
-import { useAllCards, useBadgeConfig, useCardActions, useLabels } from "../../lib/use-board";
+import { useAllCards, useBadgeConfig, useLabels } from "../../lib/use-board";
 import { CardFace } from "../card/card";
 
 /**
@@ -36,7 +36,6 @@ export function Swimlanes({
   const allCards = useAllCards();
   const labels = useLabels();
   const config = useBadgeConfig();
-  const actions = useCardActions();
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
   const lanes = useMemo(() => {
@@ -74,7 +73,6 @@ export function Swimlanes({
                           .filter((l) => l !== undefined)}
                         config={config}
                         onOpen={() => onOpenCard(card.id)}
-                        onArchive={() => actions.archive(card.id)}
                       />
                     ))}
                   </LaneColumn>

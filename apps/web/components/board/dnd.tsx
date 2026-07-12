@@ -123,7 +123,6 @@ export function SortableCard({
   project,
   config,
   onOpen,
-  onArchive,
 }: {
   card: Card;
   status: Status;
@@ -131,7 +130,6 @@ export function SortableCard({
   project?: Project;
   config?: string[];
   onOpen: () => void;
-  onArchive: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
@@ -152,14 +150,7 @@ export function SortableCard({
       {...attributes}
       {...listeners}
     >
-      <CardFace
-        card={card}
-        labels={labels}
-        project={project}
-        config={config}
-        onOpen={onOpen}
-        onArchive={onArchive}
-      />
+      <CardFace card={card} labels={labels} project={project} config={config} onOpen={onOpen} />
     </div>
   );
 }
