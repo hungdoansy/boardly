@@ -137,7 +137,7 @@ do too.
 ### Cards & card details
 
 - Checklists / sub-tasks, due dates, colored labels/tags, priority (Urgent/High/Medium/Low/None),
-  severity (S1–S4), assignee, activity/history log per card.
+  assignee, activity/history log per card.
 - **Integer ticket numbers with a display-only prefix.** Each card gets a monotonic integer number.
   A **board-level** display prefix controls how ids render: empty → `#42`, or e.g. `BRD` → `BRD-42`.
   The prefix is display-only (it doesn't change the underlying number).
@@ -153,7 +153,7 @@ Each card renders a compact **badge row** on its face — the high-signal fields
 the board is scannable without opening cards. Which fields show (and their order) is **configurable
 per board** via the badge config (Settings → card display).
 
-**1. Structured fields** (typed, first-class): status, priority, severity, deadline (relative
+**1. Structured fields** (typed, first-class): status, priority, deadline (relative
 `Jul 12` / `2d`, amber near due, red overdue), labels, assignee, checklist meter.
 
 **2. Smart link fields** (URL → provider-aware chip): the link registry detects ~45 providers
@@ -217,7 +217,7 @@ A clone lives at `../demo-app/focalboard/` for study only.
 - **Phase 0 — Scaffold** the pnpm monorepo (empty, wired configs). ✅
 - **Phase 1 — Local-first core** (offline, no sync): Yjs model, board UI + drag-and-drop, card
   editor, local persistence. ✅
-- **Phase 2 — Signature features**: highlighted card-face badges (status/severity/deadline + smart
+- **Phase 2 — Signature features**: highlighted card-face badges (status/priority/deadline + smart
   link chips), labels/priority/due/checklists/assignee, command palette + keyboard nav, short ids. ✅
 - **Phase 3 — Sync**: Hocuspocus + Postgres snapshots + auth; multi-device reconciliation; REST/MCP
   command API. ✅

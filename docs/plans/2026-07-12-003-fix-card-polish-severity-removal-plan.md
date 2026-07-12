@@ -1,7 +1,7 @@
 ---
 title: Card face polish, cmd+K contrast fix, and severity removal
 type: fix
-status: active
+status: complete
 date: 2026-07-12
 ---
 
@@ -236,7 +236,7 @@ current 3-tier card face this plan restructures), `UNIT-6.4-card-face-link-clust
 
 ## Implementation Units
 
-- [ ] **Unit 1: Strip the remaining Unicode glyphs — SVG at the render boundary**
+- [x] **Unit 1: Strip the remaining Unicode glyphs — SVG at the render boundary**
 
 **Goal:** Fix the two remaining places a Unicode glyph reaches the rendered
 UI: the card-face link-cluster tooltip and the filter-builder selected-option
@@ -289,7 +289,7 @@ checkmark.
   and the `<kbd>`/prose exceptions DESIGN.md §7.1 allows) returns no rendered-UI
   hits.
 
-- [ ] **Unit 2: Fix cmd+K palette selected-row contrast**
+- [x] **Unit 2: Fix cmd+K palette selected-row contrast**
 
 **Goal:** Make the currently-highlighted command-palette row visibly distinct
 from the dialog background in both themes.
@@ -335,7 +335,7 @@ from the dialog background in both themes.
 - `palette.test.tsx` passes; manual dark-mode screenshot shows a clearly
   visible highlighted row while navigating with arrow keys.
 
-- [ ] **Unit 3: Remove `severity` — domain, sync, commands (and generated REST/MCP)**
+- [x] **Unit 3: Remove `severity` — domain, sync, commands (and generated REST/MCP)**
 
 **Goal:** Remove every trace of `severity` from the domain model, Yjs sync
 schema, and command layer, with a safety net so any already-persisted
@@ -424,7 +424,7 @@ and Unit 5 depend on this one)
   `packages/domain`, `packages/sync`, `packages/commands`; grep for
   `[Ss]everity` across `apps/server/src` and `apps/mcp/src` returns nothing.
 
-- [ ] **Unit 4: Remove `severity` — web UI and seed script**
+- [x] **Unit 4: Remove `severity` — web UI and seed script**
 
 **Goal:** Remove every severity-related UI control, action, and seed-data
 reference, completing R3 end-to-end.
@@ -496,7 +496,7 @@ reference, completing R3 end-to-end.
   `SEED_RESET=1` (per `[[boardly-seed-demo-account]]`) so the demo account's
   kitchen-sink card and badge config no longer reference severity.
 
-- [ ] **Unit 5: Relayout the card face into the three requested lines**
+- [x] **Unit 5: Relayout the card face into the three requested lines**
 
 **Goal:** Restructure `CardFace`'s post-title rows into: line 1 = ticket id
 (left) … deadline + checklist (right); line 2 = labels; line 3 = urgency
@@ -564,7 +564,7 @@ labels-only line)
   lines read in the requested order and match `DESIGN.md`'s density/spacing
   conventions for the card face.
 
-- [ ] **Unit 6: Actively purge persisted `severity` data from the real account**
+- [x] **Unit 6: Actively purge persisted `severity` data from the real account**
 
 **Goal:** Strip every leftover trace of `severity` from the user's live board
 doc — card fields, badge config, saved-view filters/groupBy, and activity-log
