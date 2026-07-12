@@ -51,6 +51,7 @@ import {
   addLabel,
   addProject,
   allLiveCards,
+  boardCards,
   assignLabel,
   addLink,
   initBoard,
@@ -172,6 +173,10 @@ interface CardSpec {
   }>;
   checklist?: Array<{ text: string; done?: boolean }>;
   dueInDays?: number; // relative to now; negative = overdue
+  // Assign the card to the demo user themselves. Assignee has no in-app setter
+  // yet (no command / card-detail editor), but the list view + filters render
+  // it, so the seed sets it directly on the card to exercise that surface.
+  assignSelf?: boolean;
 }
 
 const LABELS: Array<{ key: string; name: string; color: string }> = [
@@ -202,6 +207,36 @@ function projectForCard(spec: CardSpec): string {
 // Cards spread across ALL EIGHT fixed statuses (Backlog…Duplicate), so the
 // seeded board exercises every status column and the show/hide-empty toggle.
 const CARDS: CardSpec[] = [
+  {
+    // The "everything" ticket — one card exercising every card-level feature:
+    // markdown description, priority + severity, a due date, a diverse label
+    // set, a project, a mixed checklist, a multi-provider link cluster (with
+    // overflow), and a self-assignee.
+    status: Status.InProgress,
+    title: "★ Everything ticket — exercises every card feature",
+    description:
+      "## The kitchen-sink card\nA single ticket wired with **every** card-level feature so you can see them all at once.\n\n- Priority **Urgent** + severity **S1**\n- A **due date**, a **project**, and a **diverse label set**\n- A **checklist** with completed + open items\n- A **link cluster** spanning every provider (with a `+N` overflow)\n- An **assignee** (shown in the list view)\n\n> Description supports GitHub-flavored markdown, incl. `code`, quotes, and lists.",
+    priority: Priority.Urgent,
+    severity: Severity.S1,
+    labels: ["frontend", "backend", "bug", "design", "infra", "docs", "urgent"],
+    dueInDays: 1,
+    assignSelf: true,
+    checklist: [
+      { text: "Wire up every badge on the card face", done: true },
+      { text: "Attach a link for each provider", done: true },
+      { text: "Verify the drawer renders all sections" },
+      { text: "Confirm it shows in the list view with an assignee" },
+    ],
+    links: [
+      { url: "https://linear.app/boardly/issue/BRD-1", title: "BRD-1" },
+      { url: "https://github.com/boardly/app/pull/500", title: "#500" },
+      { url: "https://www.figma.com/file/kitchen/Sink" },
+      { url: "https://www.notion.so/boardly/Everything-card-spec" },
+      { url: "https://docs.google.com/document/d/everything/edit" },
+      { url: "https://boardly.slack.com/archives/C01/p9999", provider: LinkProvider.Slack },
+      { url: "https://claude.ai/chat/everything", provider: LinkProvider.Claude },
+    ],
+  },
   {
     status: Status.Backlog,
     title: "Research offline-first conflict resolution",
@@ -410,6 +445,9 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
       clientId: CLIENT_ID,
       createdBy: userId,
     });
+    // Assignee has no dedicated accessor/command yet; set it directly on the
+    // card map (the list view + filters read `assigneeId`).
+    if (spec.assignSelf) boardCards(boardDoc).get(id)?.set("assigneeId", userId);
     if (spec.description) setCardDescription(boardDoc, id, spec.description, tick());
     if (spec.priority !== undefined && spec.priority !== Priority.None)
       setCardPriority(boardDoc, id, spec.priority, tick(), userId);
