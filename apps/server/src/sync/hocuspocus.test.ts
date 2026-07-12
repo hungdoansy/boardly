@@ -33,14 +33,15 @@ describe("ticket store", () => {
 });
 
 describe("parseDocumentName", () => {
-  it("parses board and workspace docs", () => {
+  it("parses board docs", () => {
     expect(parseDocumentName("board:abc")).toEqual({ type: "board", boardId: "abc" });
-    expect(parseDocumentName("workspace:u1")).toEqual({ type: "workspace", userId: "u1" });
   });
-  it("returns null for malformed names", () => {
+  it("returns null for malformed or retired names", () => {
     expect(parseDocumentName("bogus")).toBeNull();
     expect(parseDocumentName("board:")).toBeNull();
     expect(parseDocumentName("other:x")).toBeNull();
+    // `workspace:` docs were removed with the board-layer collapse.
+    expect(parseDocumentName("workspace:u1")).toBeNull();
   });
 });
 
@@ -133,26 +134,6 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
     // Ticket survived (origin was checked first), so the user can still connect.
     expect(ticketStore.consume(token)).toEqual({ userId, documentName: `board:${userId}` });
-  });
-
-  it("authorizes a user's own workspace room but not another's", async () => {
-    const userId = await seedUser();
-    const ticketStore = createTicketStore();
-    const ownToken = ticketStore.issue(userId, `workspace:${userId}`);
-    await expect(
-      authenticateConnection(
-        { db: handle.db, ticketStore, allowedOrigins },
-        { token: ownToken, documentName: `workspace:${userId}`, origin: undefined },
-      ),
-    ).resolves.toEqual({ userId });
-
-    const otherToken = ticketStore.issue(userId, `workspace:someone-else`);
-    await expect(
-      authenticateConnection(
-        { db: handle.db, ticketStore, allowedOrigins },
-        { token: otherToken, documentName: `workspace:someone-else`, origin: undefined },
-      ),
-    ).rejects.toBeInstanceOf(SyncUnauthorizedError);
   });
 
   it("persists and reloads Yjs state, converging two clients' edits", async () => {

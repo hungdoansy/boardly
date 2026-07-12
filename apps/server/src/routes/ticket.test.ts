@@ -68,17 +68,6 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
     expect(ctx.userId).toBe(userId);
   });
 
-  it("issues a ticket for the user's own workspace", async () => {
-    const userId = await seedUser();
-    const res = await app.inject({
-      method: "POST",
-      url: "/sync/ticket",
-      headers: { authorization: await bearer(userId) },
-      payload: { documentName: `workspace:${userId}` },
-    });
-    expect(res.statusCode).toBe(200);
-  });
-
   it("forbids a ticket for another user's board doc", async () => {
     const owner = await seedUser();
     const res = await app.inject({
@@ -90,22 +79,11 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
     expect(res.statusCode).toBe(403);
   });
 
-  it("forbids a ticket for another user's workspace", async () => {
-    const userId = await seedUser();
-    const res = await app.inject({
-      method: "POST",
-      url: "/sync/ticket",
-      headers: { authorization: await bearer(userId) },
-      payload: { documentName: `workspace:someone-else` },
-    });
-    expect(res.statusCode).toBe(403);
-  });
-
   it("rejects a missing or invalid Bearer token with 401", async () => {
     const noAuth = await app.inject({
       method: "POST",
       url: "/sync/ticket",
-      payload: { documentName: "workspace:x" },
+      payload: { documentName: "board:x" },
     });
     expect(noAuth.statusCode).toBe(401);
 
@@ -113,7 +91,7 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
       method: "POST",
       url: "/sync/ticket",
       headers: { authorization: "Bearer not-a-jwt" },
-      payload: { documentName: "workspace:x" },
+      payload: { documentName: "board:x" },
     });
     expect(badAuth.statusCode).toBe(401);
   });

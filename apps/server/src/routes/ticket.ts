@@ -18,7 +18,7 @@ export interface TicketRoutesOptions {
 /**
  * `POST /sync/ticket` — exchange a Bearer access token for a single-use,
  * short-lived WebSocket ticket bound to `{userId, documentName}`. The caller
- * must own the document (board owner, or their own workspace). The client then
+ * must own the document (their own `board:<userId>` doc). The client then
  * opens the `/sync` WebSocket presenting the ticket (browsers can't set an auth
  * header on the upgrade). Re-minted on every (re)connect.
  */
@@ -34,11 +34,10 @@ export async function ticketRoutes(app: FastifyInstance, opts: TicketRoutesOptio
     const ref = parseDocumentName(parsed.data.documentName);
     if (!ref) return reply.status(400).send({ error: "invalid request" });
 
-    // Authorize the document for this user (same rules the sync server enforces):
-    // both room kinds are keyed by the user id, so the parsed id must be the
+    // Authorize the document for this user (same rule the sync server enforces):
+    // the content doc is keyed by the user id, so the parsed id must be the
     // caller's own — no ownership-table lookup.
-    const ownerId = ref.type === "workspace" ? ref.userId : ref.boardId;
-    if (ownerId !== userId) return reply.status(403).send({ error: "forbidden" });
+    if (ref.boardId !== userId) return reply.status(403).send({ error: "forbidden" });
 
     const ticket = ticketStore.issue(userId, parsed.data.documentName);
     return reply.send({ ticket, expiresInMs: DEFAULT_TICKET_TTL_MS });
