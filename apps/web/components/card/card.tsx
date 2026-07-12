@@ -17,17 +17,19 @@ interface CardFaceProps {
   onArchive: () => void;
 }
 
-// The card face reads top-to-bottom in three tiers so the eye lands in the same
+// The card face reads top-to-bottom in four tiers so the eye lands in the same
 // place on every card:
-//   • title row  — status glyph leads the title (workflow state first)
-//   • middle row — the "what is this" tags: project, severity, labels
-//   • bottom row — the metadata line: priority at the far left, then links;
-//     due date, checklist, and the ticket id are pushed to the right.
-// Status/priority/links/due/checklist are placed by hand; the remaining keys
-// (severity, labels) keep the per-board configured order.
-const MIDDLE_KEYS = new Set(["severity", "labels"]);
-const BOTTOM_LEFT_KEYS = new Set(["priority", "links"]);
-const BOTTOM_RIGHT_KEYS = new Set(["dueDate", "checklist"]);
+//   • title row — status glyph leads the title (workflow state first)
+//   • line 1    — the ticket id at the far left; due date and checklist are
+//     pushed to the right.
+//   • line 2    — labels.
+//   • line 3    — urgency (priority), then links, then the project badge.
+// Status/priority/links/due/checklist/project are placed by hand; labels keep
+// the per-board configured order (the only remaining configurable field with
+// its own tier).
+const LINE1_RIGHT_KEYS = new Set(["dueDate", "checklist"]);
+const LABEL_KEYS = new Set(["labels"]);
+const LINE3_KEYS = new Set(["priority", "links"]);
 
 export function CardFace({ card, labels, project, config, onOpen, onArchive }: CardFaceProps) {
   const terminal = isTerminalStatus(card.status);
@@ -35,22 +37,22 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
   const labelList = labels ?? [];
 
   const showStatus = cfg.includes("status");
-  const middleNodes = collectBadgeNodes(
+  const line1RightNodes = collectBadgeNodes(
     card,
     labelList,
-    cfg.filter((k) => MIDDLE_KEYS.has(k)),
+    cfg.filter((k) => LINE1_RIGHT_KEYS.has(k)),
   );
-  const bottomLeftNodes = collectBadgeNodes(
+  const labelNodes = collectBadgeNodes(
     card,
     labelList,
-    cfg.filter((k) => BOTTOM_LEFT_KEYS.has(k)),
+    cfg.filter((k) => LABEL_KEYS.has(k)),
   );
-  const bottomRightNodes = collectBadgeNodes(
+  const line3Nodes = collectBadgeNodes(
     card,
     labelList,
-    cfg.filter((k) => BOTTOM_RIGHT_KEYS.has(k)),
+    cfg.filter((k) => LINE3_KEYS.has(k)),
   );
-  const showMiddle = project !== undefined || middleNodes.length > 0;
+  const showLine3 = project !== undefined || line3Nodes.length > 0;
 
   return (
     <article
@@ -88,20 +90,23 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
         </button>
       </div>
 
-      {showMiddle ? (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          {project ? <ProjectChip project={project} /> : null}
-          {middleNodes}
-        </div>
-      ) : null}
-
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        {bottomLeftNodes}
+        <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-          {bottomRightNodes}
-          <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
+          {line1RightNodes}
         </div>
       </div>
+
+      {labelNodes.length > 0 ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">{labelNodes}</div>
+      ) : null}
+
+      {showLine3 ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {line3Nodes}
+          {project ? <ProjectChip project={project} /> : null}
+        </div>
+      ) : null}
     </article>
   );
 }

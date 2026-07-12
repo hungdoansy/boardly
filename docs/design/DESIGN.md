@@ -20,7 +20,7 @@ variables / Tailwind theme), never hardcode values.
 2. **Dense but calm.** Tight spacing and small type like Linear, but with clear hierarchy and generous-enough hit targets (≥ 28px interactive height).
 3. **Content first, chrome second.** Low-contrast chrome (borders, backgrounds), high-contrast content (text, the one accent). The board is the hero.
 4. **Keyboard-first.** Everything operable without a mouse; focus is always visible and logical.
-5. **One accent.** A single indigo accent carries primary actions/selection; color otherwise encodes meaning (status, priority, severity, labels), never decoration.
+5. **One accent.** A single indigo accent carries primary actions/selection; color otherwise encodes meaning (status, priority, labels), never decoration.
 6. **Restraint in motion.** If an animation doesn't help the user understand a change, cut it.
 
 ---
@@ -109,8 +109,6 @@ struck-through title. Each column header shows the status icon (color swatch) + 
 headers are **not** editable.
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
-
-**Severity:** S1 `#EB5757`, S2 `#F2994A`, S3 `#D9A441` (a distinct gold, not Priority.High's `#E2B341` amber — the two badges sit side by side), S4 `#6B6F76`. Rendered as a small `S#` pill: ~14% alpha fill + a solid 2px left accent bar in the color; the `S#` text stays the normal foreground (a solid fill behind white text failed contrast for the lighter hues).
 
 **Label palette** (accessible on dark; user picks per label): slate `#8A8F98`, red `#EB5757`, orange `#F2994A`, amber `#E2B341`, green `#4CB782`, teal `#3DB4B0`, blue `#4EA7FC`, indigo `#5E6AD2`, violet `#9B7EDE`, pink `#E06C9F`. Chips use the color at ~16% alpha fill + a full-color dot; the label name renders in the normal foreground (not the raw color) so every palette entry stays legible in both themes.
 
@@ -211,7 +209,7 @@ Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 | Command palette (⌘K)                    | `command` (cmdk)                   | keyboard hub; fuzzy filter                                |
 | Menus (card `⋯`, board actions)         | `dropdown-menu`, `context-menu`    | right-click card → context-menu                           |
 | Selects (status, priority, assignee)    | `popover` + `command`, or `select` | status/priority use a searchable popover list             |
-| Labels / due / severity pickers         | `popover`                          |                                                           |
+| Labels / due pickers                    | `popover`                          |                                                           |
 | Tooltips (icon buttons, truncated text) | `tooltip`                          | base duration; delay ~300ms                               |
 | Inputs / textareas                      | `input`, `textarea`                | 30px height; subtle border → accent ring on focus         |
 | Checkbox (checklist)                    | `checkbox`                         | animated check                                            |
@@ -276,8 +274,8 @@ The `--focus-saturate` token is per-theme; the toggle transition respects `prefe
 
 - **App shell:** a user has **one space** (no board list / switcher). Left **sidebar** (~240px, `--bg-surface`) top→bottom: logo → Search → **projects list** (scopes the board; `flex-1`) → **Settings** (the last full-width nav item) → account/theme footer. Main board area is `--bg-base`. Settings opens a full-pane view (routed by `#settings`); the account button and theme toggle stay in the footer.
 - **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). Above the columns, a board-toolbar toggle **shows/hides empty columns** (synced board-meta flag, default show). Dragging a card onto a column applies that status immediately. Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
-- **Card face:** title (`text-base`, up to 2 lines), then the **badge row** (Unit 2.6) — status icon, short ID (mono, tertiary), severity pill, due chip, priority icon, label dots, assignee avatar, link chips. Dense, single row, wraps to two max. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px).
-- **Card detail:** right `sheet` — title, status/priority/severity/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths.
+- **Card face:** status glyph + title row (`text-base`, up to 2 lines, archive on hover), then three fixed metadata lines (Unit P3/Unit 5): **line 1** — ticket id (mono, tertiary, far left) with due chip + checklist meter pushed right; **line 2** — labels (omitted when none); **line 3** — priority icon, then link chips, then the project badge (omitted when all three are empty). Each line wraps independently. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px).
+- **Card detail:** right `sheet` — title, status/priority/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths.
 - **Command palette:** centered `command` dialog, `--bg-overlay`, subtle border + shadow; grouped results; keyboard nav; instant.
 - **Auth (login/signup):** centered card on `--bg-base`, minimal, Boardly wordmark, single accent button, inline validation.
 
