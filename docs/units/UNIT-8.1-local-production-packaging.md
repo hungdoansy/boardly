@@ -8,8 +8,11 @@ native macOS bundle. No new features; this is deployment/packaging plumbing.
 
 - **`apps/server/Dockerfile`** (new) — image for the sync/API server.
 - **`.dockerignore`** (new, repo root) — keeps the build context to source + manifests.
-- **`docker-compose.yml`** — added a `server` service next to the existing `db`; the whole backend
-  now comes up with `docker compose up -d --build`.
+- **`docker-compose.prod.yml`** (new) — the isolated, all-Docker **production** stack (`db` +
+  `server`), with its own compose project (`name: boardly-prod`), containers (`boardly-prod-db`,
+  `boardly-prod-server`), volume (`boardly-prod_pgdata`), and network. Server on host port **8788**.
+- **`docker-compose.yml`** — now the **dev database only** (`boardly-dev-db`, port 5433), for a
+  host-run dev server. (The `server` service moved to the prod file — see Why #5.)
 - **`.env` / `.env.example`** — `POSTGRES_IMAGE` pinned to `postgres:16`; documented
   `BOARDLY_SERVER_PORT` (production host port, default **8788**) and `CORS_ORIGINS`.
 - **Tauri updater removed** so a release build needs no code-signing keys:
@@ -36,6 +39,12 @@ Confirmed decisions for a single-user, single-laptop deployment:
    colliding with an occasional `pnpm --filter @boardly/server dev` on 8787. The desktop build bakes
    `NEXT_PUBLIC_API_URL=http://localhost:8788` into the web bundle.
 4. **Don't auto-seed.** First run is a clean account; the demo seed is one documented command.
+5. **Production and dev are fully isolated stacks** (not one shared backend). The production stack
+   (`docker-compose.prod.yml`, project `boardly-prod`) has its own db/volume/network and runs the
+   server in Docker on 8788; local dev (`docker-compose.yml`, project `boardly`) is just the dev db
+   on 5433 with the server run on the host (8787, hot reload). This lets the user *use* the
+   production app while *developing* against a separate database — neither touches the other. The
+   existing PG16 data volume stays the dev database; production starts on a fresh volume.
 
 Two problems surfaced and were fixed during bring-up:
 
@@ -56,10 +65,13 @@ Two problems surfaced and were fixed during bring-up:
   so the container is self-migrating; no separate migrate step.
   - **NODE_ENV** is intentionally *not* set at image-build time (pnpm would drop `tsx`); it's passed
     as `production` at run time by compose, after `tsx` is installed.
-- **Compose** `server` service: `depends_on: db (service_healthy)` gates boot on Postgres readiness;
-  `DATABASE_URL` targets host `db` on the internal port **5432** (not the host-mapped 5433);
-  `CORS_ORIGINS` defaults to `http://localhost:3000,tauri://localhost,https://tauri.localhost`;
-  published as `${BOARDLY_SERVER_PORT:-8788}:8787`.
+- **Compose (prod)** `server` service: `depends_on: db (service_healthy)` gates boot on Postgres
+  readiness; `DATABASE_URL` targets host `db` on the internal port **5432** (not the host-mapped
+  5433); `CORS_ORIGINS` defaults to `http://localhost:3000,tauri://localhost,https://tauri.localhost`;
+  published as `${BOARDLY_SERVER_PORT:-8788}:8787`. The prod `db` publishes **no** host port (only
+  `server` reaches it, over the compose network). `name: boardly-prod` isolates the project's
+  containers/volumes/network from the default (`boardly`) dev project, so
+  `docker compose -f docker-compose.prod.yml …` and plain `docker compose …` never collide.
 - **Desktop**: `pnpm --filter @boardly/desktop tauri:build`. Tauri's `beforeBuildCommand` runs the
   web static export; the Rust shell wraps `apps/web/out`. Output under
   `apps/desktop/src-tauri/target/release/bundle/` (`macos/Boardly.app`, `dmg/Boardly_1.0.0_aarch64.dmg`).
@@ -70,13 +82,16 @@ Two problems surfaced and were fixed during bring-up:
 
 ## How to verify
 
-Backend:
+Backend (production stack):
 ```bash
-docker compose up -d --build
-docker compose ps                      # db (healthy) + server Up
-curl -s localhost:8788/health          # {"status":"ok","db":"up"}
-docker compose logs server             # "migrations applied" + "listening ... (sync on /sync)"
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps       # db (healthy) + server Up
+curl -s localhost:8788/health                      # {"status":"ok","db":"up"}
+docker compose -f docker-compose.prod.yml logs server   # "migrations applied" + "listening ... (sync on /sync)"
 ```
+Isolation: the prod db starts empty while the dev db (`boardly-dev-db`) keeps its existing data —
+verified `select count(*) from users` = 0 in `boardly-prod-db` vs. the populated dev db, and an
+old dev account returns 401 against 8788.
 Desktop, end-to-end (the real proof):
 1. Build (command above), confirm `Boardly.app` + `.dmg` exist under `target/release/bundle/`.
 2. Install, launch, sign up, create a project + card.
