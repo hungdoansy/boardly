@@ -6,22 +6,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
 import { CalendarDays, X } from "lucide-react";
 import { useState } from "react";
 
+import { CHIP } from "./chip";
+
+// Overdue/soon carry urgency on the icon + text color; a normal due date stays
+// neutral. The shared bordered shell replaces the old tinted fills.
 const TONE = {
-  overdue: { color: "var(--danger)", bg: "color-mix(in oklab, var(--danger) 16%, transparent)" },
-  soon: { color: "var(--warning)", bg: "color-mix(in oklab, var(--warning) 16%, transparent)" },
-  normal: { color: "var(--text-secondary)", bg: "var(--bg-overlay)" },
+  overdue: "var(--danger)",
+  soon: "var(--warning)",
+  normal: "var(--text-secondary)",
 } as const;
 
 export function DueChip({ due, now = Date.now() }: { due: DueDate; now?: number }) {
   const { label, tone } = describeDueDate(due, now);
-  const t = TONE[tone];
   return (
-    <span
-      className="inline-flex h-[18px] items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-[11px] font-medium"
-      style={{ color: t.color, backgroundColor: t.bg }}
-      title={`Due ${label}`}
-    >
-      <CalendarDays className="size-3" />
+    <span className={CHIP} style={{ color: TONE[tone] }} title={`Due ${label}`}>
+      <CalendarDays className="size-3 shrink-0" />
       {label}
     </span>
   );

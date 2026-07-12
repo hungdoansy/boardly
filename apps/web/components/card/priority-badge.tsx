@@ -1,5 +1,7 @@
 import { type PriorityValue, PRIORITY_META, Priority } from "@boardly/domain";
 
+import { CHIP_ICON } from "./chip";
+
 /** Linear-style priority glyph: bar-height icon (Urgent is a filled alert). */
 export function PriorityIcon({ level, className }: { level: PriorityValue; className?: string }) {
   const color = PRIORITY_META[level].color;
@@ -41,11 +43,11 @@ export function PriorityBadge({ priority }: { priority: PriorityValue }) {
   const meta = PRIORITY_META[priority];
   return (
     <span
-      className="inline-flex items-center"
+      className={CHIP_ICON}
       title={`Priority: ${meta.name}`}
       aria-label={`Priority: ${meta.name}`}
     >
-      <PriorityIcon level={priority} />
+      <PriorityIcon level={priority} className="size-3" />
     </span>
   );
 }

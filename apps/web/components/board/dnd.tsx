@@ -1,6 +1,6 @@
 "use client";
 
-import type { Card, Label, Status } from "@boardly/domain";
+import type { Card, Label, Project, Status } from "@boardly/domain";
 import { execute, moveCard } from "@boardly/commands";
 import { cardsInStatus } from "@boardly/sync";
 import {
@@ -120,6 +120,7 @@ export function SortableCard({
   card,
   status,
   labels,
+  project,
   config,
   onOpen,
   onArchive,
@@ -127,6 +128,7 @@ export function SortableCard({
   card: Card;
   status: Status;
   labels?: Label[];
+  project?: Project;
   config?: string[];
   onOpen: () => void;
   onArchive: () => void;
@@ -150,7 +152,14 @@ export function SortableCard({
       {...attributes}
       {...listeners}
     >
-      <CardFace card={card} labels={labels} config={config} onOpen={onOpen} onArchive={onArchive} />
+      <CardFace
+        card={card}
+        labels={labels}
+        project={project}
+        config={config}
+        onOpen={onOpen}
+        onArchive={onArchive}
+      />
     </div>
   );
 }

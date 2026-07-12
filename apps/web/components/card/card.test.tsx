@@ -124,6 +124,16 @@ describe("cards", () => {
     expect(screen.queryByText("S2")).not.toBeInTheDocument();
   });
 
+  it("leads the card with the status glyph and shows the ticket id", () => {
+    setup((ctx, status) => {
+      execute(createCard, ctx, { status, id: "c1", title: "Laid out" });
+    });
+    // Status glyph is rendered by hand at the head of the title row.
+    expect(screen.getByLabelText(/^Status:/)).toBeInTheDocument();
+    // Derived ticket id renders (empty prefix → `#1`).
+    expect(screen.getByText("#1")).toBeInTheDocument();
+  });
+
   it("renders many cards without error (perf sanity)", () => {
     setup((ctx, status) => {
       for (let i = 0; i < 500; i += 1) {

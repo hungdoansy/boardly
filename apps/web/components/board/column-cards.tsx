@@ -6,6 +6,7 @@ import { useMemo } from "react";
 
 import { useFocusMode } from "../../lib/focus-mode";
 import { useBadgeConfig, useCardActions, useCardsInStatus, useLabels } from "../../lib/use-board";
+import { useProjects } from "../../lib/use-projects";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
 
@@ -25,11 +26,14 @@ export function ColumnCards({
 }) {
   const allCards = useCardsInStatus(status);
   const labels = useLabels();
+  const projects = useProjects();
   const config = useBadgeConfig();
   const { level } = useFocusMode();
-  const effectiveConfig = level === "zen" ? ZEN_CONFIG : config;
+  const zen = level === "zen";
+  const effectiveConfig = zen ? ZEN_CONFIG : config;
   const actions = useCardActions();
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
+  const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
   const cards = useMemo(
     () =>
@@ -48,6 +52,7 @@ export function ColumnCards({
             card={card}
             status={status}
             labels={card.labelIds.map((id) => labelById.get(id)).filter((l) => l !== undefined)}
+            project={zen || !card.projectId ? undefined : projectById.get(card.projectId)}
             config={effectiveConfig}
             onOpen={() => onOpenCard(card.id)}
             onArchive={() => actions.archive(card.id)}
