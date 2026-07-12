@@ -87,16 +87,26 @@ Each semantic color has a low-alpha `-bg` variant (~14% alpha) for chip/badge fi
 
 ### Encodings (meaning via color)
 
-**Workflow status** (see plan R14):
+**Workflow status.** Status is the **single placement axis** — a card's column IS its status, and
+the board renders exactly these eight fixed columns in this left→right order (no add/rename/reorder/
+WIP). The values, order, categories, and colors are the single source of truth in
+`packages/domain/src/status.ts` (`STATUS_META` / `STATUS_ORDER`); mirror them, never hardcode
+elsewhere.
 
-| Status      | Color                       | Note                                          |
-| ----------- | --------------------------- | --------------------------------------------- |
-| Backlog     | `--text-tertiary` `#6B6F76` | dashed/muted icon                             |
-| Todo        | `#9CA0A8`                   | empty-circle icon                             |
-| In Progress | `#E2B341`                   | half-filled icon                              |
-| In Review   | `#5E6AD2`                   | accent                                        |
-| Done        | `#4CB782`                   | filled check                                  |
-| Canceled    | `#6B6F76`                   | crossed; card face dims + title strikethrough |
+| Order | Status      | Color     | Category  | Icon                                          |
+| ----- | ----------- | --------- | --------- | --------------------------------------------- |
+| 1     | Backlog     | `#8A8F98` | unstarted | dashed/muted circle                           |
+| 2     | Todo        | `#A0A4AD` | unstarted | empty circle                                  |
+| 3     | In Progress | `#F2C94C` | started   | half-filled circle                            |
+| 4     | Pending     | `#E2B341` | started   | progress pie (amber, distinct from In Progress) |
+| 5     | In Review   | `#4CB782` | started   | near-complete circle                          |
+| 6     | Done        | `#5E6AD2` | completed | filled check (accent); card face dims + strike |
+| 7     | Canceled    | `#6B7080` | canceled  | crossed; card face dims + title strikethrough |
+| 8     | Duplicate   | `#565B66` | canceled  | filled-with-cross (gray); dims + strikethrough |
+
+Cards in a `completed` or `canceled` category (Done, Canceled, Duplicate) render dimmed with a
+struck-through title. Each column header shows the status icon (color swatch) + name + live count;
+headers are **not** editable.
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
 
@@ -161,6 +171,7 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 - Every interactive element is tabbable and has a visible focus state in both themes.
 - Roving-tabindex for the board grid (cards/columns) so arrow keys move focus (plan Unit 2.10); Enter opens, Space/pickup for drag.
 - Command palette (⌘K) is the keyboard hub; document shortcuts in a `?` overlay.
+- **ESC is a guarded escape ladder.** It yields to whoever already owns ESC — open Radix dialogs/sheets/palette, inline text edits, active dnd drags. When nothing else owns it: close the Settings pane if open, else reset the project scope to All. It never steals ESC from those controls.
 
 ---
 
@@ -263,8 +274,8 @@ The `--focus-saturate` token is per-theme; the toggle transition respects `prefe
 
 ## 8. Key screens (layout intent)
 
-- **App shell:** left **board-list rail** (~240px, `--bg-surface`), top bar (board title `text-xl`, view switcher, ⌘K hint, account), main board area (`--bg-base`).
-- **Board view:** horizontal scroll of columns. Column: header (title `text-md medium`, count, `⋯`, add-card `+`), scrollable card list, footer add-card composer. Optional swimlanes stack horizontally (Unit 4.2).
+- **App shell:** a user has **one space** (no board list / switcher). Left **sidebar** (~240px, `--bg-surface`) top→bottom: logo → Search → **projects list** (scopes the board; `flex-1`) → **Settings** (the last full-width nav item) → account/theme footer. Main board area is `--bg-base`. Settings opens a full-pane view (routed by `#settings`); the account button and theme toggle stay in the footer.
+- **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). Above the columns, a board-toolbar toggle **shows/hides empty columns** (synced board-meta flag, default show). Dragging a card onto a column applies that status immediately. Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
 - **Card face:** title (`text-base`, up to 2 lines), then the **badge row** (Unit 2.6) — status icon, short ID (mono, tertiary), severity pill, due chip, priority icon, label dots, assignee avatar, link chips. Dense, single row, wraps to two max. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px).
 - **Card detail:** right `sheet` — title, status/priority/severity/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths.
 - **Command palette:** centered `command` dialog, `--bg-overlay`, subtle border + shadow; grouped results; keyboard nav; instant.

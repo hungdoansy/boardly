@@ -557,7 +557,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 6 — Docs
 
-- [ ] **Unit 11: Docs — rewrite `PLAN.md` and update design/unit/memory docs + the seed**
+- [x] **Unit 11: Docs — rewrite `PLAN.md` and update design/unit/memory docs + the seed**
 
 **Goal:** Make the app-level docs describe the collapsed architecture, the fixed status-column model, the new navigation/keyboard behavior, and the full current feature set.
 

@@ -1,32 +1,30 @@
 /**
- * Add a single "link provider icon showcase" card to the existing demo board,
+ * Add a single "link provider icon showcase" card to the demo user's board,
  * carrying one link for every brand `@boardly/domain`'s link registry detects
  * (see `packages/domain/src/links/registry.ts`) — so the card drawer's
  * LINKS section exercises every `ProviderIcon` branch at once.
  *
- * Unlike `seed-demo-board.ts` (which always creates a fresh board), this
- * script finds the existing demo board by title and adds one card to it —
- * run `seed-demo-board.ts` first if it doesn't exist yet.
+ * Since the board layer was collapsed (plan 2026-07-12-002) a user has exactly
+ * ONE content doc, room `board:{userId}`, authorized by identity — so there is
+ * no board to discover: this script connects that doc directly and appends one
+ * card in Backlog. Run `seed-demo-board.ts` first to populate the rest.
  *
  * Run (from repo root, pinned Node; API server + Docker `boardly-db` up):
  *   export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
  *   apps/server/node_modules/.bin/tsx packages/sync/scripts/add-brand-showcase-card.ts
  *
- * Env overrides: API_URL, SEED_EMAIL, SEED_PASSWORD, BOARD_TITLE (must match
- * an existing board's title exactly).
+ * Env overrides: API_URL, SEED_EMAIL, SEED_PASSWORD.
  */
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { LinkProvider } from "@boardly/domain";
+import { LinkProvider, Status } from "@boardly/domain";
 import * as Y from "yjs";
 
-import { addCard, addLink, liveColumns, setCardDescription } from "../src/index";
-import { listBoards } from "../src/workspace-doc";
+import { addCard, addLink, setCardDescription } from "../src/index";
 
 const API_URL = (process.env.API_URL ?? "http://localhost:8787").replace(/\/$/, "");
 const WS_URL = `${API_URL.replace(/^http/, "ws")}/sync`;
 const EMAIL = process.env.SEED_EMAIL ?? "demo@boardly.app";
 const PASSWORD = process.env.SEED_PASSWORD ?? "demo-boardly-2026";
-const BOARD_TITLE = process.env.BOARD_TITLE ?? "Boardly Demo — Everything";
 const CLIENT_ID = "brand-showcase-script";
 
 function decodeJwtSub(token: string): string {
@@ -156,37 +154,17 @@ async function main(): Promise<void> {
   const { token, userId } = await authenticate();
   const mintTicket = makeTicketMinter(token);
 
-  const workspaceDoc = new Y.Doc();
-  const ws = connect(workspaceDoc, `workspace:${userId}`, mintTicket);
-  console.log("→ waiting for workspace sync…");
-  await ws.synced;
-
-  const board = listBoards(workspaceDoc).find((b) => b.title === BOARD_TITLE);
-  if (!board) {
-    ws.provider.destroy();
-    throw new Error(
-      `no board titled "${BOARD_TITLE}" found for ${EMAIL} — run seed-demo-board.ts first`,
-    );
-  }
-  console.log(`→ found board ${board.title} (${board.id})`);
-
+  // The demo user's single content doc, addressed + authorized by identity.
   const boardDoc = new Y.Doc();
-  const bd = connect(boardDoc, `board:${board.id}`, mintTicket);
-  console.log("→ waiting for board sync…");
+  const documentName = `board:${userId}`;
+  const bd = connect(boardDoc, documentName, mintTicket);
+  console.log(`→ waiting for ${documentName} sync…`);
   await bd.synced;
 
-  const columns = liveColumns(boardDoc);
-  const target = columns[0];
-  if (!target) {
-    ws.provider.destroy();
-    bd.provider.destroy();
-    throw new Error(`board "${board.title}" has no columns`);
-  }
-
-  console.log(`→ adding showcase card to "${target.title}" with ${LINKS.length} links…`);
+  console.log(`→ adding showcase card to Backlog with ${LINKS.length} links…`);
   const now = Date.now();
   const cardId = addCard(boardDoc, {
-    columnId: target.id,
+    status: Status.Backlog,
     title: "Link provider icon showcase (all brands)",
     now,
     clientId: CLIENT_ID,
@@ -212,12 +190,11 @@ async function main(): Promise<void> {
   console.log("→ flushing to the server…");
   await sleep(3000);
 
-  ws.provider.destroy();
   bd.provider.destroy();
   await sleep(300);
 
   console.log("\n✓ Added successfully.");
-  console.log(`  Card:  "Link provider icon showcase (all brands)" in "${target.title}"`);
+  console.log(`  Card:  "Link provider icon showcase (all brands)" in Backlog`);
   console.log(`  Links: ${LINKS.length}`);
   console.log(`  Log in at http://localhost:3000 with:`);
   console.log(`    email:    ${EMAIL}`);

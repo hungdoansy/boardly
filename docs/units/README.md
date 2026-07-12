@@ -1,9 +1,34 @@
 # Per-Unit Change Docs
 
-Every implementation unit in the build plan
-(`docs/plans/2026-07-09-001-feat-boardly-full-build-plan.md`) gets one intensive doc here, so the
-codebase is understandable without spelunking. This is required by `CLAUDE.md` §1 and is part of
-each unit's Definition of Done.
+Every implementation unit in a build/refactor plan gets one intensive doc here, so the codebase is
+understandable without spelunking. This is required by `CLAUDE.md` §1 and is part of each unit's
+Definition of Done.
+
+## Plans → unit-doc ranges
+
+Unit docs are named after the unit id in their plan (ids are scoped per plan, so a later plan may
+reuse a number namespace). The plans, newest last:
+
+- `docs/plans/2026-07-09-001-feat-boardly-full-build-plan.md` — the original full build:
+  `UNIT-0.x` (scaffold) · `UNIT-1.x`–`UNIT-5.x` (core → sync → depth → desktop/e2e) · plus
+  `UNIT-V1.x` (shared view model / filters / list), `UNIT-F1`/`UNIT-F2` (focus/zen mode), and
+  `UNIT-P1`/`UNIT-P2` (card-drawer polish, demo seed).
+- `docs/plans/2026-07-11-002-feat-projects-ticket-ids-settings-plan.md` — integer ticket ids,
+  single main board, deep-link URLs, card-face link cluster + reorder, projects, settings:
+  `UNIT-6.1`–`UNIT-6.8`.
+- `docs/plans/2026-07-12-002-refactor-collapse-board-linear-columns-plan.md` — collapse the board
+  layer into one per-user space and adopt the fixed Linear status columns:
+  - `UNIT-7.1` — sync: one per-user board doc (`board:{userId}`); delete the workspace index.
+  - `UNIT-7.2` — server: authorize the doc by user id; drop the `boards` table and `/boards`.
+  - `UNIT-7.3` — commands: drop `boardId`; context resolves the single doc; prune board commands.
+  - `UNIT-7.4` — server REST + MCP: align the agent surface to boardId-less commands.
+  - `UNIT-7.5` — web data layer: per-user doc keyed by the authenticated user; simplify sync-bridge.
+  - `UNIT-7.6` — web hooks + components: drop `boardId`, remove provisioning/selection.
+  - `UNIT-7.7` — domain + sync: eight statuses, collapse `columnId` into `status`, `showEmptyColumns`.
+  - `UNIT-7.8` — commands: remove column commands; `moveCard` sets status; add `setShowEmptyColumns`.
+  - `UNIT-7.9` — web board: render fixed status columns; drag sets status; show/hide-empty toggle.
+  - `UNIT-7.10` — web: Settings placement and the ESC escape ladder.
+  - `UNIT-7.11` — docs: rewrite `PLAN.md` + `DESIGN.md` + this index; rewrite the demo seed (this doc).
 
 ## Convention
 

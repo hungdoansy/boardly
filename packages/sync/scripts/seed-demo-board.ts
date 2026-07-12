@@ -1,15 +1,23 @@
 /**
  * Seed an extensive demo board into a running Boardly stack, exercising every
- * implemented feature: columns + WIP limits, cards across all statuses, every
- * priority/severity, due dates (overdue/today/this-week/future), multi-labels,
- * links for every provider, checklists (with completed items), markdown
- * descriptions, rich activity logs, and saved views (board + list lenses).
+ * implemented feature: cards spread across the eight fixed Linear status
+ * columns (Backlog, Todo, In Progress, Pending, In Review, Done, Canceled,
+ * Duplicate), every priority/severity, due dates (overdue/today/this-week/
+ * future), multi-labels, links for every provider, checklists (with completed
+ * items), markdown descriptions, rich activity logs, projects, and saved views
+ * (board + list lenses).
  *
- * It talks to the real server exactly like the web client does:
- *   1. log in (or sign up) over HTTP → access token + userId (JWT `sub`),
- *   2. POST /boards to register ownership (authorizes the board's sync room),
- *   3. connect the workspace + board Yjs docs over the /sync WebSocket via
- *      one-time tickets, mutate them, and let Hocuspocus persist to Postgres.
+ * Since the board layer was collapsed (plan 2026-07-12-002), a user has exactly
+ * ONE content doc, addressed and authorized by the user's id — room
+ * `board:{userId}`. There is no workspace index doc, no `boards` table, and no
+ * `POST /boards` registration step. So this script simply:
+ *   1. logs in (or signs up) over HTTP → access token + userId (JWT `sub`),
+ *   2. connects that user's single Yjs doc `board:{userId}` over the /sync
+ *      WebSocket via a one-time ticket (authorized purely by identity), and
+ *   3. if the doc is empty, mutates it and lets Hocuspocus persist to Postgres.
+ *
+ * It is idempotent: a re-run against an already-populated doc keeps the content
+ * as-is (adopt-or-skip) rather than duplicating cards.
  *
  * Mutations go through the `@boardly/sync` typed accessors (the exact
  * primitives the command layer wraps) rather than `@boardly/commands`, purely
@@ -38,26 +46,20 @@ import {
 import * as Y from "yjs";
 
 import {
-  addBoardRef,
   addCard,
   addChecklistItem,
-  addColumn,
   addLabel,
   addProject,
-  archiveBoardRef,
+  allLiveCards,
   assignLabel,
   addLink,
   initBoard,
-  listBoards,
-  liveColumns,
   saveView,
   setBadgeConfig,
   setCardDescription,
   setCardDueDate,
   setCardPriority,
   setCardSeverity,
-  setCardStatus,
-  setColumnWipLimit,
   toggleChecklistItem,
 } from "../src/index";
 
@@ -112,23 +114,6 @@ async function authenticate(): Promise<{ token: string; userId: string }> {
   return { token, userId: decodeJwtSub(token) };
 }
 
-/**
- * Register/affirm ownership of a board id. Returns true if it is (now) ours,
- * false if it can't be adopted — 409 (owned by another account) or 400 (a
- * legacy non-UUID id such as the web app's old "main"). The caller then skips
- * and archives that ref rather than crashing. Other failures still throw.
- */
-async function registerBoard(token: string, id: string, title: string): Promise<boolean> {
-  const res = await fetch(`${API_URL}/boards`, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({ id, title }),
-  });
-  if (res.ok) return true;
-  if (res.status === 409 || res.status === 400) return false;
-  throw new Error(`register board failed (${res.status})`);
-}
-
 function makeTicketMinter(token: string): (documentName: string) => Promise<string> {
   return async (documentName) => {
     const res = await fetch(`${API_URL}/sync/ticket`, {
@@ -173,10 +158,10 @@ const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms
 const color = (name: string): string => LABEL_COLORS.find((c) => c.name === name)!.value;
 
 interface CardSpec {
-  column: string; // column key below
+  // A card's column IS its status (Unit 7): placement is the fixed status.
+  status: Status;
   title: string;
   description?: string;
-  status?: string;
   priority?: PriorityValue;
   severity?: SeverityValue | null;
   labels?: string[]; // label keys
@@ -188,14 +173,6 @@ interface CardSpec {
   checklist?: Array<{ text: string; done?: boolean }>;
   dueInDays?: number; // relative to now; negative = overdue
 }
-
-const COLUMNS: Array<{ key: string; title: string; wip?: number }> = [
-  { key: "backlog", title: "Backlog" },
-  { key: "todo", title: "Todo", wip: 5 },
-  { key: "doing", title: "In Progress", wip: 3 },
-  { key: "review", title: "In Review", wip: 2 },
-  { key: "done", title: "Done" },
-];
 
 const LABELS: Array<{ key: string; name: string; color: string }> = [
   { key: "frontend", name: "Frontend", color: color("blue") },
@@ -222,42 +199,40 @@ function projectForCard(spec: CardSpec): string {
   return "web";
 }
 
+// Cards spread across ALL EIGHT fixed statuses (Backlog…Duplicate), so the
+// seeded board exercises every status column and the show/hide-empty toggle.
 const CARDS: CardSpec[] = [
   {
-    column: "backlog",
+    status: Status.Backlog,
     title: "Research offline-first conflict resolution",
     description:
       "## Goal\nEvaluate CRDT vs OT for the sync layer.\n\n- [x] Read the Yjs internals docs\n- Compare with Automerge\n\n> Decision needed before Phase 4.",
-    status: Status.Backlog,
     priority: Priority.Low,
     labels: ["backend", "docs"],
     links: [{ url: "https://github.com/yjs/yjs", title: "yjs/yjs" }],
   },
   {
-    column: "backlog",
+    status: Status.Backlog,
     title: "Design the mobile card layout",
     description: "Narrow-viewport card face. Needs a Figma pass.",
-    status: Status.Backlog,
     priority: Priority.Medium,
     labels: ["design", "frontend"],
     links: [{ url: "https://www.figma.com/file/abc/Boardly-Mobile" }],
     checklist: [{ text: "Audit current breakpoints" }, { text: "Sketch 3 density options" }],
   },
   {
-    column: "todo",
+    status: Status.Todo,
     title: "Add keyboard shortcut for quick-capture",
     description: "Global `c` to open the composer from anywhere.",
-    status: Status.Todo,
     priority: Priority.Medium,
     labels: ["frontend"],
     dueInDays: 5,
     links: [{ url: "https://linear.app/boardly/issue/BRD-142", title: "BRD-142" }],
   },
   {
-    column: "todo",
+    status: Status.Todo,
     title: "Fix drag ghost flicker on Safari",
     description: "The drag preview flashes at drop. Compositor issue — investigate `transform`.",
-    status: Status.Todo,
     priority: Priority.High,
     severity: Severity.S2,
     labels: ["bug", "frontend"],
@@ -270,19 +245,17 @@ const CARDS: CardSpec[] = [
     links: [{ url: "https://github.com/boardly/app/issues/318", title: "#318" }],
   },
   {
-    column: "todo",
-    title: "Document the command layer for contributors",
     status: Status.Todo,
+    title: "Document the command layer for contributors",
     priority: Priority.Low,
     labels: ["docs"],
     dueInDays: 12,
   },
   {
-    column: "doing",
+    status: Status.InProgress,
     title: "Ship the list view + Linear-style filters",
     description:
       "One model, two lenses. Board + list derive from the same `ActiveView`.\n\n**Almost done** — polishing the toolbar.",
-    status: Status.InProgress,
     priority: Priority.High,
     labels: ["frontend"],
     dueInDays: 1,
@@ -304,10 +277,9 @@ const CARDS: CardSpec[] = [
     ],
   },
   {
-    column: "doing",
+    status: Status.InProgress,
     title: "Investigate WebSocket reconnect storm",
     description: "Under flaky network the provider reconnects too aggressively.",
-    status: Status.InProgress,
     priority: Priority.Urgent,
     severity: Severity.S1,
     labels: ["bug", "infra", "urgent"],
@@ -315,10 +287,26 @@ const CARDS: CardSpec[] = [
     links: [{ url: "https://claude.ai/chat/abc-123", provider: LinkProvider.Claude }],
   },
   {
-    column: "review",
+    status: Status.Pending,
+    title: "Await design sign-off on the status columns",
+    description: "Blocked on the Linear-style status palette review before we lock the tokens.",
+    priority: Priority.Medium,
+    labels: ["design", "frontend"],
+    dueInDays: 3,
+    links: [{ url: "https://www.figma.com/file/def/Status-Columns" }],
+  },
+  {
+    status: Status.Pending,
+    title: "Vendor security review of the sync server",
+    description: "External audit scheduled; implementation paused until it clears.",
+    priority: Priority.High,
+    severity: Severity.S3,
+    labels: ["backend", "infra"],
+  },
+  {
+    status: Status.InReview,
     title: "Card drawer UI polish",
     description: "Base Input/Button hover + disabled states; activity row alignment.",
-    status: Status.InReview,
     priority: Priority.Medium,
     labels: ["frontend", "design"],
     dueInDays: 0,
@@ -329,49 +317,52 @@ const CARDS: CardSpec[] = [
     ],
   },
   {
-    column: "review",
+    status: Status.InReview,
     title: "Rate-limit the auth endpoints",
     description: "5/min on login; lift for e2e via env.",
-    status: Status.InReview,
     priority: Priority.High,
     severity: Severity.S3,
     labels: ["backend", "infra"],
     links: [{ url: "https://github.com/boardly/app/pull/377", title: "#377" }],
   },
   {
-    column: "done",
-    title: "Yjs schema + typed accessors",
-    description: "Board doc, workspace doc, fractional ordering, short ids.",
     status: Status.Done,
+    title: "Yjs schema + typed accessors",
+    description: "Per-user board doc, fractional ordering, short ids.",
     priority: Priority.High,
     labels: ["backend"],
     checklist: [
       { text: "board-doc", done: true },
-      { text: "workspace-doc", done: true },
+      { text: "status placement", done: true },
     ],
   },
   {
-    column: "done",
-    title: "Static export + auth handshake",
     status: Status.Done,
+    title: "Static export + auth handshake",
     priority: Priority.Medium,
     labels: ["frontend", "backend"],
     links: [{ url: "https://github.com/boardly/app/pull/210", title: "#210" }],
   },
   {
-    column: "done",
+    status: Status.Canceled,
     title: "Abandoned: custom OT engine",
     description: "Superseded by Yjs. Kept for the record.",
-    status: Status.Canceled,
     priority: Priority.None,
     labels: ["backend"],
+  },
+  {
+    status: Status.Duplicate,
+    title: "Add per-column WIP limits",
+    description:
+      "Duplicate of the fixed-status-columns work — WIP limits were dropped when columns became the eight fixed Linear statuses (no add/rename/reorder/WIP).",
+    priority: Priority.None,
+    labels: ["frontend"],
   },
 ];
 
 // --- build -------------------------------------------------------------------
 
-function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userId: string): void {
-  addBoardRef(workspaceDoc, { id: boardId, title: BOARD_TITLE, icon: "🗂️", clientId: CLIENT_ID });
+function buildBoard(boardDoc: Y.Doc, userId: string): void {
   // A "BRD" prefix shows ids as BRD-1, BRD-2… (matching this demo's link refs);
   // an empty prefix would show them as #1, #2 (Unit 6.1).
   initBoard(boardDoc, {
@@ -388,13 +379,6 @@ function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userI
     ["status", "priority", "severity", "dueDate", "labels", "links", "checklist"],
     tick(),
   );
-
-  const columnId: Record<string, string> = {};
-  for (const c of COLUMNS) {
-    const id = addColumn(boardDoc, { title: c.title, now: tick(), clientId: CLIENT_ID });
-    columnId[c.key] = id;
-    if (c.wip !== undefined) setColumnWipLimit(boardDoc, id, c.wip, tick());
-  }
 
   const labelId: Record<string, string> = {};
   for (const l of LABELS) {
@@ -417,8 +401,9 @@ function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userI
   }
 
   for (const spec of CARDS) {
+    // A card's column IS its status — placement is set directly at creation.
     const id = addCard(boardDoc, {
-      columnId: columnId[spec.column]!,
+      status: spec.status,
       title: spec.title,
       projectId: projectId[projectForCard(spec)]!,
       now: tick(),
@@ -426,8 +411,6 @@ function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userI
       createdBy: userId,
     });
     if (spec.description) setCardDescription(boardDoc, id, spec.description, tick());
-    if (spec.status && spec.status !== Status.Todo)
-      setCardStatus(boardDoc, id, spec.status as Status, tick(), userId);
     if (spec.priority !== undefined && spec.priority !== Priority.None)
       setCardPriority(boardDoc, id, spec.priority, tick(), userId);
     if (spec.severity != null) setCardSeverity(boardDoc, id, spec.severity, tick(), userId);
@@ -514,71 +497,33 @@ async function main(): Promise<void> {
   const { token, userId } = await authenticate();
   const mintTicket = makeTicketMinter(token);
 
-  // Inspect the workspace first so we can REUSE an existing board rather than
-  // minting a new one every run (board ids are server-side UUIDs, so a fixed
-  // string id isn't an option). Single-board: keep one board, archive the rest.
-  const workspaceDoc = new Y.Doc();
-  const ws = connect(workspaceDoc, `workspace:${userId}`, mintTicket);
-  console.log("→ waiting for workspace sync…");
-  await ws.synced;
-
-  // Single-board + idempotent: adopt the first board this account can own
-  // (affirming ownership repairs legacy refs that had no `boards` row), archive
-  // every other ref, and mint a fresh board only if none are adoptable. Legacy
-  // demo workspaces accumulated refs that are unowned or owned by other accounts
-  // (the shared-local-doc leak, see UNIT-6.2); foreign ones (409) are skipped.
-  // SEED_RESET=1 forces a fresh rebuild (archive all, new board) — use it to
-  // refresh the demo content after changing the seed data.
-  const reset = process.env.SEED_RESET === "1";
-  const existing = listBoards(workspaceDoc);
-  let boardId: string | null = null;
-  if (!reset) {
-    for (const b of existing) {
-      if (await registerBoard(token, b.id, BOARD_TITLE)) {
-        boardId = b.id;
-        break;
-      }
-    }
-  }
-  const keep = boardId;
-  const stale = existing.filter((b) => b.id !== keep);
-  if (stale.length > 0) {
-    console.log(`→ archiving ${stale.length} stale/foreign board ref(s)…`);
-    for (const b of stale) archiveBoardRef(workspaceDoc, b.id);
-  }
-  if (!boardId) {
-    boardId = newId();
-    console.log(`→ registering fresh board ${boardId}`);
-    await registerBoard(token, boardId, BOARD_TITLE);
-  } else {
-    console.log(`→ reusing owned board ${boardId}`);
-  }
-
+  // Connect the user's SINGLE content doc, addressed + authorized by identity
+  // (room id == userId). No workspace index, no board registration.
   const boardDoc = new Y.Doc();
-  const bd = connect(boardDoc, `board:${boardId}`, mintTicket);
-  console.log("→ waiting for board sync…");
+  const documentName = `board:${userId}`;
+  const bd = connect(boardDoc, documentName, mintTicket);
+  console.log(`→ waiting for ${documentName} sync…`);
   await bd.synced;
 
-  // Populate only an empty board; on re-run keep existing content (no dupes).
-  if (liveColumns(boardDoc).length === 0) {
+  // Idempotent adopt-or-skip: only populate an empty doc; on re-run keep the
+  // existing content as-is (no duplicate cards).
+  if (allLiveCards(boardDoc).length === 0) {
     console.log("→ building the demo board…");
-    buildBoard(workspaceDoc, boardDoc, boardId, userId);
+    buildBoard(boardDoc, userId);
   } else {
     console.log("→ demo board already populated; kept as-is.");
-    addBoardRef(workspaceDoc, { id: boardId, title: BOARD_TITLE, icon: "🗂️", clientId: CLIENT_ID });
   }
 
   // Give Hocuspocus time to receive + debounce-persist the updates.
   console.log("→ flushing to the server…");
   await sleep(3000);
 
-  ws.provider.destroy();
   bd.provider.destroy();
   await sleep(300);
 
   console.log("\n✓ Seeded successfully.");
-  console.log(`  Board:    ${BOARD_TITLE} (${boardId})`);
-  console.log(`  Cards:    ${CARDS.length} across ${COLUMNS.length} columns`);
+  console.log(`  Board:    ${BOARD_TITLE} (${documentName})`);
+  console.log(`  Cards:    ${CARDS.length} across the 8 fixed status columns`);
   console.log(`  Log in at http://localhost:3000 with:`);
   console.log(`    email:    ${EMAIL}`);
   console.log(`    password: ${PASSWORD}`);
