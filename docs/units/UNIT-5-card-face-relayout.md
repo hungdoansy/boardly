@@ -56,7 +56,7 @@ the feature to change this ordering anymore":
 2. The archive button (hover-only) moves from the title row onto line 1,
    at the far right after the due/checklist nodes.
 3. On the priority/links/project line, the project badge is pushed to the
-   *far* right (`ml-auto`) instead of just trailing the priority/link nodes.
+   _far_ right (`ml-auto`) instead of just trailing the priority/link nodes.
 
 This changed the DOM order from `[title row, line1, labels?, line3?]` to
 `[line1, title row, labels?, line3?]`. `card.test.tsx`'s `metaRows` helper was
@@ -73,6 +73,7 @@ card for now"). Archiving a card is still possible via the card detail
 drawer's "Archive card" button (`card-detail.tsx`) and the `e` keyboard
 shortcut (`keyboard-nav.tsx`) — neither of those routes through `CardFace`,
 so removing the card-face button doesn't touch either. Changes:
+
 - `card.tsx` — dropped the `Archive` import, the `onArchive` prop, and the
   button; line 1's right-hand container now holds only
   `line1RightNodes`. Also dropped the now-unused `group`/`group-hover`
@@ -97,8 +98,8 @@ Given directly in chat, in three small commits (`6d158be`, `f6b427e`,
 `ed9316c`):
 
 - `link-cluster.tsx` — the cluster used to render each visible link as its
-  own bordered/ringed circle. It's now one `CHIP`-shell badge (`pl-0.5 pr-1
-  gap-0.5` override) wrapping the overlapping icons and the `+N` overflow
+  own bordered/ringed circle. It's now one `CHIP`-shell badge (`px-0.5
+gap-0.5` override) wrapping the overlapping icons and the `+N` overflow
   count as plain muted text — only the outer shell carries a border, per
   the user's direction to "make the link cluster follow the badge
   convention." Individual icons keep a solid `bg-overlay` backing circle
@@ -137,13 +138,13 @@ change to be correct.
 ## Why (decisions)
 
 - **Reused the existing hand-placed-tier architecture** (`collectBadgeNodes`
-  + key-sets + two always-hand-placed elements) rather than introducing a new
-  layout mechanism — only the tier groupings and the `shortId`/`ProjectChip`
-  positions changed. The per-board `badgeConfig` settings
-  (`apps/web/components/board/badge-config.tsx`) continue to work unchanged:
-  they still control whether priority/dueDate/labels/links/checklist show at
-  all, just within the new fixed 3-line grouping instead of the old 2-tier
-  one.
+  - key-sets + two always-hand-placed elements) rather than introducing a new
+    layout mechanism — only the tier groupings and the `shortId`/`ProjectChip`
+    positions changed. The per-board `badgeConfig` settings
+    (`apps/web/components/board/badge-config.tsx`) continue to work unchanged:
+    they still control whether priority/dueDate/labels/links/checklist show at
+    all, just within the new fixed 3-line grouping instead of the old 2-tier
+    one.
 - **Sequenced after severity's removal (Units 3/4).** The old middle row was
   `project + severity + labels`; with severity gone, the row naturally
   collapses to `labels`-only, which is exactly what this unit's line 2 is.
@@ -169,8 +170,8 @@ line 4 (if any): [line3Nodes]  …ml-auto…  [ProjectChip?]
 ```
 
 Because status/priority/links/due/checklist/project are placed by hand,
-`config` (the per-board `badgeConfig`) controls only *whether* a field shows
-(key present) — `labels` is the only field whose *position within its tier*
+`config` (the per-board `badgeConfig`) controls only _whether_ a field shows
+(key present) — `labels` is the only field whose _position within its tier_
 still follows `config`'s order (moot today since it's alone in its tier, but
 kept for parity with the original design and in case a future field joins
 that line).
@@ -204,8 +205,8 @@ that line).
     ordering asserted via `within(row)` queries and
     child-index comparisons (not text-regex, since `PriorityBadge`/`LinkCluster`
     render icon-only with no visible text).
-  (`metaRows` indices below refer to the spliced list, not the literal
-  card-face line numbers — see the helper's own doc comment.)
+    (`metaRows` indices below refer to the spliced list, not the literal
+    card-face line numbers — see the helper's own doc comment.)
   - Edge case: no labels → exactly 2 `metaRows` (labels row omitted).
   - Edge case: no due date/checklist → line 1 still renders with just the
     ticket id.

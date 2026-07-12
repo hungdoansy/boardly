@@ -25,7 +25,7 @@ export function LinkCluster({ links }: { links: CardLink[] }) {
   const overflow = links.length - visible.length;
 
   return (
-    <span className={cn(CHIP, "pl-0.5 pr-1 gap-0.5")} aria-label={`${links.length} link${links.length === 1 ? "" : "s"}`}>
+    <span className={cn(CHIP, "px-0.5 gap-0.5")} aria-label={`${links.length} link${links.length === 1 ? "" : "s"}`}>
       <span className="flex items-center">
         {visible.map((link, i) => (
           <span
@@ -43,7 +43,7 @@ export function LinkCluster({ links }: { links: CardLink[] }) {
           </span>
         ))}
       </span>
-      {overflow > 0 ? <span className="text-fg-muted">+{overflow}</span> : null}
+      {overflow > 0 ? <span className="text-fg-muted mr-0.5">+{overflow}</span> : null}
     </span>
   );
 }
