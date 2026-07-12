@@ -17,7 +17,9 @@
  *   3. if the doc is empty, mutates it and lets Hocuspocus persist to Postgres.
  *
  * It is idempotent: a re-run against an already-populated doc keeps the content
- * as-is (adopt-or-skip) rather than duplicating cards.
+ * as-is (adopt-or-skip) rather than duplicating cards. Pass SEED_RESET=1 to
+ * wipe and rebuild instead (refreshing the demo account with the latest
+ * fixtures). It always targets the demo account (demo@boardly.app) by default.
  *
  * Mutations go through the `@boardly/sync` typed accessors (the exact
  * primitives the command layer wraps) rather than `@boardly/commands`, purely
@@ -51,7 +53,11 @@ import {
   addLabel,
   addProject,
   allLiveCards,
+  boardActivity,
   boardCards,
+  boardLabels,
+  boardMeta,
+  boardProjects,
   assignLabel,
   addLink,
   initBoard,
@@ -71,6 +77,9 @@ const WS_URL = `${API_URL.replace(/^http/, "ws")}/sync`;
 const EMAIL = process.env.SEED_EMAIL ?? "demo@boardly.app";
 const PASSWORD = process.env.SEED_PASSWORD ?? "demo-boardly-2026";
 const BOARD_TITLE = process.env.BOARD_TITLE ?? "Boardly Demo — Everything";
+// Wipe the demo doc and rebuild it (instead of the default adopt-or-skip), so a
+// re-run refreshes an already-populated demo account with the latest fixtures.
+const RESET = process.env.SEED_RESET === "1" || process.env.SEED_RESET === "true";
 const CLIENT_ID = "seed-script";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -528,6 +537,17 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
   );
 }
 
+/** Wipe every top-level structure so the doc can be rebuilt from scratch. */
+function clearBoard(doc: Y.Doc): void {
+  doc.transact(() => {
+    boardCards(doc).clear();
+    boardLabels(doc).clear();
+    boardProjects(doc).clear();
+    boardActivity(doc).delete(0, boardActivity(doc).length);
+    boardMeta(doc).clear(); // also drops saved views (stored under meta.views)
+  });
+}
+
 // --- main --------------------------------------------------------------------
 
 async function main(): Promise<void> {
@@ -543,13 +563,18 @@ async function main(): Promise<void> {
   console.log(`→ waiting for ${documentName} sync…`);
   await bd.synced;
 
-  // Idempotent adopt-or-skip: only populate an empty doc; on re-run keep the
-  // existing content as-is (no duplicate cards).
-  if (allLiveCards(boardDoc).length === 0) {
+  // SEED_RESET=1 → wipe and rebuild (refresh an already-populated demo account).
+  // Otherwise idempotent adopt-or-skip: only populate an empty doc, and on a
+  // re-run keep the existing content as-is (no duplicate cards).
+  if (RESET) {
+    console.log("→ SEED_RESET: clearing existing content and rebuilding…");
+    clearBoard(boardDoc);
+    buildBoard(boardDoc, userId);
+  } else if (allLiveCards(boardDoc).length === 0) {
     console.log("→ building the demo board…");
     buildBoard(boardDoc, userId);
   } else {
-    console.log("→ demo board already populated; kept as-is.");
+    console.log("→ demo board already populated; kept as-is (set SEED_RESET=1 to rebuild).");
   }
 
   // Give Hocuspocus time to receive + debounce-persist the updates.
