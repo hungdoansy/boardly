@@ -46,6 +46,8 @@ reuse a number namespace). The plans, newest last:
     only set at creation).
   - `UNIT-P7` — card detail drawer section reorder (Description, Properties, Links,
     Checklist, Labels, Activity).
+  - `UNIT-P8` — GitHub repo link recognition (icon + `owner/repo` path + fetched
+    description).
 
 ## Convention
 

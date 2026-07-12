@@ -5,6 +5,8 @@ import {
   detectProvider,
   isPublicHttpUrl,
   isSafeHttpUrl,
+  linkLabel,
+  linkSubtitle,
   normalizeUrl,
   shortLabelFor,
   stripDeepLinkMarker,
@@ -91,10 +93,14 @@ describe("detectProvider", () => {
     expect(detectProvider("/relative")).toBe(LinkProvider.Generic);
   });
 
-  it("does not let generic shadow a github repo url", () => {
-    // A github.com URL that is neither pull nor issue still resolves to generic
-    // (no specific matcher), proving ordering is by specificity + generic last.
-    expect(detectProvider("https://github.com/o/r")).toBe(LinkProvider.Generic);
+  it("detects a bare github repo url", () => {
+    expect(detectProvider("https://github.com/o/r")).toBe(LinkProvider.GitHub);
+    expect(detectProvider("https://github.com/o/r/")).toBe(LinkProvider.GitHub);
+  });
+
+  it("does not misread github's own top-level pages as a repo", () => {
+    expect(detectProvider("https://github.com/settings/profile")).toBe(LinkProvider.Generic);
+    expect(detectProvider("https://github.com/orgs/acme")).toBe(LinkProvider.Generic);
   });
 });
 
@@ -104,6 +110,7 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://acme.slack.com/archives/C0/p1")).toBe("msg →");
     expect(shortLabelFor("https://github.com/facebook/react/pull/42")).toBe("facebook/react#42");
     expect(shortLabelFor("https://github.com/facebook/react/issues/99")).toBe("facebook/react#99");
+    expect(shortLabelFor("https://github.com/facebook/react")).toBe("facebook/react");
     expect(shortLabelFor("https://claude.ai/code/session_x")).toBe("session →");
     expect(shortLabelFor("https://www.figma.com/file/abc/My-Design-Name")).toBe(
       "My Design Name",
@@ -219,5 +226,29 @@ describe("isPublicHttpUrl (desktop SSRF pre-filter)", () => {
 
   it("allows a public IPv4 literal", () => {
     expect(isPublicHttpUrl("https://8.8.8.8")).toBe(true);
+  });
+});
+
+describe("linkLabel / linkSubtitle", () => {
+  it("prefers a fetched title for non-GitHub links", () => {
+    const link = { provider: LinkProvider.Generic, url: "https://example.com/page", title: "Example Page" };
+    expect(linkLabel(link)).toBe("Example Page");
+    expect(linkSubtitle(link)).toBeUndefined();
+  });
+
+  it("always shows the repo path for GitHub, and moves a fetched title to the subtitle", () => {
+    const link = {
+      provider: LinkProvider.GitHub,
+      url: "https://github.com/facebook/react",
+      title: "The library for web and native user interfaces.",
+    };
+    expect(linkLabel(link)).toBe("facebook/react");
+    expect(linkSubtitle(link)).toBe("The library for web and native user interfaces.");
+  });
+
+  it("has no subtitle when a GitHub link has no fetched title", () => {
+    const link = { provider: LinkProvider.GitHub, url: "https://github.com/o/r/pull/1" };
+    expect(linkLabel(link)).toBe("o/r#1");
+    expect(linkSubtitle(link)).toBeUndefined();
   });
 });

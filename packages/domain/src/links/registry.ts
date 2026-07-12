@@ -12,6 +12,7 @@ import { figma } from "./providers/figma";
 import { generic } from "./providers/generic";
 import { githubIssue } from "./providers/github-issue";
 import { githubPr } from "./providers/github-pr";
+import { githubRepo, isGithubRepoUrl } from "./providers/github-repo";
 import { gitlabIssue } from "./providers/gitlab-issue";
 import { gitlabMr } from "./providers/gitlab-mr";
 import { jira } from "./providers/jira";
@@ -27,6 +28,8 @@ import { trello } from "./providers/trello";
 import { twitter } from "./providers/twitter";
 import { wikipedia } from "./providers/wikipedia";
 
+export { isGithubRepoUrl };
+
 export interface LinkProviderDef {
   id: LinkProvider;
   /** True if this provider handles the (already-parsed) URL. */
@@ -41,6 +44,7 @@ export const PROVIDERS: LinkProviderDef[] = [
   linear,
   githubPr,
   githubIssue,
+  githubRepo,
   claude,
   figma,
   notion,
@@ -111,6 +115,22 @@ export function detectProvider(url: string): LinkProvider {
 export function shortLabelFor(url: string): string {
   const parsed = safeUrl(url);
   return parsed ? providerFor(parsed).shortLabel(parsed) : url;
+}
+
+/**
+ * Display label for a link chip. Every provider except GitHub uses a fetched
+ * `title` when present, falling back to `shortLabel`. GitHub always shows the
+ * repo/PR/issue path — a fetched repo description (also stored in `title`,
+ * see `use-board.ts`) is a secondary line, not a label replacement; use
+ * {@link linkSubtitle} to read it.
+ */
+export function linkLabel(link: { provider: LinkProvider; url: string; title?: string }): string {
+  return link.provider === LP.GitHub ? shortLabelFor(link.url) : (link.title ?? shortLabelFor(link.url));
+}
+
+/** Secondary descriptive text under the label, when present (GitHub repo descriptions only, for now). */
+export function linkSubtitle(link: { provider: LinkProvider; title?: string }): string | undefined {
+  return link.provider === LP.GitHub ? link.title : undefined;
 }
 
 /** Trailing marker a `shortLabel` uses to flag a deep link (Slack thread, Claude session, …). */

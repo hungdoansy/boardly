@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { isSafeHttpUrl, shortLabelFor, stripDeepLinkMarker } from "@boardly/domain";
+import { isSafeHttpUrl, linkLabel, linkSubtitle, stripDeepLinkMarker } from "@boardly/domain";
 import { Button, Input } from "@boardly/ui";
 import { ArrowUpRight, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -25,8 +25,8 @@ export function CardLinks({ card }: { card: Card }) {
       {card.links.length > 0 ? (
         <ul className="flex flex-col gap-0.5">
           {card.links.map((link, index) => {
-            const raw = link.title ?? shortLabelFor(link.url);
-            const { label, isDeepLink: deepLink } = stripDeepLinkMarker(raw);
+            const { label, isDeepLink: deepLink } = stripDeepLinkMarker(linkLabel(link));
+            const subtitle = linkSubtitle(link);
             // Reorder by moving between the neighbors one slot further out (same
             // fractional-ord pattern as the checklist).
             const moveUp = (): void =>
@@ -51,7 +51,12 @@ export function CardLinks({ card }: { card: Card }) {
                   className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
                   <ProviderIcon provider={link.provider} />
-                  <span className="truncate">{label}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {label}
+                    {subtitle ? (
+                      <span className="ml-1.5 text-fg-faint no-underline">{subtitle}</span>
+                    ) : null}
+                  </span>
                   {deepLink ? (
                     <ArrowUpRight className="size-3 shrink-0 text-fg-faint" aria-hidden />
                   ) : null}

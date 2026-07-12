@@ -3,12 +3,13 @@
 import type { ActivityEntry, Card, DueDate, Label, PriorityValue, Status } from "@boardly/domain";
 import {
   detectProvider,
+  isGithubRepoUrl,
   isSafeHttpUrl,
   LinkProvider,
   STATUS_ORDER,
 } from "@boardly/domain";
 
-import { unfurl } from "./unfurl-client";
+import { fetchGithubRepoDescription, unfurl } from "./unfurl-client";
 import {
   addChecklistItem,
   addLink,
@@ -358,10 +359,18 @@ export function useLinkActions(): LinkActions {
       async (cardId: string, url: string) => {
         if (!isSafeHttpUrl(url)) return; // command also rejects; skip here to avoid a throw
         // Generic links get a server-fetched title (Unit 3.7); known providers
-        // already render a good short label, so skip the round-trip for them.
+        // already render a good short label, so skip the round-trip for them —
+        // except a bare GitHub repo link, which also gets its description
+        // fetched (stored in the same `title` field; rendered as a secondary
+        // line, not a label replacement — see `linkLabel`/`linkSubtitle`).
+        // `isGithubRepoUrl` gates the fetch synchronously so a PR/issue link
+        // (the common case) never hits an `await` before `execute` runs.
         let title: string | undefined;
-        if (detectProvider(url) === LinkProvider.Generic) {
+        const provider = detectProvider(url);
+        if (provider === LinkProvider.Generic) {
           title = (await unfurl(url))?.title;
+        } else if (provider === LinkProvider.GitHub && isGithubRepoUrl(url)) {
+          title = await fetchGithubRepoDescription(url);
         }
         execute(addLink, ctx, { cardId, url, title });
       },

@@ -46,6 +46,27 @@ async function unfurlViaTauri(url: string): Promise<Unfurled | null> {
   }
 }
 
+/**
+ * Best-effort repo description for a bare `github.com/owner/repo` URL, via
+ * GitHub's public REST API (CORS-enabled, no auth needed for public repos).
+ * Returns undefined for anything else (PR/issue URLs, private/missing repos,
+ * network failures) — never blocks adding the link.
+ */
+export async function fetchGithubRepoDescription(url: string): Promise<string | undefined> {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "github.com") return undefined;
+    const m = /^\/([^/]+)\/([^/]+)\/?$/.exec(parsed.pathname);
+    if (!m) return undefined;
+    const res = await fetch(`https://api.github.com/repos/${m[1]}/${m[2]}`);
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { description?: string | null };
+    return data.description ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const decodeEntities = (s: string): string =>
   s
     .replace(/&amp;/g, "&")
