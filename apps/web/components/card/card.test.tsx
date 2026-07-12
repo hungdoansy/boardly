@@ -156,9 +156,14 @@ describe("cards", () => {
 });
 
 describe("card face layout (Unit 5)", () => {
-  /** The article's metadata rows, in DOM order (title row is index 0). */
+  /**
+   * The article's metadata rows, in DOM order, with the title row (always at
+   * index 1 — line 1 leads, then the title) spliced out.
+   */
   function metaRows(article: HTMLElement): HTMLElement[] {
-    return Array.from(article.children).slice(1) as HTMLElement[];
+    const children = Array.from(article.children) as HTMLElement[];
+    const [line1, , ...rest] = children;
+    return [line1!, ...rest];
   }
 
   it("lays out ticket id + deadline/checklist, labels, and priority/links/project on their own lines", () => {

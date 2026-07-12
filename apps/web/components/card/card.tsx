@@ -17,13 +17,14 @@ interface CardFaceProps {
   onArchive: () => void;
 }
 
-// The card face reads top-to-bottom in four tiers so the eye lands in the same
-// place on every card:
-//   • title row — status glyph leads the title (workflow state first)
-//   • line 1    — the ticket id at the far left; due date and checklist are
-//     pushed to the right.
-//   • line 2    — labels.
-//   • line 3    — urgency (priority), then links, then the project badge.
+// The card face reads top-to-bottom in four fixed tiers — this order is a
+// deliberate, locked-in spec (not to be reshuffled by future feature work):
+//   • line 1  — the ticket id at the far left; due date and checklist are
+//     pushed right, with the hover-only archive button at the far right.
+//   • line 2  — status glyph leads the title (workflow state first).
+//   • line 3  — labels.
+//   • line 4  — urgency (priority) then links on the left, the project
+//     badge pushed to the far right.
 // Status/priority/links/due/checklist/project are placed by hand; labels keep
 // the per-board configured order (the only remaining configurable field with
 // its own tier).
@@ -59,7 +60,22 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
       aria-label={`Card: ${card.title}`}
       className="group rounded-[var(--radius-md)] border border-line-subtle bg-elevated px-2.5 py-2 transition-colors duration-[var(--dur-fast)] hover:border-line hover:bg-hover"
     >
-      <div className="flex items-start gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+          {line1RightNodes}
+          <button
+            type="button"
+            aria-label={`Archive ${card.title}`}
+            onClick={onArchive}
+            className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-surface hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
+          >
+            <Archive className="size-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-1.5 flex items-start gap-1.5">
         {showStatus ? (
           <span className="mt-px shrink-0">
             <StatusBadge status={card.status} />
@@ -80,21 +96,6 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
             {card.title}
           </span>
         </button>
-        <button
-          type="button"
-          aria-label={`Archive ${card.title}`}
-          onClick={onArchive}
-          className="grid size-5 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] hover:bg-surface hover:text-fg focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] group-hover:opacity-100"
-        >
-          <Archive className="size-3.5" />
-        </button>
-      </div>
-
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-        <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-          {line1RightNodes}
-        </div>
       </div>
 
       {labelNodes.length > 0 ? (
@@ -104,7 +105,7 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
       {showLine3 ? (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {line3Nodes}
-          {project ? <ProjectChip project={project} /> : null}
+          {project ? <ProjectChip project={project} className="ml-auto" /> : null}
         </div>
       ) : null}
     </article>
