@@ -37,10 +37,10 @@ function useHashTicketNumber(): number | null {
  */
 function writeCardHash(ctx: ReturnType<typeof useBoardlyContext>, cardId: string): void {
   const doc = ctx.getBoardDoc();
-  const { projectId } = parseRoute(currentHashBody());
+  const { projectRef } = parseRoute(currentHashBody());
   const card = getCard(doc, cardId);
   if (!card) {
-    writeHashBody(buildBoardHash(projectId));
+    writeHashBody(buildBoardHash(projectRef));
     return;
   }
   const ref = formatTicketRef(
@@ -48,7 +48,7 @@ function writeCardHash(ctx: ReturnType<typeof useBoardlyContext>, cardId: string
     card.number,
     card.title,
   );
-  writeHashBody(buildBoardHash(projectId, ref));
+  writeHashBody(buildBoardHash(projectRef, ref));
 }
 
 /**
@@ -66,7 +66,7 @@ export function useSelectedCard(): [string | null, (cardId: string | null) => vo
     (next: string | null) => {
       if (!next) {
         // Closing a card returns to the board at its current project scope.
-        writeHashBody(buildBoardHash(parseRoute(currentHashBody()).projectId));
+        writeHashBody(buildBoardHash(parseRoute(currentHashBody()).projectRef));
         return;
       }
       writeCardHash(ctx, next);

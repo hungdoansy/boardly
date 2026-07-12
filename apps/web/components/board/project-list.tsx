@@ -1,5 +1,6 @@
 "use client";
 
+import { formatProjectRef } from "@boardly/domain";
 import { cn } from "@boardly/ui";
 import { Box, Boxes, Plus } from "lucide-react";
 
@@ -35,8 +36,8 @@ export function ProjectList() {
           type="button"
           aria-label="Add project"
           onClick={() => {
-            const id = actions.create();
-            if (id) select(id);
+            const project = actions.create();
+            if (project) select(formatProjectRef(project.id, project.name));
           }}
           className="grid size-5 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
@@ -61,7 +62,7 @@ export function ProjectList() {
             <button
               type="button"
               aria-pressed={activeId === project.id}
-              onClick={() => select(project.id)}
+              onClick={() => select(formatProjectRef(project.id, project.name))}
               className={rowClass(activeId === project.id)}
             >
               <Box

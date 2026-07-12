@@ -25,8 +25,10 @@ export function getSelectedProject(): string | null {
   return parseRoute(currentHashBody()).projectId;
 }
 
-export function setSelectedProject(id: string | null): void {
-  writeHashBody(buildBoardHash(id));
+// `ref` is a project URL ref (`<id>-<slug>` from `formatProjectRef`, or a bare
+// id), or null for "All". Reads resolve the scope back to the project id.
+export function setSelectedProject(ref: string | null): void {
+  writeHashBody(buildBoardHash(ref));
 }
 
 /** The selected project scope + setter (null = All), tracked via the URL hash. */
@@ -42,7 +44,8 @@ export function useProjects(): Project[] {
 }
 
 export interface ProjectActions {
-  create(name?: string): string | null;
+  /** Create a project, returning it (so callers can build its URL ref) or null. */
+  create(name?: string): Project | null;
   rename(projectId: string, name: string): void;
   recolor(projectId: string, color: string): void;
   archive(projectId: string): void;
@@ -52,7 +55,7 @@ export function useProjectActions(): ProjectActions {
   const ctx = useBoardlyContext();
   return {
     create: useCallback(
-      (name = "New project") => execute(createProject, ctx, { name })?.id ?? null,
+      (name = "New project") => execute(createProject, ctx, { name }) ?? null,
       [ctx],
     ),
     rename: useCallback(

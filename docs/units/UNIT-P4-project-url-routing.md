@@ -93,9 +93,8 @@ which dedupes (no spurious history entries) and fans out synchronously.
 
 ## Follow-ups / known gaps
 
-- Project hash segments use the raw project id (uuid), not a slug. Fine
-  functionally; a cosmetic `p/<id>-<slug>` could be added later (resolve by id,
-  like ticket refs).
+- ~~Project hash segments use the raw project id (uuid), not a slug.~~ Resolved
+  in UNIT-P5: ids are short and project URLs are `p/<id>-<slug>`.
 - Closing Settings via ESC/× returns to All (empty hash), not the
   previously-scoped project. Acceptable; the primary "leave Settings" path is
   clicking a project. Restoring the prior scope would need history/back or a

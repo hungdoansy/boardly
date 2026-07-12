@@ -62,9 +62,10 @@ describe("ProjectList", () => {
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: "Web" })).toHaveAttribute("aria-pressed", "false");
 
-    // Clicking a project from Settings navigates back to that project's board.
+    // Clicking a project from Settings navigates back to that project's board;
+    // the URL is `<id>-<slug>` and resolves by id.
     fireEvent.click(screen.getByRole("button", { name: "Web" }));
-    expect(window.location.hash).toBe("#p/p1");
+    expect(window.location.hash).toBe("#p/p1-web");
     expect(screen.getByRole("button", { name: "Web" })).toHaveAttribute("aria-pressed", "true");
   });
 });

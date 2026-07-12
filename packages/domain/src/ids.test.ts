@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatProjectRef,
   formatShortId,
   formatTicketId,
   formatTicketRef,
   newId,
   normalizeTicketPrefix,
+  parseProjectRef,
   parseShortId,
   parseTicketRef,
   repairTicketNumbers,
@@ -134,10 +136,26 @@ describe("repairTicketNumbers", () => {
 });
 
 describe("newId", () => {
-  it("produces unique, uuid-shaped ids", () => {
-    const a = newId();
-    const b = newId();
-    expect(a).not.toBe(b);
-    expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+  it("produces unique, short, hyphen-free base36 ids", () => {
+    const ids = Array.from({ length: 100 }, () => newId());
+    expect(new Set(ids).size).toBe(ids.length); // unique
+    for (const id of ids) expect(id).toMatch(/^[0-9a-z]{8}$/);
+  });
+});
+
+describe("formatProjectRef / parseProjectRef", () => {
+  it("appends a cosmetic name slug and resolves back to the id", () => {
+    expect(formatProjectRef("k3f9a2xq", "Web app")).toBe("k3f9a2xq-web-app");
+    expect(parseProjectRef("k3f9a2xq-web-app")).toBe("k3f9a2xq");
+  });
+
+  it("omits the slug for an unsluggable name and round-trips a bare id", () => {
+    expect(formatProjectRef("k3f9a2xq", "!!!")).toBe("k3f9a2xq");
+    expect(parseProjectRef("k3f9a2xq")).toBe("k3f9a2xq");
+  });
+
+  it("resolves by id even when the slug is stale (project renamed)", () => {
+    const ref = formatProjectRef("k3f9a2xq", "Old name");
+    expect(parseProjectRef(ref)).toBe("k3f9a2xq");
   });
 });

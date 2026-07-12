@@ -7,12 +7,26 @@
 // Because the number is stored and the prefix is applied only for display,
 // changing the prefix is safe and reversible — it never renumbers anything.
 
-/** Opaque entity identifier (uuid v4). */
+/** Opaque entity identifier: a short, URL-friendly random token. */
 export type Id = string;
 
-/** Generate a fresh entity id. Uses the platform Web Crypto UUID (Node 20+ / browsers). */
+// Short ids (8 lowercase base36 chars ≈ 41 bits) instead of uuids: they read
+// cleanly in URLs (`#p/<id>-<slug>`) and are hyphen-free, so a `<id>-<slug>`
+// ref parses back to the id at the first hyphen. 36^8 ≈ 2.8e12 keeps collisions
+// negligible for a personal board's entity counts, even with offline CRDT merges.
+const ID_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+const ID_LENGTH = 8;
+
+/** Generate a fresh short entity id. Uses Web Crypto (Node 20+ / browsers). */
 export function newId(): Id {
-  return globalThis.crypto.randomUUID();
+  const buf = new Uint8Array(1);
+  let out = "";
+  while (out.length < ID_LENGTH) {
+    globalThis.crypto.getRandomValues(buf);
+    // Reject the top 4 of 256 so the modulo is unbiased (252 = 7 × 36).
+    if (buf[0]! < 252) out += ID_ALPHABET[buf[0]! % 36];
+  }
+  return out;
 }
 
 /**
@@ -70,6 +84,27 @@ export function formatTicketRef(prefix: string, number: number, title: string): 
 export function parseTicketRef(ref: string): number | null {
   const match = /^(?:[A-Za-z][A-Za-z0-9]*-)?(\d+)(?:-.*)?$/.exec(ref);
   return match ? Number(match[1]) : null;
+}
+
+/**
+ * Build a project URL reference: the (hyphen-free) project id plus a decorative
+ * name slug — `formatProjectRef("k3f9a2xq", "Web app")` → `"k3f9a2xq-web-app"`.
+ * The slug is cosmetic; {@link parseProjectRef} resolves by the id alone, so a
+ * renamed project still opens from a stale URL.
+ */
+export function formatProjectRef(id: Id, name: string): string {
+  const slug = slugify(name);
+  return slug ? `${id}-${slug}` : id;
+}
+
+/**
+ * Extract the project id from a `<id>-<slug>` reference. Entity ids are
+ * hyphen-free (see {@link newId}), so the id is everything up to the first
+ * hyphen; a bare id (no slug) is returned unchanged.
+ */
+export function parseProjectRef(ref: string): Id {
+  const i = ref.indexOf("-");
+  return i === -1 ? ref : ref.slice(0, i);
 }
 
 /** Format a legacy prefixed short id, e.g. `formatShortId("BRD", 142)` → `"BRD-142"`. */
