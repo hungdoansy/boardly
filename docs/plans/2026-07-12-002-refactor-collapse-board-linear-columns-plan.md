@@ -530,7 +530,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 5 — Navigation & keyboard
 
-- [ ] **Unit 10: Web — Settings placement and the ESC escape ladder**
+- [x] **Unit 10: Web — Settings placement and the ESC escape ladder**
 
 **Goal:** Move Settings to the last full-width nav item (above the account button) and make ESC fall back to the all-projects view via a guarded ladder.
 
