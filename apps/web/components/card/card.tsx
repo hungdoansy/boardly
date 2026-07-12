@@ -59,7 +59,7 @@ export function CardFace({ card, labels, project, config, onOpen, onArchive }: C
     >
       <div className="flex items-start gap-1.5">
         {showStatus ? (
-          <span className="mt-[3px] shrink-0">
+          <span className="mt-px shrink-0">
             <StatusBadge status={card.status} />
           </span>
         ) : null}
