@@ -49,12 +49,19 @@ function merge(a: Y.Doc, b: Y.Doc): void {
 }
 
 describe("board meta + creation", () => {
-  it("initializes meta with an empty default prefix", () => {
+  it("initializes meta with an empty default prefix; Board.id is the user id", () => {
     const { doc } = setup();
-    const board = getBoard(doc, "board-1");
+    const board = getBoard(doc, "u1");
+    expect(board.id).toBe("u1");
     expect(board.title).toBe("Test board");
     expect(board.shortIdPrefix).toBe("");
     expect(board.shortIdSeq).toBe(0);
+  });
+
+  it("a brand-new (uninitialized) per-user doc reports no columns or cards", () => {
+    const doc = new Y.Doc();
+    expect(liveColumns(doc)).toEqual([]);
+    expect(allLiveCards(doc)).toEqual([]);
   });
 
   it("groups and sorts cards per column", () => {

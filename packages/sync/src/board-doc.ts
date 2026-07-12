@@ -118,8 +118,9 @@ export function renameBoard(doc: Y.Doc, title: string, now: number): void {
   });
 }
 
-export function getBoard(doc: Y.Doc, id: string): Board {
-  return boardToPlain(doc, id);
+/** Read the per-user board's plain shape; `userId` becomes `Board.id`. */
+export function getBoard(doc: Y.Doc, userId: string): Board {
+  return boardToPlain(doc, userId);
 }
 
 /** Set the ordered card-face badge row config. */
@@ -1052,8 +1053,8 @@ export function allLiveCards(doc: Y.Doc): Card[] {
  * Read a full-fidelity snapshot of a board (live columns + cards + labels +
  * meta) for export. Archived items are excluded — a clean export.
  */
-export function boardToSnapshot(doc: Y.Doc, boardId: string): BoardSnapshot {
-  const board = boardToPlain(doc, boardId);
+export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
+  const board = boardToPlain(doc, userId);
   return {
     version: SNAPSHOT_VERSION,
     board: {

@@ -88,6 +88,10 @@ export interface Card {
 }
 
 export interface Board {
+  /**
+   * The owning user's id. There is exactly one board doc per user, addressed by
+   * this id (`board:{userId}`); there is no separately-chosen board id.
+   */
   id: Id;
   title: string;
   icon?: string;
@@ -100,13 +104,4 @@ export interface Board {
   badgeConfig: string[];
   createdAt: number;
   updatedAt: number;
-}
-
-/** An entry in the workspace index doc listing a user's boards. */
-export interface WorkspaceBoardRef {
-  id: Id;
-  title: string;
-  icon?: string;
-  ord: string;
-  archived: boolean;
 }

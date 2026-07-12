@@ -4,4 +4,3 @@
 // command layer, the server) never pull IndexedDB/React into their graph.
 export * from "./schema";
 export * from "./board-doc";
-export * from "./workspace-doc";

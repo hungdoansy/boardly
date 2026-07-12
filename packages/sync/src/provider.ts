@@ -1,7 +1,8 @@
 // Doc registry: one live Y.Doc per room, reused across callers so the UI's
-// `useY` subscriptions and every mutation share the same in-memory doc. Rooms
-// are `boardly:board:{boardId}` and `boardly:workspace:{userId}` (the room ==
-// the sync-server room in Phase 3). Client-only (needs IndexedDB).
+// `useY` subscriptions and every mutation share the same in-memory doc. There
+// is exactly one content doc per user, keyed by the user's id — the room is
+// `boardly:board:{userId}` (== the sync-server room). Client-only (needs
+// IndexedDB).
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 
@@ -9,16 +10,15 @@ import { attachIndexedDb, requestPersistentStorage } from "./persistence";
 
 const PREFIX = "boardly";
 
-export const boardRoom = (boardId: string): string => `${PREFIX}:board:${boardId}`;
-export const workspaceRoom = (userId: string): string => `${PREFIX}:workspace:${userId}`;
+export const boardRoom = (userId: string): string => `${PREFIX}:board:${userId}`;
 
 /**
- * Server document names (the Hocuspocus room on `/sync`). NOT the local
- * IndexedDB room keys above — the server authz layer parses `board:<id>` /
- * `workspace:<id>` (Unit 3.5), so the network provider uses these.
+ * Server document name (the Hocuspocus room on `/sync`). NOT the local
+ * IndexedDB room key above — the server authz layer parses `board:<id>` and
+ * authorizes it iff the id equals the requesting user's id, so the network
+ * provider uses this.
  */
-export const boardDocName = (boardId: string): string => `board:${boardId}`;
-export const workspaceDocName = (userId: string): string => `workspace:${userId}`;
+export const boardDocName = (userId: string): string => `board:${userId}`;
 
 export interface DocHandle {
   doc: Y.Doc;
@@ -57,8 +57,7 @@ export function getDoc(room: string): DocHandle {
   return handle;
 }
 
-export const getBoardDoc = (boardId: string): DocHandle => getDoc(boardRoom(boardId));
-export const getWorkspaceDoc = (userId: string): DocHandle => getDoc(workspaceRoom(userId));
+export const getBoardDoc = (userId: string): DocHandle => getDoc(boardRoom(userId));
 
 // ---------------------------------------------------------------------------
 // Network provider (Unit 3.6): attach the doc to the /sync server.
@@ -78,7 +77,7 @@ interface ProviderConfig {
 }
 
 export interface AttachNetworkOptions {
-  /** Server document name, e.g. `board:<id>` (use `boardDocName`/`workspaceDocName`). */
+  /** Server document name, e.g. `board:<userId>` (use `boardDocName`). */
   documentName: string;
   /** WebSocket base URL of the sync server, e.g. `ws://localhost:8787/sync`. */
   url: string;

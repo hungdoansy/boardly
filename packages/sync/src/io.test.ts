@@ -18,7 +18,7 @@ import {
 } from "./board-doc";
 
 const NOW = 1_700_000_000_000;
-const BID = "board-1";
+const USER_ID = "u1";
 
 function seededDoc() {
   const doc = new Y.Doc();
@@ -39,14 +39,14 @@ function seededDoc() {
 describe("board snapshot round-trip", () => {
   it("doc → snapshot → JSON → new doc → snapshot is identical", () => {
     const { doc } = seededDoc();
-    const snap1 = boardToSnapshot(doc, BID);
+    const snap1 = boardToSnapshot(doc, USER_ID);
 
     // Serialize and re-import into a brand-new doc.
     const json = exportJson(snap1);
     const snap2 = parseJson(json);
     const fresh = new Y.Doc();
     buildBoardFromSnapshot(fresh, snap2, NOW);
-    const snap3 = boardToSnapshot(fresh, BID);
+    const snap3 = boardToSnapshot(fresh, USER_ID);
 
     expect(snap3).toEqual(snap1);
   });
@@ -54,13 +54,13 @@ describe("board snapshot round-trip", () => {
   it("preserves columns (order + wipLimit), cards (fields), labels, and assignment", () => {
     const { doc } = seededDoc();
     const fresh = new Y.Doc();
-    buildBoardFromSnapshot(fresh, boardToSnapshot(doc, BID), NOW);
+    buildBoardFromSnapshot(fresh, boardToSnapshot(doc, USER_ID), NOW);
 
     const cols = liveColumns(fresh);
     expect(cols.map((c) => c.title)).toEqual(["To Do", "Doing"]);
     expect(cols.find((c) => c.title === "Doing")?.wipLimit).toBe(3);
 
-    const snap = boardToSnapshot(fresh, BID);
+    const snap = boardToSnapshot(fresh, USER_ID);
     const fix = snap.cards.find((c) => c.title === "Fix login")!;
     expect(fix).toMatchObject({
       priority: Priority.High,
@@ -75,7 +75,7 @@ describe("board snapshot round-trip", () => {
     const md = ["## Backlog", "- [ ] A", "- [x] B", "## Done", "- [x] C"].join("\n");
     const fresh = new Y.Doc();
     buildBoardFromSnapshot(fresh, parseObsidian(md, "Imported"), NOW);
-    const snap = boardToSnapshot(fresh, BID);
+    const snap = boardToSnapshot(fresh, USER_ID);
     expect(snap.board.title).toBe("Imported");
     expect(snap.columns.map((c) => c.title)).toEqual(["Backlog", "Done"]);
     expect(snap.cards.map((c) => c.title).sort()).toEqual(["A", "B", "C"]);
@@ -87,6 +87,6 @@ describe("board snapshot round-trip", () => {
     const { doc } = seededDoc();
     buildBoardFromSnapshot(doc, parseObsidian("## X\n- [ ] Y"), NOW + 5);
     // Original board untouched.
-    expect(boardToSnapshot(doc, BID).board.title).toBe("Roadmap");
+    expect(boardToSnapshot(doc, USER_ID).board.title).toBe("Roadmap");
   });
 });

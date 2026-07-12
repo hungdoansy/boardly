@@ -263,7 +263,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 1 — Collapse core
 
-- [ ] **Unit 1: Domain + sync — one per-user board doc; delete the workspace index**
+- [x] **Unit 1: Domain + sync — one per-user board doc; delete the workspace index**
 
 **Goal:** Address the single content doc by user id and remove the board-list/index machinery.
 

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 
-import { attachNetwork, boardDocName, workspaceDocName, type DocHandle } from "./provider";
+import { attachNetwork, boardDocName, getBoardDoc, type DocHandle } from "./provider";
+import { boardCards } from "./schema";
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void;
@@ -16,9 +17,32 @@ function fakeHandle(whenSynced: Promise<void>): DocHandle {
 }
 
 describe("doc names", () => {
-  it("builds server document names distinct from local rooms", () => {
-    expect(boardDocName("b1")).toBe("board:b1");
-    expect(workspaceDocName("u1")).toBe("workspace:u1");
+  it("builds the per-user server document name distinct from the local room", () => {
+    expect(boardDocName("u1")).toBe("board:u1");
+  });
+});
+
+describe("getBoardDoc (per-user content doc)", () => {
+  it("returns distinct docs per user id; content in one is absent from the other", () => {
+    const u1 = getBoardDoc("u1");
+    const u2 = getBoardDoc("u2");
+    expect(u1.doc).not.toBe(u2.doc);
+    expect(u1.room).toBe("boardly:board:u1");
+    expect(u2.room).toBe("boardly:board:u2");
+
+    boardCards(u1.doc).set("c1", new Y.Map<unknown>());
+    expect(boardCards(u1.doc).has("c1")).toBe(true);
+    expect(boardCards(u2.doc).has("c1")).toBe(false);
+
+    u1.destroy();
+    u2.destroy();
+  });
+
+  it("returns the same shared handle for repeated calls with the same user id", () => {
+    const a = getBoardDoc("same-user");
+    const b = getBoardDoc("same-user");
+    expect(a.doc).toBe(b.doc);
+    a.destroy();
   });
 });
 

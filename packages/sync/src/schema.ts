@@ -1,9 +1,9 @@
-// Yjs board/workspace document schema: top-level type accessors, scalar
-// readers, and Y → plain-domain converters. Mutations live in board-doc.ts /
-// workspace-doc.ts. Shape follows the plan's High-Level Technical Design:
-// flat, id-keyed Y.Maps; `columnId` on the card (no nested arrays); structured
-// values (dueDate) as nested Y.Map, never JSON strings; sets (labels) as
-// Y.Map<id,true>; description as Y.Text.
+// Yjs board document schema: top-level type accessors, scalar readers, and
+// Y → plain-domain converters. Mutations live in board-doc.ts. There is exactly
+// one content doc per user, addressed by the user's id. Shape follows the
+// plan's High-Level Technical Design: flat, id-keyed Y.Maps; `columnId` on the
+// card (no nested arrays); structured values (dueDate) as nested Y.Map, never
+// JSON strings; sets (labels) as Y.Map<id,true>; description as Y.Text.
 import {
   type Board,
   type Card,
@@ -17,7 +17,6 @@ import {
   type Project,
   type SeverityValue,
   type Status,
-  type WorkspaceBoardRef,
   DEFAULT_STATUS,
   formatTicketId,
 } from "@boardly/domain";
@@ -39,10 +38,6 @@ export const boardProjects = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>
 /** Append-only activity log (Unit 2.12; expanded in U4.3). */
 export const boardActivity = (doc: Y.Doc): Y.Array<Y.Map<unknown>> =>
   doc.getArray<Y.Map<unknown>>("activity");
-
-/** Workspace index doc: the user's boards. */
-export const workspaceBoards = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>
-  doc.getMap<Y.Map<unknown>>("boards");
 
 // ----- Scalar readers (defensive: wrong/absent types fall back to default) -----
 
@@ -164,12 +159,13 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
   return card;
 }
 
-export function boardToPlain(doc: Y.Doc, id: string): Board {
+/** Convert the per-user board doc to its plain shape; `userId` becomes `Board.id`. */
+export function boardToPlain(doc: Y.Doc, userId: string): Board {
   const meta = boardMeta(doc);
   const description = meta.get("description");
   const badgeRaw = meta.get("badgeConfig");
   const board: Board = {
-    id,
+    id: userId,
     title: getString(meta, "title"),
     shortIdPrefix: getString(meta, "shortIdPrefix", ""),
     shortIdSeq: getNumber(meta, "shortIdSeq"),
@@ -200,16 +196,4 @@ export function projectToPlain(yp: Y.Map<unknown>): Project {
     ord: getString(yp, "ord"),
     archived: getBool(yp, "archived"),
   };
-}
-
-export function boardRefToPlain(yr: Y.Map<unknown>): WorkspaceBoardRef {
-  const ref: WorkspaceBoardRef = {
-    id: getString(yr, "id"),
-    title: getString(yr, "title"),
-    ord: getString(yr, "ord"),
-    archived: getBool(yr, "archived"),
-  };
-  const icon = yr.get("icon");
-  if (typeof icon === "string") ref.icon = icon;
-  return ref;
 }
