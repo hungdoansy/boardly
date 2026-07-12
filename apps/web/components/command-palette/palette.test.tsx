@@ -61,6 +61,17 @@ describe("CommandPalette", () => {
     expect(screen.getByText("No results.")).toBeInTheDocument();
   });
 
+  it("styles the selected row with the accent tint token, not the overlay/dialog background", () => {
+    renderPalette();
+    pressCmdK();
+    const item = screen.getByRole("option", { name: /new card/i });
+    // cmdk auto-selects the first item on open.
+    expect(item).toHaveAttribute("data-selected", "true");
+    expect(item.className).toContain("data-[selected=true]:bg-selected");
+    expect(item.className).toContain("data-[selected=true]:border-l-[var(--accent)]");
+    expect(item.className).not.toContain("data-[selected=true]:bg-overlay");
+  });
+
   it("offers a 'new card' action that creates a card in the default (Todo) column", () => {
     const ctx = renderPalette();
     pressCmdK();
