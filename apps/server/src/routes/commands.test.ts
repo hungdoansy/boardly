@@ -10,7 +10,7 @@ import { generateTokenKeys, signAccessToken, type TokenKeys } from "../auth/toke
 import { loadConfig } from "../config";
 import { createDb, type DbHandle } from "../db/client";
 import { runMigrations } from "../db/migrate";
-import { boards, users } from "../db/schema";
+import { users } from "../db/schema";
 import { createSyncServer } from "../sync/hocuspocus";
 import { createTicketStore } from "../sync/ticket-store";
 import { loadDocState } from "../sync/persistence";
@@ -33,10 +33,10 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
       .returning({ id: users.id });
     return u!.id;
   }
-  async function ownedBoard(userId: string): Promise<string> {
-    const id = randomUUID();
-    await handle.db.insert(boards).values({ id, ownerId: userId, title: "Board" });
-    return id;
+  // The board doc is `board:<userId>` (one per user, authorized by identity), so
+  // the board a user "owns" is simply the doc addressed by their own id.
+  function ownedBoard(userId: string): string {
+    return userId;
   }
 
   const post = (
@@ -87,7 +87,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
 
   it("executes createCard on an owned board and persists it to Postgres", async () => {
     const userId = await newUser();
-    const boardId = await ownedBoard(userId);
+    const boardId = ownedBoard(userId);
     const auth = await bearer(userId);
 
     const col = await post("addColumn", auth, { boardId, title: "To Do" });
@@ -112,7 +112,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
 
   it("REST and in-process execution produce the same doc state (parity)", async () => {
     const userId = await newUser();
-    const boardId = await ownedBoard(userId);
+    const boardId = ownedBoard(userId);
     const auth = await bearer(userId);
     const col = await post("addColumn", auth, { boardId, title: "Col" });
     const columnId = (col.json() as { result: { id: string } }).result.id;
@@ -125,7 +125,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
 
   it("forbids a command against a board the user does not own (403)", async () => {
     const owner = await newUser();
-    const boardId = await ownedBoard(owner);
+    const boardId = ownedBoard(owner);
     const attacker = await newUser();
     const res = await post("addColumn", await bearer(attacker), { boardId, title: "x" });
     expect(res.statusCode).toBe(403);
@@ -133,7 +133,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
 
   it("rejects unknown command (404), invalid input (400), and no auth (401)", async () => {
     const userId = await newUser();
-    const boardId = await ownedBoard(userId);
+    const boardId = ownedBoard(userId);
     const auth = await bearer(userId);
 
     expect((await post("nopeCommand", auth, {})).statusCode).toBe(404);

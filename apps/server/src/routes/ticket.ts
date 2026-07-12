@@ -1,11 +1,9 @@
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { authenticateBearer } from "../auth/bearer";
 import type { TokenKeys } from "../auth/tokens";
 import type { Database } from "../db/client";
-import { boards } from "../db/schema";
 import { parseDocumentName } from "../sync/authz";
 import { DEFAULT_TICKET_TTL_MS, type TicketStore } from "../sync/ticket-store";
 
@@ -25,7 +23,7 @@ export interface TicketRoutesOptions {
  * header on the upgrade). Re-minted on every (re)connect.
  */
 export async function ticketRoutes(app: FastifyInstance, opts: TicketRoutesOptions): Promise<void> {
-  const { db, ticketStore, keys } = opts;
+  const { ticketStore, keys } = opts;
 
   app.post("/sync/ticket", async (request, reply) => {
     const userId = await authenticateBearer(request, keys);
@@ -36,19 +34,11 @@ export async function ticketRoutes(app: FastifyInstance, opts: TicketRoutesOptio
     const ref = parseDocumentName(parsed.data.documentName);
     if (!ref) return reply.status(400).send({ error: "invalid request" });
 
-    // Authorize the document for this user (same rules the sync server enforces).
-    if (ref.type === "workspace") {
-      if (ref.userId !== userId) return reply.status(403).send({ error: "forbidden" });
-    } else {
-      const [board] = await db
-        .select({ ownerId: boards.ownerId })
-        .from(boards)
-        .where(eq(boards.id, ref.boardId))
-        .limit(1);
-      if (!board || board.ownerId !== userId) {
-        return reply.status(403).send({ error: "forbidden" });
-      }
-    }
+    // Authorize the document for this user (same rules the sync server enforces):
+    // both room kinds are keyed by the user id, so the parsed id must be the
+    // caller's own — no ownership-table lookup.
+    const ownerId = ref.type === "workspace" ? ref.userId : ref.boardId;
+    if (ownerId !== userId) return reply.status(403).send({ error: "forbidden" });
 
     const ticket = ticketStore.issue(userId, parsed.data.documentName);
     return reply.send({ ticket, expiresInMs: DEFAULT_TICKET_TTL_MS });

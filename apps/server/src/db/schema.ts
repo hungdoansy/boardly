@@ -1,4 +1,4 @@
-import { boolean, customType, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { customType, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Postgres `bytea` mapped to `Uint8Array` in app code (Yjs document state is a
@@ -39,18 +39,7 @@ export const refreshTokens = pgTable("refresh_tokens", {
   createdAt: timestamptz("created_at").notNull().defaultNow(),
 });
 
-export const boards = pgTable("boards", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  ownerId: uuid("owner_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  createdAt: timestamptz("created_at").notNull().defaultNow(),
-  updatedAt: timestamptz("updated_at").notNull().defaultNow(),
-  archived: boolean("archived").notNull().default(false),
-});
-
-/** Server-persisted Yjs document state, keyed by doc name (e.g. `board:<id>`). */
+/** Server-persisted Yjs document state, keyed by doc name (e.g. `board:<userId>`). */
 export const yjsDocuments = pgTable("yjs_documents", {
   docName: text("doc_name").primaryKey(),
   state: bytea("state").notNull(),
@@ -68,7 +57,6 @@ export const linkMetadataCache = pgTable("link_metadata_cache", {
 export const schema = {
   users,
   refreshTokens,
-  boards,
   yjsDocuments,
   linkMetadataCache,
 };

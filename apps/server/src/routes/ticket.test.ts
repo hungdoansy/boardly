@@ -8,7 +8,7 @@ import { buildServer } from "../app";
 import { loadConfig } from "../config";
 import { createDb, type DbHandle } from "../db/client";
 import { runMigrations } from "../db/migrate";
-import { boards, users } from "../db/schema";
+import { users } from "../db/schema";
 import { authenticateConnection } from "../sync/authz";
 import { createTicketStore, type TicketStore } from "../sync/ticket-store";
 
@@ -23,16 +23,14 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
   const bearer = async (userId: string): Promise<string> =>
     `Bearer ${await signAccessToken(keys, { sub: userId }, 900)}`;
 
-  async function seedUserWithBoard(): Promise<{ userId: string; boardId: string }> {
+  // The board doc is `board:<userId>` (one per user, no ownership table), so a
+  // user "owns" exactly the doc keyed by their own id.
+  async function seedUser(): Promise<string> {
     const [user] = await handle.db
       .insert(users)
       .values({ email: `t-${randomUUID()}@example.com`, passwordHash: "x" })
       .returning({ id: users.id });
-    const [board] = await handle.db
-      .insert(boards)
-      .values({ ownerId: user!.id, title: "Board" })
-      .returning({ id: boards.id });
-    return { userId: user!.id, boardId: board!.id };
+    return user!.id;
   }
 
   beforeAll(async () => {
@@ -50,13 +48,13 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
     await handle?.pool.end();
   });
 
-  it("issues a ticket for an owned board that then authenticates a sync connection", async () => {
-    const { userId, boardId } = await seedUserWithBoard();
+  it("issues a ticket for the user's own board doc that then authenticates a sync connection", async () => {
+    const userId = await seedUser();
     const res = await app.inject({
       method: "POST",
       url: "/sync/ticket",
       headers: { authorization: await bearer(userId) },
-      payload: { documentName: `board:${boardId}` },
+      payload: { documentName: `board:${userId}` },
     });
     expect(res.statusCode).toBe(200);
     const { ticket } = res.json() as { ticket: string };
@@ -65,13 +63,13 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
     // The ticket authenticates the matching sync connection (end-to-end).
     const ctx = await authenticateConnection(
       { db: handle.db, ticketStore, allowedOrigins: new Set() },
-      { token: ticket, documentName: `board:${boardId}`, origin: undefined },
+      { token: ticket, documentName: `board:${userId}`, origin: undefined },
     );
     expect(ctx.userId).toBe(userId);
   });
 
   it("issues a ticket for the user's own workspace", async () => {
-    const { userId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const res = await app.inject({
       method: "POST",
       url: "/sync/ticket",
@@ -81,19 +79,19 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
     expect(res.statusCode).toBe(200);
   });
 
-  it("forbids a ticket for a board the user does not own", async () => {
-    const { boardId } = await seedUserWithBoard();
+  it("forbids a ticket for another user's board doc", async () => {
+    const owner = await seedUser();
     const res = await app.inject({
       method: "POST",
       url: "/sync/ticket",
       headers: { authorization: await bearer(randomUUID()) },
-      payload: { documentName: `board:${boardId}` },
+      payload: { documentName: `board:${owner}` },
     });
     expect(res.statusCode).toBe(403);
   });
 
   it("forbids a ticket for another user's workspace", async () => {
-    const { userId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const res = await app.inject({
       method: "POST",
       url: "/sync/ticket",
@@ -121,7 +119,7 @@ describe.skipIf(!DATABASE_URL)("POST /sync/ticket (integration, real db)", () =>
   });
 
   it("rejects a malformed document name with 400", async () => {
-    const { userId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const res = await app.inject({
       method: "POST",
       url: "/sync/ticket",

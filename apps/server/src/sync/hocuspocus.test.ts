@@ -5,7 +5,7 @@ import * as Y from "yjs";
 
 import { createDb, type DbHandle } from "../db/client";
 import { runMigrations } from "../db/migrate";
-import { boards, users } from "../db/schema";
+import { users } from "../db/schema";
 import { authenticateConnection, parseDocumentName, SyncUnauthorizedError } from "./authz";
 import { loadDocState, storeDocState } from "./persistence";
 import { createTicketStore } from "./ticket-store";
@@ -52,16 +52,15 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
   let handle: DbHandle;
   const allowedOrigins = new Set(["http://localhost:3000"]);
 
-  async function seedUserWithBoard(): Promise<{ userId: string; boardId: string }> {
+  // The content doc is `board:<userId>` and is authorized purely by identity —
+  // there is no `boards` ownership table. A "user id" is any string; we mint a
+  // real users row only where the FK / realism helps, but authz never reads it.
+  async function seedUser(): Promise<string> {
     const [user] = await handle.db
       .insert(users)
       .values({ email: `t-${randomUUID()}@example.com`, passwordHash: "x" })
       .returning({ id: users.id });
-    const [board] = await handle.db
-      .insert(boards)
-      .values({ ownerId: user!.id, title: "Board" })
-      .returning({ id: boards.id });
-    return { userId: user!.id, boardId: board!.id };
+    return user!.id;
   }
 
   beforeAll(async () => {
@@ -73,73 +72,71 @@ describe.skipIf(!DATABASE_URL)("sync authz + persistence (integration, real db)"
     await handle?.pool.end();
   });
 
-  it("accepts the owner's ticket for their board", async () => {
-    const { userId, boardId } = await seedUserWithBoard();
+  it("accepts the user's ticket for their own board doc (no ownership table)", async () => {
+    const userId = await seedUser();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(userId, `board:${boardId}`);
+    const token = ticketStore.issue(userId, `board:${userId}`);
     const ctx = await authenticateConnection(
       { db: handle.db, ticketStore, allowedOrigins },
-      { token, documentName: `board:${boardId}`, origin: "http://localhost:3000" },
+      { token, documentName: `board:${userId}`, origin: "http://localhost:3000" },
     );
     expect(ctx.userId).toBe(userId);
   });
 
-  it("rejects a non-owner", async () => {
-    const { boardId } = await seedUserWithBoard();
-    const [other] = await handle.db
-      .insert(users)
-      .values({ email: `t-${randomUUID()}@example.com`, passwordHash: "x" })
-      .returning({ id: users.id });
+  it("rejects a ticket for another user's board doc", async () => {
+    const owner = await seedUser();
+    const other = await seedUser();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(other!.id, `board:${boardId}`);
+    // A valid, matching ticket — but the room id (owner) is not the caller (other).
+    const token = ticketStore.issue(other, `board:${owner}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
-        { token, documentName: `board:${boardId}`, origin: undefined },
+        { token, documentName: `board:${owner}`, origin: undefined },
       ),
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
   });
 
-  it("rejects an expired/invalid ticket before touching the board", async () => {
-    const { boardId } = await seedUserWithBoard();
+  it("rejects an expired/invalid ticket before checking the document", async () => {
+    const userId = await seedUser();
     const ticketStore = createTicketStore();
-    const expired = ticketStore.issue("someone", `board:${boardId}`, -1);
+    const expired = ticketStore.issue(userId, `board:${userId}`, -1);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
-        { token: expired, documentName: `board:${boardId}`, origin: undefined },
+        { token: expired, documentName: `board:${userId}`, origin: undefined },
       ),
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
   });
 
   it("rejects a ticket minted for a different document", async () => {
-    const { userId, boardId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(userId, `board:other-board`);
+    const token = ticketStore.issue(userId, `board:${userId}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
-        { token, documentName: `board:${boardId}`, origin: undefined },
+        { token, documentName: `board:${userId}-other`, origin: undefined },
       ),
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
   });
 
   it("rejects a disallowed origin without consuming the ticket", async () => {
-    const { userId, boardId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const ticketStore = createTicketStore();
-    const token = ticketStore.issue(userId, `board:${boardId}`);
+    const token = ticketStore.issue(userId, `board:${userId}`);
     await expect(
       authenticateConnection(
         { db: handle.db, ticketStore, allowedOrigins },
-        { token, documentName: `board:${boardId}`, origin: "https://evil.example" },
+        { token, documentName: `board:${userId}`, origin: "https://evil.example" },
       ),
     ).rejects.toBeInstanceOf(SyncUnauthorizedError);
-    // Ticket survived (origin was checked first), so the owner can still connect.
-    expect(ticketStore.consume(token)).toEqual({ userId, documentName: `board:${boardId}` });
+    // Ticket survived (origin was checked first), so the user can still connect.
+    expect(ticketStore.consume(token)).toEqual({ userId, documentName: `board:${userId}` });
   });
 
   it("authorizes a user's own workspace room but not another's", async () => {
-    const { userId } = await seedUserWithBoard();
+    const userId = await seedUser();
     const ticketStore = createTicketStore();
     const ownToken = ticketStore.issue(userId, `workspace:${userId}`);
     await expect(

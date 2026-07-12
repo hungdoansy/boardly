@@ -1,13 +1,11 @@
 import { commands, execute, getCommand, type CommandContext } from "@boardly/commands";
 import type { Hocuspocus } from "@hocuspocus/server";
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { authenticateBearer } from "../auth/bearer";
 import type { TokenKeys } from "../auth/tokens";
 import type { Database } from "../db/client";
-import { boards } from "../db/schema";
 import { boardDocName, workspaceDocName } from "../sync/naming";
 
 export interface CommandRoutesOptions {
@@ -26,7 +24,7 @@ export async function commandRoutes(
   app: FastifyInstance,
   opts: CommandRoutesOptions,
 ): Promise<void> {
-  const { db, keys, hocuspocus } = opts;
+  const { keys, hocuspocus } = opts;
 
   // Self-documenting catalog: name, description, JSON Schema derived from zod.
   app.get("/api/commands", async () => ({
@@ -49,22 +47,16 @@ export async function commandRoutes(
       return reply.status(400).send({ error: "invalid input", issues: parsed.error.issues });
     }
 
-    // Resolve the target doc from the input: board-scoped (has boardId) needs an
-    // ownership check; otherwise the user's own workspace doc.
+    // Resolve the target doc from the input: board-scoped (has boardId) is
+    // authorized by identity — the content doc is keyed by the user id, so the
+    // boardId must be the caller's own (no ownership-table lookup).
     const boardId =
       typeof (parsed.data as { boardId?: unknown }).boardId === "string"
         ? (parsed.data as { boardId: string }).boardId
         : undefined;
 
-    if (boardId) {
-      const [board] = await db
-        .select({ ownerId: boards.ownerId })
-        .from(boards)
-        .where(eq(boards.id, boardId))
-        .limit(1);
-      if (!board || board.ownerId !== userId) {
-        return reply.status(403).send({ error: "forbidden" });
-      }
+    if (boardId && boardId !== userId) {
+      return reply.status(403).send({ error: "forbidden" });
     }
 
     const wsConn = await hocuspocus.openDirectConnection(workspaceDocName(userId), { userId });

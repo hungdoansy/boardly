@@ -1,7 +1,4 @@
-import { eq } from "drizzle-orm";
-
 import type { Database } from "../db/client";
-import { boards } from "../db/schema";
 import type { TicketStore } from "./ticket-store";
 
 /** Thrown for any authorization failure — Hocuspocus closes the socket pre-sync. */
@@ -43,8 +40,10 @@ export interface AuthenticateInput {
  * Authorize a sync connection, in order:
  *  1. Origin must be absent (non-browser) or allow-listed.
  *  2. The ticket must be valid and unused (consumed here — one-time).
- *  3. The document must belong to the ticket's user: a `board:` doc requires
- *     `board.ownerId === userId`; a `workspace:` doc requires it be the user's own.
+ *  3. The document must belong to the ticket's user: both `board:` and
+ *     `workspace:` docs are addressed by the user id, so the parsed id must
+ *     equal the ticket's user id (no ownership-table lookup — each user owns
+ *     exactly the doc keyed by their own id).
  * Throws {@link SyncUnauthorizedError} on any failure (before any sync happens).
  */
 export async function authenticateConnection(
@@ -71,13 +70,9 @@ export async function authenticateConnection(
     return { userId: consumed.userId };
   }
 
-  const [board] = await deps.db
-    .select({ ownerId: boards.ownerId })
-    .from(boards)
-    .where(eq(boards.id, ref.boardId))
-    .limit(1);
-  if (!board || board.ownerId !== consumed.userId) {
-    throw new SyncUnauthorizedError("forbidden");
-  }
+  // The content doc `board:<userId>` is authorized by identity: the room id must
+  // equal the authenticated user id. Each user owns exactly one board doc, keyed
+  // by their own id — so there is no ownership table to consult.
+  if (ref.boardId !== consumed.userId) throw new SyncUnauthorizedError("forbidden");
   return { userId: consumed.userId };
 }

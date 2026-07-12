@@ -8,6 +8,13 @@
       "when": 1783636527241,
       "tag": "0000_dizzy_mindworm",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783820884212,
+      "tag": "0001_careful_stick",
+      "breakpoints": true
     }
   ]
 }

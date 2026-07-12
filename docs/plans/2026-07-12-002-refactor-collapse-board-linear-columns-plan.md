@@ -293,7 +293,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ---
 
-- [ ] **Unit 2: Server — authorize the doc by user id; drop the boards table and `/boards`**
+- [x] **Unit 2: Server — authorize the doc by user id; drop the boards table and `/boards`**
 
 **Goal:** Authorize `board:{userId}` by identity (no ownership table) and remove board registration.
 

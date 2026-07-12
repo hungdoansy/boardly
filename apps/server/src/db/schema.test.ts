@@ -12,13 +12,11 @@ import { yjsDocuments } from "./schema";
 //     pnpm --filter @boardly/server test
 const DATABASE_URL = process.env.DATABASE_URL;
 
-const EXPECTED_TABLES = [
-  "users",
-  "refresh_tokens",
-  "boards",
-  "yjs_documents",
-  "link_metadata_cache",
-];
+const EXPECTED_TABLES = ["users", "refresh_tokens", "yjs_documents", "link_metadata_cache"];
+
+// The `boards` ownership table was dropped when the board doc became addressed
+// and authorized by user id; make sure the migration actually removes it.
+const REMOVED_TABLES = ["boards"];
 
 describe.skipIf(!DATABASE_URL)("migrations + schema (integration, real db)", () => {
   let handle: DbHandle;
@@ -39,6 +37,7 @@ describe.skipIf(!DATABASE_URL)("migrations + schema (integration, real db)", () 
     );
     const names = new Set(rows.map((r) => r.table_name));
     for (const table of EXPECTED_TABLES) expect(names.has(table)).toBe(true);
+    for (const table of REMOVED_TABLES) expect(names.has(table)).toBe(false);
   });
 
   it("is idempotent on re-run (applied-migration count is stable)", async () => {
