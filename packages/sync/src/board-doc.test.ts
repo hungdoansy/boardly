@@ -1,4 +1,4 @@
-import { DEFAULT_STATUS, Priority, Status } from "@boardly/domain";
+import { DEFAULT_BADGE_CONFIG, DEFAULT_STATUS, Priority, Status } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
@@ -19,7 +19,7 @@ import {
   setCardStatus,
   setShowEmptyColumns,
 } from "./board-doc";
-import { boardCards } from "./schema";
+import { boardCards, boardMeta } from "./schema";
 
 const NOW = 1_700_000_000_000;
 
@@ -136,6 +136,23 @@ describe("showEmptyColumns board meta", () => {
   it("defaults to true even on a brand-new (uninitialized) doc", () => {
     const doc = new Y.Doc();
     expect(getBoard(doc, "u1").showEmptyColumns).toBe(true);
+  });
+});
+
+describe("badgeConfig read-time default", () => {
+  // Regression: the client no longer WRITES default board meta (it clobbered a
+  // synced board's real config on a fresh device via last-writer-wins). So an
+  // absent badge config must default at READ time, while an explicit [] (the
+  // user cleared every badge) is preserved.
+  it("defaults an absent badge config to DEFAULT_BADGE_CONFIG", () => {
+    const doc = new Y.Doc();
+    expect(getBoard(doc, "u1").badgeConfig).toEqual(DEFAULT_BADGE_CONFIG);
+  });
+
+  it("preserves an explicitly-cleared ([]) badge config", () => {
+    const doc = new Y.Doc();
+    boardMeta(doc).set("badgeConfig", []);
+    expect(getBoard(doc, "u1").badgeConfig).toEqual([]);
   });
 });
 

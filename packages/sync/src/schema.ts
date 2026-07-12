@@ -17,6 +17,7 @@ import {
   type Project,
   type SeverityValue,
   type Status,
+  DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
   formatTicketId,
 } from "@boardly/domain";
@@ -152,7 +153,11 @@ export function boardToPlain(doc: Y.Doc, userId: string): Board {
     title: getString(meta, "title"),
     shortIdPrefix: getString(meta, "shortIdPrefix", ""),
     shortIdSeq: getNumber(meta, "shortIdSeq"),
-    badgeConfig: Array.isArray(badgeRaw) ? (badgeRaw as string[]) : [],
+    // Absent (never initialized) → the default face; an explicit [] means the
+    // user cleared every badge, so it is preserved. This read-time default is
+    // why the client never needs to WRITE default meta (which would clobber a
+    // synced board's real config via last-writer-wins on a fresh device).
+    badgeConfig: Array.isArray(badgeRaw) ? (badgeRaw as string[]) : [...DEFAULT_BADGE_CONFIG],
     // Board toolbar preference (Unit 7); defaults to true when absent from meta.
     showEmptyColumns: getBool(meta, "showEmptyColumns", true),
     createdAt: getNumber(meta, "createdAt"),

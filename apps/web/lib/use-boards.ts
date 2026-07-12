@@ -1,11 +1,9 @@
 "use client";
 
 import { formatTicketRef, parseTicketRef } from "@boardly/domain";
-import { getBoard, getCard, initBoard } from "@boardly/sync";
-import { getBoardDoc } from "@boardly/sync/client";
+import { getBoard, getCard } from "@boardly/sync";
 import { useCallback, useEffect, useState } from "react";
 
-import { useAuthSession } from "./auth-store";
 import { useBoardlyContext } from "./boardly-context";
 import { useAllCards } from "./use-board";
 
@@ -94,36 +92,12 @@ export function useOpenCardNav(): (cardId: string) => void {
   return useCallback((cardId: string) => writeCardHash(ctx, cardId), [ctx]);
 }
 
-const DEFAULT_BOARD_TITLE = "Main board";
-
-/**
- * Columns are now the fixed status set (STATUS_ORDER), so a brand-new user
- * boots straight to the eight (empty) status columns with NO column seeding.
- * We keep a minimal, idempotent META-only init so the board's non-column
- * defaults (title + badge config + empty ticket prefix) match what the interim
- * seed used to set. `initBoard` guards on `createdAt`, so this is a no-op once
- * the meta exists; it runs only after local IndexedDB has hydrated, so it never
- * writes over persisted content.
- */
-export function useInitBoardMeta(): void {
-  const ctx = useBoardlyContext();
-  const { userId } = useAuthSession();
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return;
-    let mounted = true;
-    void getBoardDoc(userId).whenSynced.then(() => {
-      if (mounted) setHydrated(true);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [userId]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    // Idempotent (guards on `createdAt`); seeds title + badge config, NO columns.
-    initBoard(ctx.getBoardDoc(), { title: DEFAULT_BOARD_TITLE, now: Date.now() });
-  }, [hydrated, ctx]);
-}
+// NOTE: the client deliberately does NOT seed default board meta. Columns are
+// the fixed status set (STATUS_ORDER), so a brand-new user boots straight to
+// eight empty status columns; the board's non-column defaults (title fallback,
+// default badge face, empty ticket prefix, showEmptyColumns=true) are supplied
+// at READ time by `boardToPlain`/the title fallback. Writing defaults from the
+// client was removed because, on a device with an empty local cache opening an
+// already-persisted board, the write landed before the server sync and its
+// newer last-writer-wins timestamp clobbered the board's real title/prefix/
+// badge config (breaking multi-device durability).

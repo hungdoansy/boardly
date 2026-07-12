@@ -11,7 +11,7 @@ import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useBoardTitle } from "../../lib/use-board";
-import { useInitBoardMeta, useSettingsRoute } from "../../lib/use-boards";
+import { useSettingsRoute } from "../../lib/use-boards";
 import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
@@ -102,9 +102,9 @@ export function WorkspaceApp() {
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   // Single per-user board: an empty doc is a valid board that renders the eight
-  // fixed status columns. No column seeding — only a minimal meta-only init so
-  // the board's title / badge config / prefix defaults are set.
-  useInitBoardMeta();
+  // fixed status columns. No client-side meta seeding — board-meta defaults
+  // (title fallback, default badge face, empty prefix) are supplied at read time
+  // so a fresh device never clobbers a synced board's real config.
   const [settingsOpen, setSettingsOpen] = useSettingsRoute();
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
