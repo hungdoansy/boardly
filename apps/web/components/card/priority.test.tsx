@@ -7,8 +7,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PriorityBadge } from "./priority-badge";
 import { PrioritySelect } from "./priority-select";
-import { SeverityBadge } from "./severity-badge";
-import { SeveritySelect } from "./severity-select";
 
 afterEach(() => {
   cleanup();
@@ -26,25 +24,5 @@ describe("priority", () => {
     fireEvent.click(screen.getByRole("button", { name: "Priority" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: /urgent/i }));
     expect(onChange).toHaveBeenCalledWith(Priority.Urgent);
-  });
-});
-
-describe("severity", () => {
-  it("badge renders the S# label", () => {
-    render(<SeverityBadge severity={2} />);
-    expect(screen.getByText("S2")).toBeInTheDocument();
-  });
-
-  it("select sets a level and clears to null", () => {
-    const onChange = vi.fn();
-    render(<SeveritySelect value={null} onChange={onChange} />);
-    fireEvent.click(screen.getByRole("button", { name: "Severity" }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "S2" }));
-    expect(onChange).toHaveBeenCalledWith(2);
-
-    onChange.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Severity" }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "None" }));
-    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

@@ -2,7 +2,7 @@
  * Seed an extensive demo board into a running Boardly stack, exercising every
  * implemented feature: cards spread across the eight fixed Linear status
  * columns (Backlog, Todo, In Progress, Pending, In Review, Done, Canceled,
- * Duplicate), every priority/severity, due dates (overdue/today/this-week/
+ * Duplicate), every priority, due dates (overdue/today/this-week/
  * future), multi-labels, links for every provider, checklists (with completed
  * items), markdown descriptions, rich activity logs, projects, and saved views
  * (board + list lenses).
@@ -41,8 +41,6 @@ import {
   newId,
   Priority,
   type PriorityValue,
-  type SeverityValue,
-  Severity,
   Status,
 } from "@boardly/domain";
 import * as Y from "yjs";
@@ -66,7 +64,6 @@ import {
   setCardDescription,
   setCardDueDate,
   setCardPriority,
-  setCardSeverity,
   toggleChecklistItem,
 } from "../src/index";
 
@@ -173,7 +170,6 @@ interface CardSpec {
   title: string;
   description?: string;
   priority?: PriorityValue;
-  severity?: SeverityValue | null;
   labels?: string[]; // label keys
   links?: Array<{
     url: string;
@@ -218,15 +214,14 @@ function projectForCard(spec: CardSpec): string {
 const CARDS: CardSpec[] = [
   {
     // The "everything" ticket — one card exercising every card-level feature:
-    // markdown description, priority + severity, a due date, a diverse label
+    // markdown description, priority, a due date, a diverse label
     // set, a project, a mixed checklist, a multi-provider link cluster (with
     // overflow), and a self-assignee.
     status: Status.InProgress,
     title: "★ Everything ticket — exercises every card feature",
     description:
-      "## The kitchen-sink card\nA single ticket wired with **every** card-level feature so you can see them all at once.\n\n- Priority **Urgent** + severity **S1**\n- A **due date**, a **project**, and a **diverse label set**\n- A **checklist** with completed + open items\n- A **link cluster** spanning every provider (with a `+N` overflow)\n- An **assignee** (shown in the list view)\n\n> Description supports GitHub-flavored markdown, incl. `code`, quotes, and lists.",
+      "## The kitchen-sink card\nA single ticket wired with **every** card-level feature so you can see them all at once.\n\n- Priority **Urgent**\n- A **due date**, a **project**, and a **diverse label set**\n- A **checklist** with completed + open items\n- A **link cluster** spanning every provider (with a `+N` overflow)\n- An **assignee** (shown in the list view)\n\n> Description supports GitHub-flavored markdown, incl. `code`, quotes, and lists.",
     priority: Priority.Urgent,
-    severity: Severity.S1,
     labels: ["frontend", "backend", "bug", "design", "infra", "docs", "urgent"],
     dueInDays: 1,
     assignSelf: true,
@@ -278,7 +273,6 @@ const CARDS: CardSpec[] = [
     title: "Fix drag ghost flicker on Safari",
     description: "The drag preview flashes at drop. Compositor issue — investigate `transform`.",
     priority: Priority.High,
-    severity: Severity.S2,
     labels: ["bug", "frontend"],
     dueInDays: 2,
     checklist: [
@@ -325,7 +319,6 @@ const CARDS: CardSpec[] = [
     title: "Investigate WebSocket reconnect storm",
     description: "Under flaky network the provider reconnects too aggressively.",
     priority: Priority.Urgent,
-    severity: Severity.S1,
     labels: ["bug", "infra", "urgent"],
     dueInDays: -1,
     links: [{ url: "https://claude.ai/chat/abc-123", provider: LinkProvider.Claude }],
@@ -344,7 +337,6 @@ const CARDS: CardSpec[] = [
     title: "Vendor security review of the sync server",
     description: "External audit scheduled; implementation paused until it clears.",
     priority: Priority.High,
-    severity: Severity.S3,
     labels: ["backend", "infra"],
   },
   {
@@ -365,7 +357,6 @@ const CARDS: CardSpec[] = [
     title: "Rate-limit the auth endpoints",
     description: "5/min on login; lift for e2e via env.",
     priority: Priority.High,
-    severity: Severity.S3,
     labels: ["backend", "infra"],
     links: [{ url: "https://github.com/boardly/app/pull/377", title: "#377" }],
   },
@@ -416,11 +407,11 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
     now: tick(),
     createdBy: userId,
   });
-  // Rich card face: status, priority/severity, due date, labels, the link
-  // cluster (Unit 6.4), and the checklist meter.
+  // Rich card face: status, priority, due date, labels, the link cluster
+  // (Unit 6.4), and the checklist meter.
   setBadgeConfig(
     boardDoc,
-    ["status", "priority", "severity", "dueDate", "labels", "links", "checklist"],
+    ["status", "priority", "dueDate", "labels", "links", "checklist"],
     tick(),
   );
 
@@ -460,7 +451,6 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
     if (spec.description) setCardDescription(boardDoc, id, spec.description, tick());
     if (spec.priority !== undefined && spec.priority !== Priority.None)
       setCardPriority(boardDoc, id, spec.priority, tick(), userId);
-    if (spec.severity != null) setCardSeverity(boardDoc, id, spec.severity, tick(), userId);
     if (spec.dueInDays !== undefined)
       setCardDueDate(
         boardDoc,

@@ -5,18 +5,9 @@ import {
   formatAbsoluteDate,
   formatRelativeTime,
   PRIORITY_META,
-  SEVERITY_META,
   STATUS_META,
 } from "@boardly/domain";
-import {
-  ArrowRight,
-  CheckCircle2,
-  CircleDot,
-  Flag,
-  Plus,
-  Signal,
-  Type as TypeIcon,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleDot, Flag, Plus, Type as TypeIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useCardActivity } from "../../lib/use-board";
@@ -113,15 +104,6 @@ function describe(entry: ActivityEntry): { icon: ReactNode; text: ReactNode } {
       return {
         icon: <Flag className={cls} />,
         text: <Transition label="Priority">{PRIORITY_META[entry.to].name}</Transition>,
-      };
-    case "severity":
-      return {
-        icon: <Signal className={cls} />,
-        text: (
-          <Transition label="Severity">
-            {entry.to === null ? "None" : SEVERITY_META[entry.to].name}
-          </Transition>
-        ),
       };
     case "due":
       return {

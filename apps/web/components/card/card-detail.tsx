@@ -13,7 +13,6 @@ import { CardLabels } from "./labels";
 import { CardLinks } from "./links";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
-import { SeveritySelect } from "./severity-select";
 import { StatusSelect } from "./status-select";
 
 interface CardDetailProps {
@@ -149,9 +148,6 @@ function PropertyList({
 
       <span className="text-fg-faint">Priority</span>
       <PrioritySelect value={card.priority} onChange={(p) => actions.setPriority(card.id, p)} />
-
-      <span className="text-fg-faint">Severity</span>
-      <SeveritySelect value={card.severity} onChange={(s) => actions.setSeverity(card.id, s)} />
 
       <span className="text-fg-faint">Due</span>
       <DueDatePicker value={card.dueDate} onChange={(d) => actions.setDueDate(card.id, d)} />

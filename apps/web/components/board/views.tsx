@@ -32,7 +32,6 @@ const GROUP_OPTIONS: { value: GroupByField | null; label: string }[] = [
   { value: null, label: "None" },
   { value: "status", label: "Status" },
   { value: "priority", label: "Priority" },
-  { value: "severity", label: "Severity" },
   { value: "label", label: "Label" },
   { value: "assignee", label: "Assignee" },
 ];

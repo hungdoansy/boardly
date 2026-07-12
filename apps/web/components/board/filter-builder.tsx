@@ -10,8 +10,6 @@ import {
   isFilterGroup,
   Priority,
   PRIORITY_META,
-  Severity,
-  SEVERITY_META,
   STATUS_META,
   STATUS_ORDER,
 } from "@boardly/domain";
@@ -36,7 +34,7 @@ import { useState } from "react";
 // AND/OR toggle; one level of nested groups is supported (the model allows
 // deeper, but the UI caps at one nest for clarity — Unit V1.2).
 
-type ValueKind = "status" | "priority" | "severity" | "label" | "assignee" | "dueWindow" | "text";
+type ValueKind = "status" | "priority" | "label" | "assignee" | "dueWindow" | "text";
 
 interface OpDef {
   condition: FilterCondition;
@@ -54,12 +52,6 @@ const OPS: Record<FilterField, OpDef[]> = {
   priority: [
     { condition: "is", label: "is", kind: "priority" },
     { condition: "isNot", label: "is not", kind: "priority" },
-    { condition: "isSet", label: "is set" },
-    { condition: "isEmpty", label: "is empty" },
-  ],
-  severity: [
-    { condition: "is", label: "is", kind: "severity" },
-    { condition: "isNot", label: "is not", kind: "severity" },
     { condition: "isSet", label: "is set" },
     { condition: "isEmpty", label: "is empty" },
   ],
@@ -91,7 +83,6 @@ const OPS: Record<FilterField, OpDef[]> = {
 const FIELD_LABELS: Record<FilterField, string> = {
   status: "Status",
   priority: "Priority",
-  severity: "Severity",
   label: "Label",
   dueDate: "Due date",
   assignee: "Assignee",
@@ -115,9 +106,6 @@ const STATUS_OPTS: Opt[] = STATUS_ORDER.map((s) => ({ value: s, label: STATUS_ME
 const PRIORITY_OPTS: Opt[] = [Priority.Urgent, Priority.High, Priority.Medium, Priority.Low].map(
   (p) => ({ value: p, label: PRIORITY_META[p].name }),
 );
-const SEVERITY_OPTS: Opt[] = (Object.values(Severity) as number[])
-  .sort((a, b) => a - b)
-  .map((s) => ({ value: s, label: SEVERITY_META[s as keyof typeof SEVERITY_META].name }));
 
 function optionsFor(kind: ValueKind, labels: Label[]): Opt[] {
   switch (kind) {
@@ -125,8 +113,6 @@ function optionsFor(kind: ValueKind, labels: Label[]): Opt[] {
       return STATUS_OPTS;
     case "priority":
       return PRIORITY_OPTS;
-    case "severity":
-      return SEVERITY_OPTS;
     case "assignee":
       return ASSIGNEE_OPTS;
     case "dueWindow":
@@ -148,8 +134,6 @@ function defaultClause(field: FilterField): FilterClause {
       return { field, condition: "is", values: [STATUS_ORDER[0]!] };
     case "priority":
       return { field, condition: "is", values: [Priority.Urgent] };
-    case "severity":
-      return { field, condition: "is", values: [Severity.S1] };
     case "label":
       return { field, condition: "hasAny", values: [] };
     case "assignee":

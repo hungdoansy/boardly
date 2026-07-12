@@ -13,7 +13,7 @@ import { BoardView } from "./board-view";
 
 function setup(
   seed: (ctx: MemoryContext) => void,
-  props?: { groupBy?: "status" | "priority" | "severity" | "label" | "assignee" | null },
+  props?: { groupBy?: "status" | "priority" | "label" | "assignee" | null },
 ) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });

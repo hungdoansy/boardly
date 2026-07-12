@@ -8,7 +8,6 @@ import { DueChip } from "./due-date";
 import { LabelChip } from "./labels";
 import { LinkCluster } from "./link-cluster";
 import { PriorityBadge } from "./priority-badge";
-import { SeverityBadge } from "./severity-badge";
 import { StatusBadge } from "./status-badge";
 
 /**
@@ -24,8 +23,6 @@ export function collectBadgeNodes(card: Card, labels: Label[], config: string[])
       nodes.push(<StatusBadge key="status" status={card.status} />);
     } else if (key === "priority" && card.priority !== Priority.None) {
       nodes.push(<PriorityBadge key="priority" priority={card.priority} />);
-    } else if (key === "severity" && card.severity !== null) {
-      nodes.push(<SeverityBadge key="severity" severity={card.severity} />);
     } else if (key === "dueDate" && card.dueDate) {
       nodes.push(<DueChip key="dueDate" due={card.dueDate} />);
     } else if (key === "labels" && labels.length > 0) {

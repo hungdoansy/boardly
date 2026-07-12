@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createCard, execute, setCardSeverity } from "@boardly/commands";
+import { createCard, execute, setCardPriority } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { Status } from "@boardly/domain";
 import { cardsInStatus, initBoard } from "@boardly/sync";
@@ -107,21 +107,21 @@ describe("cards", () => {
   it("collapses the card face to status only in Zen focus", () => {
     const seed = (ctx: MemoryContext, status: Status): void => {
       execute(createCard, ctx, { status, id: "c1", title: "Seeded" });
-      execute(setCardSeverity, ctx, { cardId: "c1", severity: 2 });
+      execute(setCardPriority, ctx, { cardId: "c1", priority: 4 });
     };
 
-    // Off: the severity badge shows.
+    // Off: the priority badge shows.
     const off = setup(seed);
     expect(screen.getByText("Seeded")).toBeInTheDocument();
-    expect(screen.getByText("S2")).toBeInTheDocument();
+    expect(screen.getByLabelText("Priority: Urgent")).toBeInTheDocument();
     cleanup();
     void off;
 
-    // Zen: title stays, the severity badge is gone (config forced to status only).
+    // Zen: title stays, the priority badge is gone (config forced to status only).
     setFocusLevel("zen");
     setup(seed);
     expect(screen.getByText("Seeded")).toBeInTheDocument();
-    expect(screen.queryByText("S2")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Priority: Urgent")).not.toBeInTheDocument();
   });
 
   it("leads the card with the status glyph and shows the ticket id", () => {

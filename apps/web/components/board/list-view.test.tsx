@@ -28,7 +28,6 @@ function makeCard(over: Partial<Card>): Card {
     ord: "a0",
     status: Status.Todo,
     priority: Priority.None,
-    severity: null,
     dueDate: null,
     labelIds: [],
     checklist: [],
@@ -155,13 +154,18 @@ describe("ListBody (interaction)", () => {
 
 describe("ListBody (Zen focus)", () => {
   const labelById = new Map([["l1", { id: "l1", name: "Frontend", color: "#4EA7FC", ord: "a0" }]]);
-  const card = makeCard({ id: "a", title: "Alpha", severity: 2, labelIds: ["l1"] });
+  const card = makeCard({
+    id: "a",
+    title: "Alpha",
+    checklist: [{ id: "i1", text: "step", done: false, ord: "a0" }],
+    labelIds: ["l1"],
+  });
   const renderBody = (zen: boolean) =>
     render(
       <ListBody
         resolved={flat([card])}
         labelById={labelById}
-        config={["status", "severity", "labels"]}
+        config={["status", "checklist", "labels"]}
         groupBy={null}
         zen={zen}
         onOpen={vi.fn()}
@@ -171,7 +175,7 @@ describe("ListBody (Zen focus)", () => {
   it("shows trailing badges when not in Zen", () => {
     renderBody(false);
     expect(screen.getByText("Alpha")).toBeInTheDocument();
-    expect(screen.getByText("S2")).toBeInTheDocument();
+    expect(screen.getByText("0/1")).toBeInTheDocument();
     expect(screen.getByText("Frontend")).toBeInTheDocument();
   });
 
@@ -179,7 +183,7 @@ describe("ListBody (Zen focus)", () => {
     renderBody(true);
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument(); // shortId (leading) stays
-    expect(screen.queryByText("S2")).not.toBeInTheDocument();
+    expect(screen.queryByText("0/1")).not.toBeInTheDocument();
     expect(screen.queryByText("Frontend")).not.toBeInTheDocument();
   });
 });
