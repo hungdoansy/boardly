@@ -3,8 +3,8 @@
 - **Plan unit:** 5 (`docs/plans/2026-07-12-003-fix-card-polish-severity-removal-plan.md`)
 - **Status:** done
 - **Requirements:** R4
-- **Commit(s):** _this unit's commit_ + two follow-up commits (see
-  "Follow-up refinement" and "Second follow-up" below)
+- **Commit(s):** _this unit's commit_ + follow-up commits (see "Follow-up
+  refinement", "Second follow-up", and "Third follow-up" below)
 
 ## What changed
 
@@ -91,6 +91,49 @@ so removing the card-face button doesn't touch either. Changes:
   from line 1's description; added a line noting archive lives in the detail
   drawer and the `e` shortcut, not the card face.
 
+**Third follow-up: `LinkCluster` became one badge instead of one badge per
+link, the due-date "soon" tier was dropped, and priority glyphs shrank.**
+Given directly in chat, in three small commits (`6d158be`, `f6b427e`,
+`ed9316c`):
+
+- `link-cluster.tsx` — the cluster used to render each visible link as its
+  own bordered/ringed circle. It's now one `CHIP`-shell badge (`pl-0.5 pr-1
+  gap-0.5` override) wrapping the overlapping icons and the `+N` overflow
+  count as plain muted text — only the outer shell carries a border, per
+  the user's direction to "make the link cluster follow the badge
+  convention." Individual icons keep a solid `bg-overlay` backing circle
+  (no border) so an overlapping icon's transparent SVG background doesn't
+  let the icon underneath show through; icon backing circles are `size-3.5`
+  overlapping by `-ml-1`, and each `ProviderIcon` renders at `size-2.5`
+  (10px) instead of its previous default.
+- `provider-icon.tsx` (`f6b427e`) — added an optional `className` prop so
+  callers (here, `LinkCluster`) can override the icon's default size; wired
+  into the branded-icon (`BRAND` map) render path.
+- **Bug found while writing this doc, fixed in the same pass:** the
+  className override was only wired into the branded-icon path — the
+  `Globe` fallback (rendered for any `provider` not in the `BRAND` map,
+  including the `"generic"` provider used throughout `link-cluster.test.tsx`
+  fixtures) still hardcoded `ICON_CLASS` and ignored `className` entirely.
+  An unrecognized-provider link would render its fallback icon at the old
+  12px while every branded-provider icon around it had shrunk to 10px.
+  Fixed by merging `className` into the `Globe` element via `cn(...)`, same
+  as the branded path.
+- `due-date.tsx` / `packages/domain/src/dates.ts` (`6d158be`) — dropped the
+  amber "soon" tier (`daysUntil <= 2`) from `DueTone`/`describeDueDate`; a
+  due date now reads as neutral, or red once `overdue`. `dates.test.ts`
+  updated (previously-`"soon"` cases now expect `"normal"`).
+- `priority-badge.tsx` (`6d158be`) — `PriorityIcon`'s glyph shrinks to
+  `size-2.5` (10px) for every level except `Priority.Urgent`, which keeps
+  `size-3` (12px) since it's the one level that must read at a glance. The
+  `CHIP_ICON` badge shell stays a fixed 18px regardless.
+
+No plan-checkbox or `docs/design/DESIGN.md` update was needed for the
+due-date/priority pieces (presentation-only tone/size tweaks, no new
+structure); the link-cluster badge-convention change doesn't have a
+DESIGN.md mention of its own yet — folding it into DESIGN.md §7's
+icon-cluster note is a reasonable future touch-up, not required for this
+change to be correct.
+
 ## Why (decisions)
 
 - **Reused the existing hand-placed-tier architecture** (`collectBadgeNodes`
@@ -172,6 +215,13 @@ that line).
   all green (`card.test.tsx` alone: 12, including the 4 layout tests, updated
   for the follow-up reorder); `tsc --noEmit` and `eslint` clean.
 - Manual (dark mode): see Design section above.
+- Third follow-up (link-cluster badge, due-date tone, priority glyph size,
+  `ProviderIcon` fallback fix): no new automated assertions — these are
+  presentational (colors/sizes/border placement) changes that the existing
+  `link-cluster.test.tsx` (icon count/order/title/aria-label) and
+  `dates.test.ts` (tone strings, updated for the dropped `"soon"` value)
+  already exercise structurally. Full suite re-run green (180/180) after
+  each commit in the sequence; `tsc --noEmit`/`eslint` clean.
 
 ## Follow-ups / known gaps
 

@@ -157,5 +157,5 @@ export function ProviderIcon({ provider, className }: { provider: LinkProvider, 
     );
   }
 
-  return <Globe className={`${ICON_CLASS} text-fg-faint`} aria-hidden="true" />;
+  return <Globe className={cn(ICON_CLASS, "text-fg-faint", className)} aria-hidden="true" />;
 }
