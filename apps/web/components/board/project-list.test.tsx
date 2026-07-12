@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 
 import { createProject, createMemoryContext, execute, type MemoryContext } from "@boardly/commands";
 import { listProjects } from "@boardly/sync";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
@@ -47,5 +47,24 @@ describe("ProjectList", () => {
       "aria-pressed",
       "true",
     );
+  });
+
+  it("shows no active row while the Settings view is open", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Web" }));
+    expect(screen.getByRole("button", { name: "Web" })).toHaveAttribute("aria-pressed", "true");
+
+    // Enter Settings: the scope is not shown, so neither All nor Web reads active.
+    act(() => {
+      window.location.hash = "settings";
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Web" })).toHaveAttribute("aria-pressed", "false");
+
+    // Clicking a project from Settings navigates back to that project's board.
+    fireEvent.click(screen.getByRole("button", { name: "Web" }));
+    expect(window.location.hash).toBe("#p/p1");
+    expect(screen.getByRole("button", { name: "Web" })).toHaveAttribute("aria-pressed", "true");
   });
 });

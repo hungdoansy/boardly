@@ -3,17 +3,23 @@
 import { cn } from "@boardly/ui";
 import { Box, Boxes, Plus } from "lucide-react";
 
+import { useSettingsRoute } from "../../lib/use-boards";
 import { useProjectActions, useProjects, useSelectedProject } from "../../lib/use-projects";
 
 /**
- * Sidebar project list. Selecting a project scopes the board/list to its cards;
- * "All" clears the scope. Creating a project selects it (so new cards land in
+ * Sidebar project list. All and each project are real nav destinations backed by
+ * the URL hash: selecting one scopes the board/list to its cards (and, from the
+ * Settings view, navigates back to that board). While Settings is open none of
+ * the rows read as active. Creating a project selects it (so new cards land in
  * it). Rename/recolor/archive live in Settings (Unit 6.8).
  */
 export function ProjectList() {
   const projects = useProjects();
   const actions = useProjectActions();
   const [selected, select] = useSelectedProject();
+  const [settingsOpen] = useSettingsRoute();
+  // In the Settings view the board scope is not shown, so no row is "active".
+  const activeId = settingsOpen ? undefined : selected;
 
   const rowClass = (active: boolean): string =>
     cn(
@@ -42,9 +48,9 @@ export function ProjectList() {
         <li>
           <button
             type="button"
-            aria-pressed={selected === null}
+            aria-pressed={activeId === null}
             onClick={() => select(null)}
-            className={rowClass(selected === null)}
+            className={rowClass(activeId === null)}
           >
             <Boxes className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
             <span className="truncate">All</span>
@@ -54,9 +60,9 @@ export function ProjectList() {
           <li key={project.id}>
             <button
               type="button"
-              aria-pressed={selected === project.id}
+              aria-pressed={activeId === project.id}
               onClick={() => select(project.id)}
-              className={rowClass(selected === project.id)}
+              className={rowClass(activeId === project.id)}
             >
               <Box
                 className="size-3.5 shrink-0"

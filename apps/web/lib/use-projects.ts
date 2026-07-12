@@ -13,37 +13,25 @@ import { useY } from "@boardly/sync/react";
 import { useCallback, useSyncExternalStore } from "react";
 
 import { useBoardlyContext } from "./boardly-context";
+import { buildBoardHash, currentHashBody, parseRoute, subscribeRoute, writeHashBody } from "./route";
 
-// The selected project scope (null = "All"). It's view state, not a deep link,
-// so it lives in a tiny module store rather than the URL — one board, one user.
-let selectedProjectId: string | null = null;
-const listeners = new Set<() => void>();
-
-function emit(): void {
-  for (const l of listeners) l();
-}
+// The selected project scope (null = "All") lives in the URL hash so All and
+// each project are real, linkable nav destinations (see route.ts). The hash is
+// authoritative; `setSelectedProject` navigates to a fresh project board (no
+// open card, exits Settings), and reads derive the scope from the current hash.
 
 /** Read the current scope without subscribing (for command handlers). */
 export function getSelectedProject(): string | null {
-  return selectedProjectId;
+  return parseRoute(currentHashBody()).projectId;
 }
 
 export function setSelectedProject(id: string | null): void {
-  if (selectedProjectId === id) return;
-  selectedProjectId = id;
-  emit();
+  writeHashBody(buildBoardHash(id));
 }
 
-/** The selected project scope + setter (null = All). */
+/** The selected project scope + setter (null = All), tracked via the URL hash. */
 export function useSelectedProject(): [string | null, (id: string | null) => void] {
-  const id = useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    () => selectedProjectId,
-    () => null,
-  );
+  const id = useSyncExternalStore(subscribeRoute, getSelectedProject, () => null);
   return [id, setSelectedProject];
 }
 

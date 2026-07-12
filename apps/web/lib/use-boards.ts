@@ -1,47 +1,54 @@
 "use client";
 
-import { formatTicketRef, parseTicketRef } from "@boardly/domain";
+import { formatTicketRef } from "@boardly/domain";
 import { getBoard, getCard } from "@boardly/sync";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 import { useBoardlyContext } from "./boardly-context";
+import {
+  buildBoardHash,
+  currentHashBody,
+  parseRoute,
+  subscribeRoute,
+  writeHashBody,
+} from "./route";
 import { useAllCards } from "./use-board";
 
-// Single-board routing (static-export friendly): the URL hash names only the
-// open ticket, Linear-style — `#TEC-42-fix-login` or, with an empty prefix,
-// `#42-fix-login`. There is exactly one board (the per-user doc), so it is
-// implicit. The hash resolves by its integer; the prefix and slug are cosmetic
-// (a stale prefix or edited title still opens the right card). An empty hash
-// means no card open.
+// Single-board routing (static-export friendly): the URL hash encodes the open
+// ticket, Linear-style — `#TEC-42-fix-login` or, with an empty prefix,
+// `#42-fix-login` — optionally under a project segment (`#p/<id>/TEC-42-…`) so
+// the scoped board is preserved while a card is open. There is exactly one board
+// (the per-user doc), so it is implicit. The hash resolves by its integer; the
+// prefix and slug are cosmetic (a stale prefix or edited title still opens the
+// right card). See route.ts for the full grammar.
 
-/** The ticket number named by the URL hash, reactive to hashchange. */
+/** The ticket number named by the URL hash, reactive to route changes. */
 function useHashTicketNumber(): number | null {
-  const [n, setN] = useState<number | null>(null);
-  useEffect(() => {
-    const sync = (): void => {
-      const ref = window.location.hash.replace(/^#/, "");
-      setN(ref ? parseTicketRef(ref) : null);
-    };
-    sync();
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  }, []);
-  return n;
+  return useSyncExternalStore(
+    subscribeRoute,
+    () => parseRoute(currentHashBody()).ticketNumber,
+    () => null,
+  );
 }
 
-/** Write (or clear) the Linear-style ticket hash for a card on the per-user board. */
+/**
+ * Write (or clear) the Linear-style ticket hash for a card, keeping the current
+ * project scope segment so closing the card returns to the same scoped board.
+ */
 function writeCardHash(ctx: ReturnType<typeof useBoardlyContext>, cardId: string): void {
   const doc = ctx.getBoardDoc();
+  const { projectId } = parseRoute(currentHashBody());
   const card = getCard(doc, cardId);
   if (!card) {
-    window.location.hash = "";
+    writeHashBody(buildBoardHash(projectId));
     return;
   }
-  window.location.hash = formatTicketRef(
+  const ref = formatTicketRef(
     getBoard(doc, ctx.userId ?? "").shortIdPrefix,
     card.number,
     card.title,
   );
+  writeHashBody(buildBoardHash(projectId, ref));
 }
 
 /**
@@ -58,7 +65,8 @@ export function useSelectedCard(): [string | null, (cardId: string | null) => vo
   const setCard = useCallback(
     (next: string | null) => {
       if (!next) {
-        window.location.hash = "";
+        // Closing a card returns to the board at its current project scope.
+        writeHashBody(buildBoardHash(parseRoute(currentHashBody()).projectId));
         return;
       }
       writeCardHash(ctx, next);
@@ -73,15 +81,13 @@ export function useSelectedCard(): [string | null, (cardId: string | null) => vo
  * distinct route from an open ticket; opening it clears any open card.
  */
 export function useSettingsRoute(): [boolean, (open: boolean) => void] {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const sync = (): void => setOpen(window.location.hash.replace(/^#/, "") === "settings");
-    sync();
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  }, []);
+  const open = useSyncExternalStore(
+    subscribeRoute,
+    () => parseRoute(currentHashBody()).settings,
+    () => false,
+  );
   const set = useCallback((next: boolean) => {
-    window.location.hash = next ? "settings" : "";
+    writeHashBody(next ? "settings" : "");
   }, []);
   return [open, set];
 }
