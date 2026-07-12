@@ -41,13 +41,17 @@ export function PriorityIcon({ level, className }: { level: PriorityValue; class
 
 export function PriorityBadge({ priority }: { priority: PriorityValue }) {
   const meta = PRIORITY_META[priority];
+  // The badge shell stays a fixed 18px (CHIP_ICON); only the glyph inside
+  // shrinks — Urgent keeps its larger size since it's the one level that
+  // must read at a glance, the bar glyphs shrink to 10px.
+  const iconSize = priority === Priority.Urgent ? "size-3" : "size-2.5";
   return (
     <span
       className={CHIP_ICON}
       title={`Priority: ${meta.name}`}
       aria-label={`Priority: ${meta.name}`}
     >
-      <PriorityIcon level={priority} className="size-3" />
+      <PriorityIcon level={priority} className={iconSize} />
     </span>
   );
 }

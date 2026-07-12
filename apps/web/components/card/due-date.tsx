@@ -8,11 +8,11 @@ import { useState } from "react";
 
 import { CHIP } from "./chip";
 
-// Overdue/soon carry urgency on the icon + text color; a normal due date stays
-// neutral. The shared bordered shell replaces the old tinted fills.
+// Overdue carries urgency on the icon + text color; any other due date stays
+// neutral — no separate "soon" warning tier. The shared bordered shell
+// replaces the old tinted fills.
 const TONE = {
   overdue: "var(--danger)",
-  soon: "var(--warning)",
   normal: "var(--text-secondary)",
 } as const;
 

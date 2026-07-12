@@ -16,16 +16,19 @@ const timed = (y: number, m: number, d: number, h: number, min = 0) => ({
 
 describe("describeDueDate", () => {
   it("today (date-only)", () => {
-    expect(describeDueDate(dateOnly(2026, 6, 10), NOW)).toEqual({ label: "Today", tone: "soon" });
+    expect(describeDueDate(dateOnly(2026, 6, 10), NOW)).toEqual({
+      label: "Today",
+      tone: "normal",
+    });
   });
   it("tomorrow", () => {
     expect(describeDueDate(dateOnly(2026, 6, 11), NOW)).toEqual({
       label: "Tomorrow",
-      tone: "soon",
+      tone: "normal",
     });
   });
-  it("two days out → relative + soon", () => {
-    expect(describeDueDate(dateOnly(2026, 6, 12), NOW)).toEqual({ label: "2d", tone: "soon" });
+  it("two days out → relative + normal", () => {
+    expect(describeDueDate(dateOnly(2026, 6, 12), NOW)).toEqual({ label: "2d", tone: "normal" });
   });
   it("a week out → formatted date + normal", () => {
     expect(describeDueDate(dateOnly(2026, 6, 17), NOW)).toEqual({
@@ -43,7 +46,7 @@ describe("describeDueDate", () => {
   it("timed today shows the time", () => {
     expect(describeDueDate(timed(2026, 6, 10, 15, 0), NOW)).toEqual({
       label: "3:00 PM",
-      tone: "soon",
+      tone: "normal",
     });
   });
   it("timed earlier today is overdue", () => {

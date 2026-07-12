@@ -4,7 +4,7 @@
 // exact moment.
 import type { DueDate } from "./types";
 
-export type DueTone = "overdue" | "soon" | "normal";
+export type DueTone = "overdue" | "normal";
 
 export interface DueDisplay {
   label: string;
@@ -62,7 +62,7 @@ export function describeDueDate(due: DueDate, now: number): DueDisplay {
     label = formatDueDate(due);
   }
 
-  const tone: DueTone = overdue ? "overdue" : daysUntil <= 2 ? "soon" : "normal";
+  const tone: DueTone = overdue ? "overdue" : "normal";
   return { label, tone };
 }
 
