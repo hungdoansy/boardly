@@ -1,8 +1,8 @@
 "use client";
 
-import type { Card, Column, Label } from "@boardly/domain";
-import { execute, moveCard, moveColumn } from "@boardly/commands";
-import { cardsInColumn, liveColumns } from "@boardly/sync";
+import type { Card, Label, Status } from "@boardly/domain";
+import { execute, moveCard } from "@boardly/commands";
+import { cardsInStatus } from "@boardly/sync";
 import {
   DndContext,
   DragOverlay,
@@ -12,6 +12,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   closestCorners,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -26,13 +27,13 @@ import { BoardColumn } from "./column";
 
 interface ActiveItem {
   id: string;
-  type: "card" | "column";
   title: string;
 }
 
 interface DragData {
   type: "card" | "column";
-  columnId?: string;
+  /** The status column a card currently belongs to (for card drags). */
+  status?: Status;
   title?: string;
 }
 
@@ -57,11 +58,7 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
 
   function onDragStart(event: DragStartEvent): void {
     const data = event.active.data.current as DragData | undefined;
-    setActive({
-      id: String(event.active.id),
-      type: data?.type ?? "card",
-      title: data?.title ?? "",
-    });
+    setActive({ id: String(event.active.id), title: data?.title ?? "" });
   }
 
   function onDragEnd(event: DragEndEvent): void {
@@ -72,34 +69,19 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
     const aData = a.data.current as DragData | undefined;
     const oData = over.data.current as DragData | undefined;
 
-    if (aData?.type === "column") {
-      if (String(over.id) === activeId) return;
-      const colIds = liveColumns(doc).map((c) => c.id);
-      const neighbors = planMove({
-        currentOrder: colIds,
-        destOrder: colIds,
-        activeId,
-        overId: String(over.id),
-        sameContainer: true,
-      });
-      if (neighbors) {
-        execute(moveColumn, ctx, {
-          columnId: activeId,
-          afterId: neighbors.afterId,
-          beforeId: neighbors.beforeId,
-        });
-      }
-      return;
-    }
-
-    const fromColumnId = aData?.columnId;
-    if (!fromColumnId) return;
-    const toColumnId = oData?.type === "column" ? String(over.id) : oData?.columnId;
-    if (!toColumnId) return;
-    const sameContainer = fromColumnId === toColumnId;
+    // Columns are fixed (no reordering); only cards drag. Resolve the drop's
+    // destination status and issue a single moveCard that both re-statuses and
+    // slots the card (R10 — drag applies status immediately).
+    const fromStatus = aData?.status;
+    if (!fromStatus) return;
+    const toStatus = (oData?.type === "column" ? oData.status : oData?.status) as
+      | Status
+      | undefined;
+    if (!toStatus) return;
+    const sameContainer = fromStatus === toStatus;
     const neighbors = planMove({
-      currentOrder: cardsInColumn(doc, fromColumnId).map((c) => c.id),
-      destOrder: cardsInColumn(doc, toColumnId).map((c) => c.id),
+      currentOrder: cardsInStatus(doc, fromStatus).map((c) => c.id),
+      destOrder: cardsInStatus(doc, toStatus).map((c) => c.id),
       activeId,
       overId: oData?.type === "card" ? String(over.id) : null,
       sameContainer,
@@ -107,7 +89,7 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
     if (neighbors) {
       execute(moveCard, ctx, {
         cardId: activeId,
-        toColumnId,
+        toStatus,
         afterId: neighbors.afterId,
         beforeId: neighbors.beforeId,
       });
@@ -136,14 +118,14 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
 
 export function SortableCard({
   card,
-  columnId,
+  status,
   labels,
   config,
   onOpen,
   onArchive,
 }: {
   card: Card;
-  columnId: string;
+  status: Status;
   labels?: Label[];
   config?: string[];
   onOpen: () => void;
@@ -151,14 +133,14 @@ export function SortableCard({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
-    data: { type: "card", columnId, title: card.title } satisfies DragData,
+    data: { type: "card", status, title: card.title } satisfies DragData,
   });
   return (
     <div
       ref={setNodeRef}
       data-nav="card"
       data-card-id={card.id}
-      data-column-id={columnId}
+      data-column-id={status}
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
@@ -173,48 +155,25 @@ export function SortableCard({
   );
 }
 
-export function SortableColumn({
-  column,
+/**
+ * A fixed status column that is a drop target for cards (so dropping onto an
+ * empty column still resolves a destination status). Columns never drag.
+ */
+export function StatusColumn({
+  status,
   count,
-  onRename,
-  onSetWipLimit,
-  onDelete,
   children,
 }: {
-  column: Column;
+  status: Status;
   count: number;
-  onRename: (title: string) => void;
-  onSetWipLimit: (wipLimit: number | null) => void;
-  onDelete: () => void;
   children?: ReactNode;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: column.id,
-    data: { type: "column", title: column.title } satisfies DragData,
+  const { setNodeRef } = useDroppable({
+    id: status,
+    data: { type: "column", status } satisfies DragData,
   });
   return (
-    <BoardColumn
-      column={column}
-      count={count}
-      onRename={onRename}
-      onSetWipLimit={onSetWipLimit}
-      onDelete={onDelete}
-      dndRef={setNodeRef}
-      dndStyle={{
-        transform: CSS.Translate.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : undefined,
-      }}
-      dragHandle={{ ref: setActivatorNodeRef, attributes, listeners }}
-    >
+    <BoardColumn status={status} count={count} dndRef={setNodeRef}>
       {children}
     </BoardColumn>
   );

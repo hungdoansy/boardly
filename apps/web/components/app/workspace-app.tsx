@@ -11,7 +11,7 @@ import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useBoardTitle } from "../../lib/use-board";
-import { useSeedDefaultBoard, useSettingsRoute } from "../../lib/use-boards";
+import { useInitBoardMeta, useSettingsRoute } from "../../lib/use-boards";
 import { useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
@@ -43,10 +43,10 @@ export function WorkspaceApp() {
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { userId } = useAuthSession();
-  // Single per-user board: an empty doc is a valid board. INTERIM (removed in
-  // Unit 9): seed the default columns once so the board is usable while columns
-  // are still user-managed.
-  useSeedDefaultBoard();
+  // Single per-user board: an empty doc is a valid board that renders the eight
+  // fixed status columns. No column seeding — only a minimal meta-only init so
+  // the board's title / badge config / prefix defaults are set.
+  useInitBoardMeta();
   const [settingsOpen, setSettingsOpen] = useSettingsRoute();
 
   useEffect(() => {

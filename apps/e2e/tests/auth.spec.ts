@@ -6,8 +6,8 @@ test.describe("auth", () => {
   test("signup establishes a session and lands on the app", async ({ page }) => {
     await signUp(page);
     await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
-    // Boardly auto-provisions a single "Main board" (no create-board prompt).
-    await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
+    // Boardly renders a single per-user board with fixed status columns (no create-board prompt).
+    await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create board" })).toHaveCount(0);
   });
 

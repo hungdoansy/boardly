@@ -2,7 +2,6 @@
 import "@testing-library/jest-dom/vitest";
 
 import {
-  addColumn as addColumnCmd,
   assignLabel,
   createCard,
   createLabel,
@@ -28,8 +27,7 @@ function CardLabelsHarness({ cardId }: { cardId: string }) {
 function seed(withLabel = false): MemoryContext {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
-  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
+  execute(createCard, ctx, { id: "c1", title: "Card" });
   if (withLabel) {
     execute(createLabel, ctx, { id: "l1", name: "Bug", color: "#EB5757" });
     execute(assignLabel, ctx, { cardId: "c1", labelId: "l1" });

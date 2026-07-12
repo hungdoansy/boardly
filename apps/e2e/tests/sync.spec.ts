@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import { addCard, addColumn, createBoard, logIn, signUp } from "./helpers";
+import { addCard, createBoard, logIn, signUp } from "./helpers";
 
 // Two clients (separate browser contexts), same account, same board → an edit on
 // one converges on the other over the live WebSocket sync server. Exercises the
-// full path: board-ownership registration, WS ticket, Hocuspocus relay, Yjs merge.
+// full path: per-user doc authz, WS ticket, Hocuspocus relay, Yjs merge.
 test.describe("live sync", () => {
   test.slow(); // real network + two clients
 
@@ -13,21 +13,16 @@ test.describe("live sync", () => {
     const pageA = await ctxA.newPage();
     const email = await signUp(pageA);
     await createBoard(pageA);
-    await addColumn(pageA, "Shared");
     const boardUrl = pageA.url();
 
     const ctxB = await browser.newContext();
     const pageB = await ctxB.newPage();
     await logIn(pageB, email);
     await pageB.goto(boardUrl);
+    await createBoard(pageB);
 
-    // B pulls A's column from the server.
-    await expect(pageB.getByRole("region", { name: "Column: Shared" })).toBeVisible({
-      timeout: 20_000,
-    });
-
-    // A adds a card → it converges on B.
-    await addCard(pageA, "Shared", "Synced card");
+    // A adds a card into a fixed status column → it converges on B.
+    await addCard(pageA, "Todo", "Synced card");
     await expect(pageB.getByRole("button", { name: "Card: Synced card" })).toBeVisible({
       timeout: 20_000,
     });

@@ -21,7 +21,6 @@ function makeCard(over: Partial<import("@boardly/domain").Card>): import("@board
     shortId: "#1",
     title: "Card",
     description: "",
-    columnId: "col",
     ord: "a0",
     status: Status.Todo,
     priority: Priority.None,

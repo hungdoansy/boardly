@@ -3,22 +3,24 @@
 import type {
   ActivityEntry,
   Card,
-  Column,
   DueDate,
   Label,
   PriorityValue,
   SeverityValue,
   Status,
 } from "@boardly/domain";
-import { detectProvider, isSafeHttpUrl, LinkProvider } from "@boardly/domain";
+import {
+  detectProvider,
+  isSafeHttpUrl,
+  LinkProvider,
+  STATUS_ORDER,
+} from "@boardly/domain";
 
 import { unfurl } from "./unfurl-client";
 import {
   addChecklistItem,
-  addColumn,
   addLink,
   archiveCard,
-  archiveColumn,
   assignLabel,
   createCard,
   createLabel,
@@ -30,8 +32,6 @@ import {
   recolorLabel,
   removeLink,
   renameCard,
-  renameColumn,
-  setColumnWipLimit,
   renameLabel,
   setBadgeConfig,
   setCardDescription,
@@ -40,6 +40,7 @@ import {
   setCardSeverity,
   setCardStatus,
   setChecklistItemText,
+  setShowEmptyColumns,
   setTicketPrefix,
   toggleChecklistItem,
   unassignLabel,
@@ -47,16 +48,13 @@ import {
 import {
   allLiveCards,
   boardCards,
-  boardColumns,
   boardLabels,
   boardMeta,
   cardActivity,
-  cardsInColumn,
+  cardsInStatus,
   getBoard,
   getCard,
   listLabels,
-  liveColumns,
-  reclaimCards,
 } from "@boardly/sync";
 import { useY, useYDoc } from "@boardly/sync/react";
 import { useCallback } from "react";
@@ -64,18 +62,12 @@ import { useCallback } from "react";
 import { useBoardlyContext } from "./boardly-context";
 import { getSelectedProject } from "./use-projects";
 
-/** Live, ord-sorted columns of the board. */
-export function useColumns(): Column[] {
+/** Live card count per fixed status column, keyed by status. Depends on cards. */
+export function useCardCounts(): Record<Status, number> {
   const doc = useBoardlyContext().getBoardDoc();
-  return useY(boardColumns(doc), () => liveColumns(doc), { deep: true });
-}
-
-/** Live card count per live column, keyed by column id. Depends on both columns and cards. */
-export function useCardCounts(): Record<string, number> {
-  const doc = useBoardlyContext().getBoardDoc();
-  return useYDoc(doc, () => {
-    const counts: Record<string, number> = {};
-    for (const col of liveColumns(doc)) counts[col.id] = cardsInColumn(doc, col.id).length;
+  return useY(boardCards(doc), () => {
+    const counts = {} as Record<Status, number>;
+    for (const status of STATUS_ORDER) counts[status] = cardsInStatus(doc, status).length;
     return counts;
   });
 }
@@ -94,6 +86,26 @@ export function useSetBadgeConfig(): (config: string[]) => void {
   return useCallback(
     (config: string[]) => {
       execute(setBadgeConfig, ctx, { config });
+    },
+    [ctx],
+  );
+}
+
+/**
+ * Board-toolbar preference: whether empty status columns are shown. Board meta,
+ * so it persists per-user and syncs across devices; defaults to true.
+ */
+export function useShowEmptyColumns(): boolean {
+  const ctx = useBoardlyContext();
+  const doc = ctx.getBoardDoc();
+  return useY(boardMeta(doc), () => getBoard(doc, ctx.userId ?? "").showEmptyColumns);
+}
+
+export function useSetShowEmptyColumns(): (show: boolean) => void {
+  const ctx = useBoardlyContext();
+  return useCallback(
+    (show: boolean) => {
+      execute(setShowEmptyColumns, ctx, { show });
     },
     [ctx],
   );
@@ -178,23 +190,10 @@ export function useLabelActions(): LabelActions {
   };
 }
 
-/** Cards whose column was deleted (surfaced in the "Unsorted" bucket). Depends on columns + cards. */
-export function useReclaimedCards(): Card[] {
+/** Live, ord-sorted, non-archived cards in a fixed status column. */
+export function useCardsInStatus(status: Status): Card[] {
   const doc = useBoardlyContext().getBoardDoc();
-  return useYDoc(doc, () => reclaimCards(doc));
-}
-
-export interface ColumnActions {
-  add(title: string): string;
-  rename(columnId: string, title: string): void;
-  setWipLimit(columnId: string, wipLimit: number | null): void;
-  remove(columnId: string): void;
-}
-
-/** Live, ord-sorted, non-archived cards in a column. */
-export function useCardsInColumn(columnId: string): Card[] {
-  const doc = useBoardlyContext().getBoardDoc();
-  return useY(boardCards(doc), () => cardsInColumn(doc, columnId), { deep: true });
+  return useY(boardCards(doc), () => cardsInStatus(doc, status), { deep: true });
 }
 
 /** All non-archived cards on the board (for swimlane grouping, Unit 4.2). */
@@ -216,7 +215,8 @@ export function useCardActivity(cardId: string | null): ActivityEntry[] {
 }
 
 export interface CardActions {
-  create(columnId: string, title: string): string;
+  /** Create a card in a status column (a card's column IS its status; defaults to Todo). */
+  create(title: string, status?: Status): string;
   rename(cardId: string, title: string): void;
   setDescription(cardId: string, description: string): void;
   setPriority(cardId: string, priority: PriorityValue): void;
@@ -229,10 +229,10 @@ export interface CardActions {
 export function useCardActions(): CardActions {
   const ctx = useBoardlyContext();
   const create = useCallback(
-    (columnId: string, title: string) => {
+    (title: string, status?: Status) => {
       // New cards inherit the sidebar's active project scope (null = no project).
       const projectId = getSelectedProject() ?? undefined;
-      return execute(createCard, ctx, { columnId, title, projectId })?.id ?? "";
+      return execute(createCard, ctx, { title, status, projectId })?.id ?? "";
     },
     [ctx],
   );
@@ -389,26 +389,3 @@ export function useLinkActions(): LinkActions {
   };
 }
 
-export function useColumnActions(): ColumnActions {
-  const ctx = useBoardlyContext();
-  const add = useCallback((title: string) => execute(addColumn, ctx, { title }).id, [ctx]);
-  const rename = useCallback(
-    (columnId: string, title: string) => {
-      execute(renameColumn, ctx, { columnId, title });
-    },
-    [ctx],
-  );
-  const setWipLimit = useCallback(
-    (columnId: string, wipLimit: number | null) => {
-      execute(setColumnWipLimit, ctx, { columnId, wipLimit });
-    },
-    [ctx],
-  );
-  const remove = useCallback(
-    (columnId: string) => {
-      execute(archiveColumn, ctx, { columnId });
-    },
-    [ctx],
-  );
-  return { add, rename, setWipLimit, remove };
-}

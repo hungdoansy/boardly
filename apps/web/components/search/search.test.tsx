@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn, createCard, createMemoryContext, execute } from "@boardly/commands";
+import { createCard, createMemoryContext, execute } from "@boardly/commands";
 import { initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -77,9 +77,8 @@ function seed() {
 function createMemoryContextWithSeed() {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Roadmap", now: 0 });
-  const col = execute(addColumn, ctx, { title: "To Do" });
-  const a = execute(createCard, ctx, { columnId: col.id, title: "Auth service" });
-  execute(createCard, ctx, { columnId: col.id, title: "Redesign landing" });
+  const a = execute(createCard, ctx, { title: "Auth service" });
+  execute(createCard, ctx, { title: "Redesign landing" });
   return { ctx, cardA: a!.id };
 }
 

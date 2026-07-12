@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, addLink, createCard, execute } from "@boardly/commands";
+import { addLink, createCard, execute } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { getCard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -19,8 +19,7 @@ function Harness({ cardId }: { cardId: string }) {
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
-  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
+  execute(createCard, ctx, { id: "c1", title: "Card" });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>

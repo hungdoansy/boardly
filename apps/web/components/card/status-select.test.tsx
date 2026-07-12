@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import { Status } from "@boardly/domain";
-import { addColumn, createCard, createMemoryContext, execute } from "@boardly/commands";
+import { createCard, createMemoryContext, execute } from "@boardly/commands";
 import { getCard, initBoard, listActivity } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -33,8 +33,8 @@ describe("StatusSelect", () => {
   });
 });
 
-// Integration: select → command layer → status changes, activity appended, and
-// the card's column is untouched (status is independent of column).
+// Integration: select → command layer → status changes (setCardStatus), with an
+// activity entry appended. A card's column IS its status, so this also moves it.
 function Harness({ cardId }: { cardId: string }) {
   const card = useCardById(cardId);
   const actions = useCardActions();
@@ -43,12 +43,11 @@ function Harness({ cardId }: { cardId: string }) {
 }
 
 describe("StatusSelect ↔ command layer", () => {
-  it("sets status via the command, logs activity, and does not move the card", () => {
+  it("sets status via the command and logs activity", () => {
     const ctx = createMemoryContext();
     initBoard(ctx.getBoardDoc(), { title: "B", now: 0 });
-    const col = execute(addColumn, ctx, { title: "To Do" });
     const card = execute(createCard, ctx, {
-      columnId: col.id,
+      status: Status.Todo,
       title: "Card",
     })!;
 
@@ -68,7 +67,6 @@ describe("StatusSelect ↔ command layer", () => {
     const doc = ctx.getBoardDoc();
     const updated = getCard(doc, card.id);
     expect(updated?.status).toBe(Status.InReview);
-    expect(updated?.columnId).toBe(col.id); // unchanged
     const log = listActivity(doc);
     expect(log.at(-1)).toMatchObject({ type: "status", cardId: card.id, to: Status.InReview });
   });

@@ -2,7 +2,6 @@
 import "@testing-library/jest-dom/vitest";
 
 import {
-  addColumn as addColumnCmd,
   createCard,
   createMemoryContext,
   execute,
@@ -26,7 +25,6 @@ function makeCard(over: Partial<Card>): Card {
     shortId: "#1",
     title: "Card",
     description: "",
-    columnId: "col",
     ord: "a0",
     status: Status.Todo,
     priority: Priority.None,
@@ -45,32 +43,30 @@ function makeCard(over: Partial<Card>): Card {
 // ---- Data path: the ListView container over a real (memory) board doc ----
 
 function setup(
-  seed: (ctx: MemoryContext, columnId: string) => void,
+  seed: (ctx: MemoryContext) => void,
   props?: { groupBy?: "status" | "priority" | null; filter?: Filter },
 ) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  const col = execute(addColumnCmd, ctx, { title: "Todo" });
-  seed(ctx, col.id);
+  seed(ctx);
   render(
     <BoardlyProvider context={ctx}>
       <ListView groupBy={props?.groupBy ?? null} filter={props?.filter} />
     </BoardlyProvider>,
   );
-  return { ctx, columnId: col.id };
+  return { ctx };
 }
 
-const add = (ctx: MemoryContext, columnId: string, title: string) =>
-  execute(createCard, ctx, { columnId, title })!;
+const add = (ctx: MemoryContext, title: string) => execute(createCard, ctx, { title })!;
 
 afterEach(cleanup);
 
 describe("ListView (data path)", () => {
   it("renders a flat list of rows in card order", () => {
-    setup((ctx, col) => {
-      add(ctx, col, "Alpha");
-      add(ctx, col, "Beta");
-      add(ctx, col, "Gamma");
+    setup((ctx) => {
+      add(ctx, "Alpha");
+      add(ctx, "Beta");
+      add(ctx, "Gamma");
     });
     expect(screen.getAllByRole("button").map((r) => r.getAttribute("aria-label"))).toEqual([
       "Alpha",
@@ -81,10 +77,10 @@ describe("ListView (data path)", () => {
 
   it("groups rows into sections with counts when grouped", () => {
     setup(
-      (ctx, col) => {
-        const a = add(ctx, col, "Doing it");
-        const b = add(ctx, col, "Also doing");
-        const c = add(ctx, col, "Done one");
+      (ctx) => {
+        const a = add(ctx, "Doing it");
+        const b = add(ctx, "Also doing");
+        const c = add(ctx, "Done one");
         execute(setCardStatus, ctx, { cardId: a.id, status: Status.InProgress });
         execute(setCardStatus, ctx, { cardId: b.id, status: Status.InProgress });
         execute(setCardStatus, ctx, { cardId: c.id, status: Status.Done });
@@ -100,7 +96,7 @@ describe("ListView (data path)", () => {
   });
 
   it("shows an empty state when nothing matches the filter", () => {
-    setup((ctx, col) => add(ctx, col, "Hidden"), {
+    setup((ctx) => add(ctx, "Hidden"), {
       filter: { op: "and", clauses: [{ field: "title", condition: "contains", values: ["zzz"] }] },
     });
     expect(screen.getByText(/no cards match/i)).toBeInTheDocument();
@@ -108,8 +104,8 @@ describe("ListView (data path)", () => {
   });
 
   it("renders terminal cards struck through", () => {
-    setup((ctx, col) => {
-      const c = add(ctx, col, "Finished");
+    setup((ctx) => {
+      const c = add(ctx, "Finished");
       execute(setCardStatus, ctx, { cardId: c.id, status: Status.Done });
     });
     expect(screen.getByText("Finished")).toHaveClass("line-through");

@@ -1,11 +1,11 @@
 "use client";
 
-import { type Filter, type FilterContext, evaluateFilter } from "@boardly/domain";
+import { type Filter, type FilterContext, type Status, evaluateFilter } from "@boardly/domain";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useMemo } from "react";
 
 import { useFocusMode } from "../../lib/focus-mode";
-import { useBadgeConfig, useCardActions, useCardsInColumn, useLabels } from "../../lib/use-board";
+import { useBadgeConfig, useCardActions, useCardsInStatus, useLabels } from "../../lib/use-board";
 import { CardComposer } from "../card/card-composer";
 import { SortableCard } from "./dnd";
 
@@ -13,17 +13,17 @@ import { SortableCard } from "./dnd";
 const ZEN_CONFIG = ["status"];
 
 export function ColumnCards({
-  columnId,
+  status,
   onOpenCard,
   filter,
   filterCtx,
 }: {
-  columnId: string;
+  status: Status;
   onOpenCard: (cardId: string) => void;
   filter?: Filter;
   filterCtx?: FilterContext;
 }) {
-  const allCards = useCardsInColumn(columnId);
+  const allCards = useCardsInStatus(status);
   const labels = useLabels();
   const config = useBadgeConfig();
   const { level } = useFocusMode();
@@ -46,7 +46,7 @@ export function ColumnCards({
           <SortableCard
             key={card.id}
             card={card}
-            columnId={columnId}
+            status={status}
             labels={card.labelIds.map((id) => labelById.get(id)).filter((l) => l !== undefined)}
             config={effectiveConfig}
             onOpen={() => onOpenCard(card.id)}
@@ -55,8 +55,8 @@ export function ColumnCards({
         ))}
       </SortableContext>
       <CardComposer
-        onAdd={(title) => actions.create(columnId, title)}
-        onCreateDetailed={(title) => onOpenCard(actions.create(columnId, title))}
+        onAdd={(title) => actions.create(title, status)}
+        onCreateDetailed={(title) => onOpenCard(actions.create(title, status))}
       />
     </>
   );

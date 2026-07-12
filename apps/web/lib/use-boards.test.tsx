@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn, createCard, createMemoryContext, execute } from "@boardly/commands";
+import { createCard, createMemoryContext, execute } from "@boardly/commands";
 import { initBoard } from "@boardly/sync";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
@@ -13,9 +13,7 @@ import { useOpenCardNav, useSelectedCard } from "./use-boards";
 function seed() {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Main board", now: 0 });
-  const col = execute(addColumn, ctx, { title: "To Do" });
   const card = execute(createCard, ctx, {
-    columnId: col.id,
     title: "Fix the login bug",
   })!;
   return { ctx, cardId: card.id };

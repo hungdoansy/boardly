@@ -1,11 +1,20 @@
 import type * as React from "react";
 
 /** Workflow-status glyph variants (mirror `@boardly/domain` Status values). */
-export type StatusVariant = "backlog" | "todo" | "in_progress" | "in_review" | "done" | "canceled";
+export type StatusVariant =
+  | "backlog"
+  | "todo"
+  | "in_progress"
+  | "pending"
+  | "in_review"
+  | "done"
+  | "canceled"
+  | "duplicate";
 
 /** Fraction of the progress pie filled for the "started" states. */
 const PROGRESS: Partial<Record<StatusVariant, number>> = {
   in_progress: 0.5,
+  pending: 0.3,
   in_review: 0.8,
 };
 
@@ -43,7 +52,7 @@ export function StatusIcon({
   className?: string;
   size?: number;
 }) {
-  const filled = variant === "done" || variant === "canceled";
+  const filled = variant === "done" || variant === "canceled" || variant === "duplicate";
   return (
     <svg
       width={size}

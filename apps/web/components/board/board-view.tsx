@@ -4,30 +4,25 @@ import {
   type Filter,
   type FilterContext,
   type GroupByField,
-  evaluateFilter,
   Priority,
+  STATUS_ORDER,
 } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
-import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import { Eye, EyeOff } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 
 import { useAuthSession } from "../../lib/auth-store";
 import { useBoardlyContext } from "../../lib/boardly-context";
 import {
-  useBadgeConfig,
   useCardActions,
   useCardCounts,
-  useColumnActions,
-  useColumns,
-  useLabels,
-  useReclaimedCards,
+  useSetShowEmptyColumns,
+  useShowEmptyColumns,
 } from "../../lib/use-board";
 import { useSelectedCard } from "../../lib/use-boards";
 import { CardDetail } from "../card/card-detail";
-import { CardFace } from "../card/card";
-import { AddColumn } from "./add-column";
 import { ColumnCards } from "./column-cards";
-import { BoardDndProvider, SortableColumn } from "./dnd";
+import { BoardDndProvider, StatusColumn } from "./dnd";
 import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
 import { Swimlanes } from "./swimlanes";
 
@@ -40,23 +35,23 @@ export function BoardView({
   filter?: Filter;
   groupBy?: GroupByField | null;
 }) {
-  const columns = useColumns();
   const counts = useCardCounts();
-  const reclaimed = useReclaimedCards();
-  const columnActions = useColumnActions();
   const cardActions = useCardActions();
-  const labels = useLabels();
-  const config = useBadgeConfig();
-  const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
+  const showEmptyColumns = useShowEmptyColumns();
+  const setShowEmptyColumns = useSetShowEmptyColumns();
   const [openCardId, setOpenCardId] = useSelectedCard();
   const { userId } = useAuthSession();
   const filterCtx: FilterContext = useMemo(
     () => ({ now: Date.now(), currentUserId: userId ?? undefined }),
     [userId],
   );
-  const filteredReclaimed = useMemo(
-    () => (filter ? reclaimed.filter((c) => evaluateFilter(c, filter, filterCtx)) : reclaimed),
-    [reclaimed, filter, filterCtx],
+
+  // Fixed columns: the eight statuses in STATUS_ORDER. When "hide empty" is on,
+  // drop the zero-card ones. Note this counts unfiltered cards — a status with
+  // cards that the active filter hides still shows (its column just renders empty).
+  const visibleStatuses = useMemo(
+    () => (showEmptyColumns ? STATUS_ORDER : STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0)),
+    [showEmptyColumns, counts],
   );
 
   const ctx = useBoardlyContext();
@@ -104,56 +99,34 @@ export function BoardView({
 
   return (
     <BoardDndProvider>
-      <div ref={boardRef} className="flex h-full items-start gap-3 overflow-x-auto p-4">
-        <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
-          {columns.map((column) => (
-            <SortableColumn
-              key={column.id}
-              column={column}
-              count={counts[column.id] ?? 0}
-              onRename={(title) => columnActions.rename(column.id, title)}
-              onSetWipLimit={(limit) => columnActions.setWipLimit(column.id, limit)}
-              onDelete={() => columnActions.remove(column.id)}
-            >
+      <div className="flex h-full flex-col">
+        <div className="flex h-9 shrink-0 items-center justify-end border-b border-line-subtle px-4">
+          <button
+            type="button"
+            aria-pressed={!showEmptyColumns}
+            onClick={() => setShowEmptyColumns(!showEmptyColumns)}
+            className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            {showEmptyColumns ? (
+              <EyeOff className="size-3.5" />
+            ) : (
+              <Eye className="size-3.5" />
+            )}
+            {showEmptyColumns ? "Hide empty columns" : "Show empty columns"}
+          </button>
+        </div>
+        <div ref={boardRef} className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
+          {visibleStatuses.map((status) => (
+            <StatusColumn key={status} status={status} count={counts[status] ?? 0}>
               <ColumnCards
-                columnId={column.id}
+                status={status}
                 onOpenCard={setOpenCardId}
                 filter={filter}
                 filterCtx={filterCtx}
               />
-            </SortableColumn>
+            </StatusColumn>
           ))}
-        </SortableContext>
-
-        {filteredReclaimed.length > 0 && (
-          <section
-            aria-label="Unsorted"
-            className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-dashed border-line bg-surface"
-          >
-            <header className="flex h-9 shrink-0 items-center gap-2 px-2">
-              <span className="text-md font-medium text-fg-muted">Unsorted</span>
-              <span className="px-1 text-xs tabular-nums text-fg-faint">
-                {filteredReclaimed.length}
-              </span>
-            </header>
-            <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
-              {filteredReclaimed.map((card) => (
-                <CardFace
-                  key={card.id}
-                  card={card}
-                  labels={card.labelIds
-                    .map((id) => labelById.get(id))
-                    .filter((l) => l !== undefined)}
-                  config={config}
-                  onOpen={() => setOpenCardId(card.id)}
-                  onArchive={() => cardActions.archive(card.id)}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        <AddColumn onAdd={columnActions.add} />
+        </div>
       </div>
 
       <CardDetail cardId={openCardId} onClose={closeCard} />

@@ -6,8 +6,8 @@ test.describe("search", () => {
   test("'/' opens search and finds a card by title, opening its detail", async ({ page }) => {
     await signUp(page);
     await createBoard(page);
-    await addCard(page, "To Do", "Unicorn migration plan");
-    await addCard(page, "To Do", "Refactor the parser");
+    await addCard(page, "Todo", "Unicorn migration plan");
+    await addCard(page, "Todo", "Refactor the parser");
 
     await page.keyboard.press("/");
     const input = page.getByPlaceholder("Search cards by title, ID, or label…");

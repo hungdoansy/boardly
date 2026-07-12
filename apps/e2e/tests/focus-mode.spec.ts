@@ -10,8 +10,8 @@ const htmlFocus = (page: Page): Promise<string | null> =>
 async function seed(page: Page): Promise<void> {
   await signUp(page);
   await createBoard(page);
-  await addCard(page, "To Do", "Apple");
-  await addCard(page, "To Do", "Banana");
+  await addCard(page, "Todo", "Apple");
+  await addCard(page, "Todo", "Banana");
 }
 
 test("focus mode: Shift+F cycles + mutes the board; drawer escapes; per-theme saturate", async ({
@@ -67,7 +67,7 @@ test("focus mode: Zen collapses the card face + list row (both surfaces, both th
   await page.keyboard.press("Escape"); // close the date popover
   await page.getByRole("button", { name: "Close" }).click(); // close the drawer
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  const todo = page.getByRole("region", { name: "Column: To Do" });
+  const todo = page.getByRole("region", { name: "Column: Todo" });
   await expect(todo.getByText("Overdue")).toBeVisible();
 
   // Zen (off → calm → zen): the board card face collapses to title + status.

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn, createMemoryContext, execute } from "@boardly/commands";
-import { cardsInColumn, initBoard, liveColumns } from "@boardly/sync";
+import { createMemoryContext } from "@boardly/commands";
+import { Status, STATUS_ORDER } from "@boardly/domain";
+import { allLiveCards, cardsInStatus, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -14,7 +15,6 @@ function renderPalette(seedBoard = true) {
   const ctx = createMemoryContext();
   if (seedBoard) {
     initBoard(ctx.getBoardDoc(), { title: "Main board", now: 0 });
-    execute(addColumn, ctx, { title: "To Do" });
   }
   render(
     <BoardlyProvider context={ctx}>
@@ -61,13 +61,15 @@ describe("CommandPalette", () => {
     expect(screen.getByText("No results.")).toBeInTheDocument();
   });
 
-  it("offers a 'new card' action for the single board and creates in the first column", () => {
+  it("offers a 'new card' action that creates a card in the default (Todo) column", () => {
     const ctx = renderPalette();
     pressCmdK();
-    fireEvent.click(screen.getByText(/new card in/i));
+    fireEvent.click(screen.getByText(/new card/i));
 
     const boardDoc = ctx.getBoardDoc();
-    const firstColumn = liveColumns(boardDoc)[0]!;
-    expect(cardsInColumn(boardDoc, firstColumn.id)).toHaveLength(1);
+    expect(allLiveCards(boardDoc)).toHaveLength(1);
+    // A card's column IS its status; a new card defaults to Todo.
+    expect(cardsInStatus(boardDoc, Status.Todo)).toHaveLength(1);
+    expect(STATUS_ORDER).toContain(Status.Todo);
   });
 });

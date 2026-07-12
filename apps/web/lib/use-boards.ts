@@ -1,10 +1,9 @@
 "use client";
 
 import { formatTicketRef, parseTicketRef } from "@boardly/domain";
-import { addColumn, execute } from "@boardly/commands";
-import { getBoard, getCard, initBoard, liveColumns } from "@boardly/sync";
+import { getBoard, getCard, initBoard } from "@boardly/sync";
 import { getBoardDoc } from "@boardly/sync/client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAuthSession } from "./auth-store";
 import { useBoardlyContext } from "./boardly-context";
@@ -95,23 +94,20 @@ export function useOpenCardNav(): (cardId: string) => void {
   return useCallback((cardId: string) => writeCardHash(ctx, cardId), [ctx]);
 }
 
-/** Columns the interim seed provisions on a brand-new board. */
-const DEFAULT_COLUMNS = ["To Do", "Doing", "Done"];
 const DEFAULT_BOARD_TITLE = "Main board";
 
 /**
- * INTERIM (removed in Unit 9, when columns become fixed statuses): the board
- * layer no longer provisions or seeds — an empty per-user doc is a valid empty
- * board. But until columns are the fixed status set, a brand-new user needs at
- * least one column to place cards. This seeds the board's meta (title + default
- * badge config) and the To Do/Doing/Done columns exactly once — only after
- * local IndexedDB has hydrated (so we don't seed over persisted content) and
- * only when the doc has zero columns.
+ * Columns are now the fixed status set (STATUS_ORDER), so a brand-new user
+ * boots straight to the eight (empty) status columns with NO column seeding.
+ * We keep a minimal, idempotent META-only init so the board's non-column
+ * defaults (title + badge config + empty ticket prefix) match what the interim
+ * seed used to set. `initBoard` guards on `createdAt`, so this is a no-op once
+ * the meta exists; it runs only after local IndexedDB has hydrated, so it never
+ * writes over persisted content.
  */
-export function useSeedDefaultBoard(): void {
+export function useInitBoardMeta(): void {
   const ctx = useBoardlyContext();
   const { userId } = useAuthSession();
-  const seeding = useRef(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -126,12 +122,8 @@ export function useSeedDefaultBoard(): void {
   }, [userId]);
 
   useEffect(() => {
-    if (!hydrated || seeding.current) return;
-    const doc = ctx.getBoardDoc();
-    if (liveColumns(doc).length > 0) return;
-    seeding.current = true;
-    // initBoard is idempotent (guards on `createdAt`); seeds title + badge config.
-    initBoard(doc, { title: DEFAULT_BOARD_TITLE, now: Date.now() });
-    for (const title of DEFAULT_COLUMNS) execute(addColumn, ctx, { title });
+    if (!hydrated) return;
+    // Idempotent (guards on `createdAt`); seeds title + badge config, NO columns.
+    initBoard(ctx.getBoardDoc(), { title: DEFAULT_BOARD_TITLE, now: Date.now() });
   }, [hydrated, ctx]);
 }

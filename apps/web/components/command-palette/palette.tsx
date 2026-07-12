@@ -11,7 +11,7 @@ import {
 import { FileText, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { useCardActions, useColumns } from "../../lib/use-board";
+import { useCardActions } from "../../lib/use-board";
 import { useOpenCardNav } from "../../lib/use-boards";
 import { useSearchDocs } from "../search/use-search";
 
@@ -79,20 +79,18 @@ export function CommandPalette() {
 }
 
 function NewCardItem({ onRun }: { onRun: () => void }) {
-  const columns = useColumns();
   const actions = useCardActions();
-  const first = columns[0];
-  if (!first) return null;
   return (
     <CommandItem
       value="new card create"
       onSelect={() => {
-        actions.create(first.id, "New card");
+        // A card's column is its status; a new card defaults to Todo.
+        actions.create("New card");
         onRun();
       }}
     >
       <Plus className="size-4" />
-      New card in “{first.title}”
+      New card
     </CommandItem>
   );
 }

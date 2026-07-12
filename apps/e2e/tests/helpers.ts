@@ -30,25 +30,30 @@ export async function logIn(page: Page, email: string): Promise<void> {
   await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
 }
 
-/** The columns a freshly created board is seeded with (see web `use-boards`). */
-export const DEFAULT_COLUMNS = ["To Do", "Doing", "Done"] as const;
+/**
+ * The fixed Linear status columns the board always renders (Unit 9). Columns are
+ * derived from the domain `STATUS_ORDER` — they cannot be added, renamed, or
+ * reordered. A card's column IS its status.
+ */
+export const STATUS_COLUMNS = [
+  "Backlog",
+  "Todo",
+  "In Progress",
+  "Pending",
+  "In Review",
+  "Done",
+  "Canceled",
+  "Duplicate",
+] as const;
 
 /**
- * Wait for the single auto-provisioned board to be open with its default columns.
- * Boardly is single-board (Unit 2): the board is created and selected on first
- * load, so there is nothing to click — specs just wait for it to be ready.
+ * Wait for the single per-user board to be open with its fixed status columns.
+ * Boardly is single-board (Unit 2) with fixed status columns (Unit 9): there is
+ * no board to create or column to add — specs just wait for it to be ready.
  */
 export async function createBoard(page: Page): Promise<void> {
-  await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Column: Done" })).toBeVisible();
-}
-
-export async function addColumn(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "Add column" }).click();
-  const input = page.getByRole("textbox", { name: "New column name" });
-  await input.fill(title);
-  await input.press("Enter");
-  await expect(page.getByRole("region", { name: `Column: ${title}` })).toBeVisible();
 }
 
 export async function addCard(page: Page, columnTitle: string, cardTitle: string): Promise<void> {

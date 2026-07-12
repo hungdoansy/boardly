@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, createCard, execute } from "@boardly/commands";
+import { createCard, execute } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { initBoard, liveColumns, reclaimCards } from "@boardly/sync";
+import { Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
+import { getBoard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -22,55 +23,49 @@ function setup(seed?: (ctx: MemoryContext) => void) {
   return { ctx };
 }
 
-function addColumnViaUi(title: string): void {
-  fireEvent.click(screen.getByRole("button", { name: /add column/i }));
-  const input = screen.getByRole("textbox", { name: "New column name" });
-  fireEvent.change(input, { target: { value: title } });
-  fireEvent.keyDown(input, { key: "Enter" });
-}
-
 afterEach(() => {
   cleanup();
 });
 
-describe("BoardView columns", () => {
-  it("shows the add-column affordance when a board has no columns", () => {
+describe("BoardView fixed status columns", () => {
+  it("renders exactly the eight status columns in STATUS_ORDER", () => {
     setup();
-    expect(screen.getByRole("button", { name: /add column/i })).toBeInTheDocument();
-    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    const columns = screen.getAllByRole("region");
+    expect(columns).toHaveLength(STATUS_ORDER.length);
+    expect(columns.map((c) => c.getAttribute("aria-label"))).toEqual(
+      STATUS_ORDER.map((s) => `Column: ${STATUS_META[s].name}`),
+    );
   });
 
-  it("adds columns which persist in ord order", () => {
-    const { ctx } = setup();
-    addColumnViaUi("To Do");
-    addColumnViaUi("Doing");
-
-    expect(screen.getByText("To Do")).toBeInTheDocument();
-    expect(screen.getByText("Doing")).toBeInTheDocument();
-    expect(liveColumns(ctx.getBoardDoc()).map((c) => c.title)).toEqual(["To Do", "Doing"]);
+  it("has no add-column control and no editable headers", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: /add column/i })).not.toBeInTheDocument();
+    // Double-clicking a header does not open a rename input (columns are fixed).
+    fireEvent.dblClick(screen.getByText("Todo"));
+    expect(screen.queryByRole("textbox", { name: "Column name" })).not.toBeInTheDocument();
   });
 
-  it("renames a column inline", () => {
-    setup((ctx) => {
-      execute(addColumnCmd, ctx, { title: "To Do" });
-    });
-    fireEvent.dblClick(screen.getByText("To Do"));
-    const input = screen.getByRole("textbox", { name: "Column name" });
-    fireEvent.change(input, { target: { value: "Todo" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByText("Todo")).toBeInTheDocument();
-  });
-
-  it("deleting a column moves its cards to the Unsorted bucket (not lost)", () => {
+  it("hides zero-card columns when 'hide empty' is toggled, and persists the flag", () => {
     const { ctx } = setup((ctx) => {
-      const column = execute(addColumnCmd, ctx, { title: "To Do" });
-      execute(createCard, ctx, { columnId: column.id, title: "Keep me" });
+      execute(createCard, ctx, { status: Status.InProgress, title: "Only one" });
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete To Do" }));
+    // All eight visible while showEmptyColumns is on (the default).
+    expect(screen.getAllByRole("region")).toHaveLength(STATUS_ORDER.length);
 
-    expect(liveColumns(ctx.getBoardDoc())).toHaveLength(0);
-    expect(reclaimCards(ctx.getBoardDoc())).toHaveLength(1);
-    expect(screen.getByText("Unsorted")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hide empty columns" }));
+
+    // Command persisted the flag to board meta, and only the populated column shows.
+    expect(getBoard(ctx.getBoardDoc(), "me").showEmptyColumns).toBe(false);
+    const visible = screen.getAllByRole("region");
+    expect(visible).toHaveLength(1);
+    expect(visible[0]!.getAttribute("aria-label")).toBe(
+      `Column: ${STATUS_META[Status.InProgress].name}`,
+    );
+
+    // Turning it back on restores all eight.
+    fireEvent.click(screen.getByRole("button", { name: "Show empty columns" }));
+    expect(getBoard(ctx.getBoardDoc(), "me").showEmptyColumns).toBe(true);
+    expect(screen.getAllByRole("region")).toHaveLength(STATUS_ORDER.length);
   });
 });

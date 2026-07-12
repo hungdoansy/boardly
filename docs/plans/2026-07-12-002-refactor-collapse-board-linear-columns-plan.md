@@ -494,7 +494,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ---
 
-- [ ] **Unit 9: Web board — render fixed status columns; drag sets status; show/hide-empty toggle**
+- [x] **Unit 9: Web board — render fixed status columns; drag sets status; show/hide-empty toggle**
 
 **Goal:** Render exactly the eight status columns from `STATUS_ORDER`, remove all add/rename/reorder/WIP affordances, make card drops set status, and add the synced empty-columns toolbar toggle.
 

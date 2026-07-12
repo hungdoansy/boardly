@@ -11,13 +11,13 @@ test.describe("accessibility / keyboard", () => {
     await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Switch to (light|dark) theme/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add column" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
   });
 
   test("a card is keyboard-focusable and opens / closes with Enter / Escape", async ({ page }) => {
     await signUp(page);
     await createBoard(page);
-    await addCard(page, "To Do", "Keyboard card");
+    await addCard(page, "Todo", "Keyboard card");
 
     const card = cardButton(page, "Keyboard card");
     await card.focus();

@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 
 import type { Card } from "@boardly/domain";
 import {
-  addColumn as addColumnCmd,
   createCard,
   execute,
   setCardDueDate,
@@ -22,8 +21,7 @@ import { BadgeRow } from "./badge-row";
 function makeCard(mutate?: (ctx: MemoryContext) => void): Card {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
-  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
+  execute(createCard, ctx, { id: "c1", title: "Card" });
   mutate?.(ctx);
   return getCard(ctx.getBoardDoc(), "c1")!;
 }

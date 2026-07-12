@@ -17,9 +17,9 @@ async function pick(page: Page, trigger: string, menu: string, option: string): 
 async function seedList(page: Page): Promise<void> {
   await signUp(page);
   await createBoard(page);
-  await addCard(page, "To Do", "Banana");
-  await addCard(page, "To Do", "Apple");
-  await addCard(page, "To Do", "Cherry");
+  await addCard(page, "Todo", "Banana");
+  await addCard(page, "Todo", "Apple");
+  await addCard(page, "Todo", "Cherry");
   await page.getByRole("button", { name: "List", exact: true }).click();
   await expect(page.locator('[data-nav="row"]')).toHaveCount(3);
 }
@@ -53,7 +53,7 @@ test("list: filter/sort/group + Board↔List + saved-view round-trip", async ({ 
   // Change the lens: clear grouping and drop back to the board.
   await pick(page, "Group by", "Group by menu", "None");
   await page.getByRole("button", { name: "Board", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Column: To Do" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Group: Todo" })).toHaveCount(0);
 
   // Re-apply the saved view → layout (list), grouping (status), and sort all restored.

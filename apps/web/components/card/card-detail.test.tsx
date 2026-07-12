@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, createCard, execute } from "@boardly/commands";
+import { createCard, execute } from "@boardly/commands";
 import { createMemoryContext } from "@boardly/commands";
 import { getCard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -13,9 +13,7 @@ import { CardDetail } from "./card-detail";
 function setup() {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  const column = execute(addColumnCmd, ctx, { title: "To Do" });
   execute(createCard, ctx, {
-    columnId: column.id,
     id: "c1",
     title: "Detail card",
   });
@@ -80,8 +78,7 @@ describe("CardDetail", () => {
   it("opens when cardId changes from null (deps invalidation)", () => {
     const ctx = createMemoryContext();
     initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-    const column = execute(addColumnCmd, ctx, { title: "To Do" });
-    execute(createCard, ctx, { columnId: column.id, id: "c9", title: "Later" });
+    execute(createCard, ctx, { id: "c9", title: "Later" });
 
     const { rerender } = render(
       <BoardlyProvider context={ctx}>

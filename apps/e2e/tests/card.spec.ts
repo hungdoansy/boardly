@@ -6,7 +6,7 @@ test.describe("card detail", () => {
   test("edit description + priority, see activity, persist across reopen", async ({ page }) => {
     await signUp(page);
     await createBoard(page);
-    await addCard(page, "To Do", "Fix the bug");
+    await addCard(page, "Todo", "Fix the bug");
 
     await openCard(page, "Fix the bug");
     const dialog = page.getByRole("dialog", { name: "Fix the bug" });

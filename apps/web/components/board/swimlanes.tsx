@@ -1,31 +1,26 @@
 "use client";
 
 import {
-  type Card,
   type Filter,
   type FilterContext,
   type GroupByField,
   evaluateFilter,
   groupCards,
   groupLabel,
+  STATUS_META,
+  STATUS_ORDER,
 } from "@boardly/domain";
 import { type ReactNode, useMemo } from "react";
 
-import {
-  useAllCards,
-  useBadgeConfig,
-  useCardActions,
-  useColumns,
-  useLabels,
-} from "../../lib/use-board";
+import { useAllCards, useBadgeConfig, useCardActions, useLabels } from "../../lib/use-board";
 import { CardFace } from "../card/card";
 
 /**
  * Grouped board view (Unit 4.2). Rows are lanes (one per group value, an
- * "ungrouped" lane last); columns match the board's columns. Each cell holds
- * the lane's cards that live in that column, in board order. This is a read /
- * triage view — cross-lane drag reordering is a known follow-up — but cards
- * remain openable and archivable.
+ * "ungrouped" lane last); the columns within each lane are the fixed status
+ * columns (STATUS_ORDER). Each cell holds the lane's cards that live in that
+ * status, in board order. This is a read / triage view — cross-lane drag
+ * reordering is a known follow-up — but cards remain openable and archivable.
  */
 export function Swimlanes({
   groupBy,
@@ -38,7 +33,6 @@ export function Swimlanes({
   filterCtx?: FilterContext;
   onOpenCard: (cardId: string) => void;
 }) {
-  const columns = useColumns();
   const allCards = useAllCards();
   const labels = useLabels();
   const config = useBadgeConfig();
@@ -51,8 +45,6 @@ export function Swimlanes({
       : allCards;
     return groupCards(cards, groupBy);
   }, [allCards, filter, filterCtx, groupBy]);
-
-  const columnTitles = useMemo(() => new Map(columns.map((c) => [c.id, c.title])), [columns]);
 
   return (
     <div className="h-full overflow-auto p-4" data-swimlanes>
@@ -69,10 +61,10 @@ export function Swimlanes({
               count={lane.cards.length}
               muted={lane.key === ""}
             >
-              {columns.map((column) => {
-                const cards = lane.cards.filter((c) => c.columnId === column.id);
+              {STATUS_ORDER.map((status) => {
+                const cards = lane.cards.filter((c) => c.status === status);
                 return (
-                  <LaneColumn key={column.id} title={column.title} count={cards.length}>
+                  <LaneColumn key={status} title={STATUS_META[status].name} count={cards.length}>
                     {cards.map((card) => (
                       <CardFace
                         key={card.id}
@@ -88,23 +80,6 @@ export function Swimlanes({
                   </LaneColumn>
                 );
               })}
-              {/* Cards whose column was archived surface in an Unsorted cell. */}
-              <UnsortedCell
-                columns={columnTitles}
-                cards={lane.cards}
-                render={(card) => (
-                  <CardFace
-                    key={card.id}
-                    card={card}
-                    labels={card.labelIds
-                      .map((id) => labelById.get(id))
-                      .filter((l) => l !== undefined)}
-                    config={config}
-                    onOpen={() => onOpenCard(card.id)}
-                    onArchive={() => actions.archive(card.id)}
-                  />
-                )}
-              />
             </Lane>
           ))
         )}
@@ -156,29 +131,6 @@ function LaneColumn({
         <span className="px-1 text-xs tabular-nums text-fg-faint">{count}</span>
       </header>
       <div className="flex min-h-8 flex-col gap-1.5 px-2 pb-2">{children}</div>
-    </div>
-  );
-}
-
-/** Cards in a lane whose column no longer exists (archived). Hidden when empty. */
-function UnsortedCell({
-  columns,
-  cards,
-  render,
-}: {
-  columns: Map<string, string>;
-  cards: Card[];
-  render: (card: Card) => ReactNode;
-}) {
-  const orphans = cards.filter((c) => !columns.has(c.columnId));
-  if (orphans.length === 0) return null;
-  return (
-    <div className="flex w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-dashed border-line bg-surface">
-      <header className="flex h-8 shrink-0 items-center gap-1 px-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg-muted">Unsorted</span>
-        <span className="px-1 text-xs tabular-nums text-fg-faint">{orphans.length}</span>
-      </header>
-      <div className="flex min-h-8 flex-col gap-1.5 px-2 pb-2">{orphans.map(render)}</div>
     </div>
   );
 }

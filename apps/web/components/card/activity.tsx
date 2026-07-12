@@ -2,7 +2,6 @@
 
 import {
   type ActivityEntry,
-  type Column,
   formatAbsoluteDate,
   formatRelativeTime,
   PRIORITY_META,
@@ -18,21 +17,15 @@ import {
   Signal,
   Type as TypeIcon,
 } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useState } from "react";
 
-import { useCardActivity, useColumns } from "../../lib/use-board";
+import { useCardActivity } from "../../lib/use-board";
 
 /** How many entries to render before a "Show older" affordance (perf on busy cards). */
 const PAGE = 30;
 
 export function CardActivity({ cardId }: { cardId: string }) {
   const entries = useCardActivity(cardId);
-  const columns = useColumns();
-  const columnName = useMemo(() => {
-    const map = new Map(columns.map((c: Column) => [c.id, c.title]));
-    return (id: string | null): string =>
-      id ? (map.get(id) ?? "another column") : "another column";
-  }, [columns]);
   const [limit, setLimit] = useState(PAGE);
 
   if (entries.length === 0) {
@@ -43,7 +36,7 @@ export function CardActivity({ cardId }: { cardId: string }) {
   return (
     <ol aria-label="Activity" className="flex flex-col gap-2.5">
       {shown.map((entry) => (
-        <ActivityRow key={entry.id} entry={entry} columnName={columnName} />
+        <ActivityRow key={entry.id} entry={entry} />
       ))}
       {entries.length > limit ? (
         <li>
@@ -60,14 +53,8 @@ export function CardActivity({ cardId }: { cardId: string }) {
   );
 }
 
-function ActivityRow({
-  entry,
-  columnName,
-}: {
-  entry: ActivityEntry;
-  columnName: (id: string | null) => string;
-}) {
-  const { icon, text } = describe(entry, columnName);
+function ActivityRow({ entry }: { entry: ActivityEntry }) {
+  const { icon, text } = describe(entry);
   return (
     <li className="flex items-start gap-2 text-sm">
       <span className="grid h-5 w-4 shrink-0 place-items-center text-fg-faint">{icon}</span>
@@ -97,10 +84,7 @@ function Transition({ label, children }: { label: string; children: ReactNode })
 }
 
 /** Map an entry to an icon + human-readable description. */
-function describe(
-  entry: ActivityEntry,
-  columnName: (id: string | null) => string,
-): { icon: ReactNode; text: ReactNode } {
+function describe(entry: ActivityEntry): { icon: ReactNode; text: ReactNode } {
   const cls = "size-3.5";
   switch (entry.type) {
     case "created":
@@ -116,16 +100,10 @@ function describe(
           </>
         ),
       };
+    // Legacy: column moves are no longer produced (a card's column is its
+    // status), but pre-existing "moved" entries may still be in the log.
     case "moved":
-      return {
-        icon: <ArrowRight className={cls} />,
-        text: (
-          <>
-            Moved from <span className={STRONG}>{columnName(entry.from)}</span> to{" "}
-            <span className={STRONG}>{columnName(entry.to)}</span>
-          </>
-        ),
-      };
+      return { icon: <ArrowRight className={cls} />, text: <>Moved</> };
     case "status":
       return {
         icon: <CircleDot className={cls} />,
