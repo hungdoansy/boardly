@@ -37,6 +37,10 @@ reuse a number namespace). The plans, newest last:
   - `UNIT-4` — remove `severity` from the web UI and the demo seed script.
   - `UNIT-5` — relayout the card face into three fixed lines (ticket id/deadline/checklist, labels, priority/links/project).
   - `UNIT-6` — one-off script to purge persisted `severity` data from the real account.
+- Phase 6 — ship (packaging; no dedicated plan file):
+  - `UNIT-8.1` — local production packaging: containerize the sync/API server, one-command Docker
+    backend, disable the Tauri updater, build the installable macOS desktop app + the runbook
+    (`docs/GUIDE-local-production.md`).
 
 ## Convention
 

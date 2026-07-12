@@ -1,0 +1,34 @@
+# Keep the server image build context small and reproducible: never copy
+# installed deps, build outputs, or local secrets — `pnpm install` inside the
+# image regenerates node_modules from the committed lockfile.
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs
+**/dist
+**/build
+**/target
+apps/web/out
+**/.next
+.turbo
+
+# Tests / coverage / e2e artifacts
+coverage
+**/coverage
+playwright-report
+test-results
+blob-report
+.playwright-mcp
+
+# VCS & local env (never bake secrets into the image)
+.git
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+*.log
+.idea
+.vscode

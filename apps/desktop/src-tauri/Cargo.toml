@@ -1,6 +1,6 @@
 [package]
 name = "boardly"
-version = "0.0.0"
+version = "1.0.0"
 description = "Boardly — local-first kanban desktop shell"
 authors = ["Boardly"]
 edition = "2021"
@@ -24,7 +24,6 @@ serde_json = "1"
 tauri-plugin-http = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-deep-link = "2"
-tauri-plugin-updater = "2"
 
 # Refresh-token storage in the OS keychain (Keychain / Credential Manager /
 # libsecret) — not Stronghold. `keyring` v3 with the platform-native backends.

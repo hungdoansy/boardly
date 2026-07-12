@@ -1,8 +1,9 @@
 // Boardly desktop shell (Tauri v2). Wraps the Next.js static export
 // (`apps/web/out`) and wires the native capabilities the web bundle switches to
 // when it detects Tauri (Unit 5.2): CORS-free HTTP (unfurl), notifications
-// (due-date reminders), `boardly://` deep links, the updater, and OS-keychain
-// storage for the refresh token.
+// (due-date reminders), `boardly://` deep links, and OS-keychain storage for
+// the refresh token. (The auto-updater was removed for the laptop-only build —
+// see docs/units/UNIT-8.1-local-production-packaging.md.)
 //
 // Prevent an extra console window on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -56,7 +57,6 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             keyring_set,
             keyring_get,
