@@ -74,6 +74,7 @@ export function CardFace({ card, labels, project, config, onOpen }: CardFaceProp
         ) : null}
         <button
           type="button"
+          tabIndex={-1}
           onClick={onOpen}
           className="min-w-0 flex-1 text-left focus-visible:outline-none"
         >

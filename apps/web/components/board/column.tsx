@@ -41,7 +41,7 @@ export function BoardColumn({ status, count, children, dndRef, dndStyle }: Board
         <span className="px-1 text-xs tabular-nums text-fg-faint">{count}</span>
       </header>
 
-      <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto px-2 pb-2">
+      <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
         {children}
       </div>
     </section>
