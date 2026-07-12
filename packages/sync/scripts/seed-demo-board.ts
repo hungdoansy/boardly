@@ -43,6 +43,7 @@ import {
   addChecklistItem,
   addColumn,
   addLabel,
+  addProject,
   archiveBoardRef,
   assignLabel,
   addLink,
@@ -206,6 +207,21 @@ const LABELS: Array<{ key: string; name: string; color: string }> = [
   { key: "urgent", name: "Urgent", color: color("orange") },
 ];
 
+// Projects group the board's cards (Unit 6.6/6.7). One project per card.
+const PROJECTS: Array<{ key: string; name: string; color: string }> = [
+  { key: "web", name: "Web app", color: color("blue") },
+  { key: "platform", name: "Platform", color: color("teal") },
+  { key: "docs", name: "Docs", color: color("slate") },
+];
+
+/** Assign a card to a project from its labels: platform (backend/infra) > docs > web. */
+function projectForCard(spec: CardSpec): string {
+  const l = spec.labels ?? [];
+  if (l.includes("backend") || l.includes("infra")) return "platform";
+  if (l.includes("docs")) return "docs";
+  return "web";
+}
+
 const CARDS: CardSpec[] = [
   {
     column: "backlog",
@@ -276,9 +292,15 @@ const CARDS: CardSpec[] = [
       { text: "List view", done: true },
       { text: "View toolbar", done: true },
     ],
+    // Enough links to exercise the card-face cluster: 5 icons + a "+2" overflow.
     links: [
       { url: "https://linear.app/boardly/issue/BRD-100", title: "BRD-100" },
       { url: "https://boardly.slack.com/archives/C01/p1720", provider: LinkProvider.Slack },
+      { url: "https://github.com/boardly/app/pull/402", title: "#402" },
+      { url: "https://www.figma.com/file/xyz/List-View" },
+      { url: "https://www.notion.so/boardly/List-view-spec-abc" },
+      { url: "https://docs.google.com/document/d/abc/edit" },
+      { url: "https://claude.ai/chat/list-view-plan", provider: LinkProvider.Claude },
     ],
   },
   {
@@ -350,9 +372,22 @@ const CARDS: CardSpec[] = [
 
 function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userId: string): void {
   addBoardRef(workspaceDoc, { id: boardId, title: BOARD_TITLE, icon: "🗂️", clientId: CLIENT_ID });
-  initBoard(boardDoc, { title: BOARD_TITLE, icon: "🗂️", now: tick(), createdBy: userId });
-  // Show a rich badge row on the card face.
-  setBadgeConfig(boardDoc, ["priority", "severity", "dueDate", "labels", "checklist"], tick());
+  // A "BRD" prefix shows ids as BRD-1, BRD-2… (matching this demo's link refs);
+  // an empty prefix would show them as #1, #2 (Unit 6.1).
+  initBoard(boardDoc, {
+    title: BOARD_TITLE,
+    icon: "🗂️",
+    shortIdPrefix: "BRD",
+    now: tick(),
+    createdBy: userId,
+  });
+  // Rich card face: status, priority/severity, due date, labels, the link
+  // cluster (Unit 6.4), and the checklist meter.
+  setBadgeConfig(
+    boardDoc,
+    ["status", "priority", "severity", "dueDate", "labels", "links", "checklist"],
+    tick(),
+  );
 
   const columnId: Record<string, string> = {};
   for (const c of COLUMNS) {
@@ -371,10 +406,21 @@ function buildBoard(workspaceDoc: Y.Doc, boardDoc: Y.Doc, boardId: string, userI
     });
   }
 
+  const projectId: Record<string, string> = {};
+  for (const p of PROJECTS) {
+    projectId[p.key] = addProject(boardDoc, {
+      name: p.name,
+      color: p.color,
+      now: tick(),
+      clientId: CLIENT_ID,
+    });
+  }
+
   for (const spec of CARDS) {
     const id = addCard(boardDoc, {
       columnId: columnId[spec.column]!,
       title: spec.title,
+      projectId: projectId[projectForCard(spec)]!,
       now: tick(),
       clientId: CLIENT_ID,
       createdBy: userId,
@@ -481,12 +527,17 @@ async function main(): Promise<void> {
   // every other ref, and mint a fresh board only if none are adoptable. Legacy
   // demo workspaces accumulated refs that are unowned or owned by other accounts
   // (the shared-local-doc leak, see UNIT-6.2); foreign ones (409) are skipped.
+  // SEED_RESET=1 forces a fresh rebuild (archive all, new board) — use it to
+  // refresh the demo content after changing the seed data.
+  const reset = process.env.SEED_RESET === "1";
   const existing = listBoards(workspaceDoc);
   let boardId: string | null = null;
-  for (const b of existing) {
-    if (await registerBoard(token, b.id, BOARD_TITLE)) {
-      boardId = b.id;
-      break;
+  if (!reset) {
+    for (const b of existing) {
+      if (await registerBoard(token, b.id, BOARD_TITLE)) {
+        boardId = b.id;
+        break;
+      }
     }
   }
   const keep = boardId;
