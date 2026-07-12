@@ -1,7 +1,7 @@
 "use client";
 
 import type { CardLink } from "@boardly/domain";
-import { shortLabelFor } from "@boardly/domain";
+import { shortLabelFor, stripDeepLinkMarker } from "@boardly/domain";
 
 import { ProviderIcon } from "./provider-icon";
 
@@ -27,7 +27,7 @@ export function LinkCluster({ links }: { links: CardLink[] }) {
         <span
           key={link.id}
           data-link-icon
-          title={link.title ?? shortLabelFor(link.url)}
+          title={stripDeepLinkMarker(link.title ?? shortLabelFor(link.url)).label}
           // Earlier icons sit on top so the stack reads left-to-right; each
           // subsequent icon tucks behind the previous one.
           style={{ zIndex: visible.length - i }}

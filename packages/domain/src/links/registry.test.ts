@@ -7,6 +7,7 @@ import {
   isSafeHttpUrl,
   normalizeUrl,
   shortLabelFor,
+  stripDeepLinkMarker,
 } from "./registry";
 
 describe("detectProvider", () => {
@@ -140,6 +141,21 @@ describe("shortLabelFor", () => {
     );
     expect(shortLabelFor("https://en.wikipedia.org/wiki/Kanban_board")).toBe("Kanban board");
     expect(shortLabelFor("https://www.example.com/page")).toBe("example.com");
+  });
+});
+
+describe("stripDeepLinkMarker", () => {
+  it("strips the trailing arrow marker and flags the label as a deep link", () => {
+    expect(stripDeepLinkMarker("msg →")).toEqual({ label: "msg", isDeepLink: true });
+    expect(stripDeepLinkMarker("session →")).toEqual({ label: "session", isDeepLink: true });
+  });
+
+  it("leaves a non-deep-link label untouched", () => {
+    expect(stripDeepLinkMarker("Slack")).toEqual({ label: "Slack", isDeepLink: false });
+    expect(stripDeepLinkMarker("example.com")).toEqual({
+      label: "example.com",
+      isDeepLink: false,
+    });
   });
 });
 

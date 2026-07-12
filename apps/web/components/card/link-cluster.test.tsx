@@ -58,6 +58,19 @@ describe("LinkCluster", () => {
     expect(titles).toHaveLength(5);
   });
 
+  it("strips the deep-link marker from a provider's title instead of leaking the glyph", () => {
+    const link: CardLink = {
+      id: "l0",
+      url: "https://acme.slack.com/archives/C123/p456",
+      provider: "slack",
+      ord: "a0",
+    };
+    const { container } = render(<LinkCluster links={[link]} />);
+    const title = icons(container)[0]?.getAttribute("title");
+    expect(title).toBe("msg");
+    expect(title).not.toMatch(/→/);
+  });
+
   it("labels the cluster with the total link count", () => {
     render(<LinkCluster links={makeLinks(8)} />);
     expect(screen.getByLabelText("8 links")).toBeInTheDocument();

@@ -28,7 +28,7 @@ import {
   PopoverTrigger,
   cn,
 } from "@boardly/ui";
-import { Plus, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { useState } from "react";
 
 // Linear-style filter editor: a chip bar over the nestable AND/OR model in
@@ -464,9 +464,7 @@ function ValueEditor({
         >
           {o.label}
           {selected.has(o.value) ? (
-            <span className="text-[var(--accent)]" aria-hidden>
-              ✓
-            </span>
+            <Check className="size-3.5 text-[var(--accent)]" aria-hidden />
           ) : null}
         </button>
       ))}

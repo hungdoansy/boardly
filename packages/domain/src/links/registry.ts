@@ -113,6 +113,20 @@ export function shortLabelFor(url: string): string {
   return parsed ? providerFor(parsed).shortLabel(parsed) : url;
 }
 
+/** Trailing marker a `shortLabel` uses to flag a deep link (Slack thread, Claude session, …). */
+const DEEP_LINK_MARKER = " →";
+
+/**
+ * Strip the deep-link marker some `shortLabel`s append, so callers can render
+ * an SVG affordance (e.g. lucide's `ArrowUpRight`) instead of printing the
+ * glyph (DESIGN.md §7.1). Single source of truth — every renderer of a
+ * provider short label calls this instead of re-deriving deep-link-ness.
+ */
+export function stripDeepLinkMarker(label: string): { label: string; isDeepLink: boolean } {
+  if (!label.endsWith(DEEP_LINK_MARKER)) return { label, isDeepLink: false };
+  return { label: label.slice(0, -DEEP_LINK_MARKER.length), isDeepLink: true };
+}
+
 /** Only http(s) URLs are safe to store and render in an href (blocks javascript:, data:, etc.). */
 export function isSafeHttpUrl(url: string): boolean {
   const parsed = safeUrl(url);

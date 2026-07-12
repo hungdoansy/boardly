@@ -108,6 +108,17 @@ describe("FilterBuilder", () => {
     );
   });
 
+  it("marks the selected value option with an SVG check, not a text glyph", () => {
+    render(<Harness />);
+    addField("Priority"); // default clause selects Urgent
+    fireEvent.click(screen.getByRole("button", { name: "Edit Priority filter" }));
+    const selectedOption = screen.getByRole("option", { name: "Urgent" });
+    expect(selectedOption.querySelector("svg")).toBeInTheDocument();
+    expect(selectedOption.textContent).not.toMatch(/✓/);
+    const unselectedOption = screen.getByRole("option", { name: "High" });
+    expect(unselectedOption.querySelector("svg")).not.toBeInTheDocument();
+  });
+
   it("removing the last clause clears the filter (matches all)", () => {
     render(<Harness />);
     addField("Priority");

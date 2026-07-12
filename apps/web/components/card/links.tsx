@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { isSafeHttpUrl, shortLabelFor } from "@boardly/domain";
+import { isSafeHttpUrl, shortLabelFor, stripDeepLinkMarker } from "@boardly/domain";
 import { Button, Input } from "@boardly/ui";
 import { ArrowUpRight, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -26,11 +26,7 @@ export function CardLinks({ card }: { card: Card }) {
         <ul className="flex flex-col gap-0.5">
           {card.links.map((link, index) => {
             const raw = link.title ?? shortLabelFor(link.url);
-            // Provider short-labels flag a deep link (Slack thread, Claude
-            // session) with a trailing arrow marker — render it as an SVG, not
-            // a glyph.
-            const deepLink = raw.endsWith(" →");
-            const label = deepLink ? raw.slice(0, -2) : raw;
+            const { label, isDeepLink: deepLink } = stripDeepLinkMarker(raw);
             // Reorder by moving between the neighbors one slot further out (same
             // fractional-ord pattern as the checklist).
             const moveUp = (): void =>
