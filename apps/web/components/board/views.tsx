@@ -196,17 +196,15 @@ function MenuRow({
 }
 
 export function ViewsMenu({
-  boardId,
   active,
   onChange,
 }: {
-  boardId: string;
   active: ActiveView;
   onChange: (next: ActiveView) => void;
 }) {
-  const saved = useSavedViews(boardId);
-  const actions = useViewActions(boardId);
-  const labels = useLabels(boardId);
+  const saved = useSavedViews();
+  const actions = useViewActions();
+  const labels = useLabels();
   const [name, setName] = useState("");
 
   // Applying a saved view restores its full lens (filter + sort + group + layout).

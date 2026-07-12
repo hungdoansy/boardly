@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createBoard, createMemoryContext, execute } from "@boardly/commands";
-import { getBoard } from "@boardly/sync";
+import { createMemoryContext } from "@boardly/commands";
+import { getBoard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -11,10 +11,10 @@ import { GeneralSettings } from "./general-settings";
 
 function setup() {
   const ctx = createMemoryContext();
-  execute(createBoard, ctx, { id: "b1", title: "Board" });
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   render(
     <BoardlyProvider context={ctx}>
-      <GeneralSettings boardId="b1" />
+      <GeneralSettings />
     </BoardlyProvider>,
   );
   return ctx;
@@ -23,7 +23,7 @@ function setup() {
 afterEach(() => cleanup());
 
 const prefixOf = (ctx: ReturnType<typeof createMemoryContext>) =>
-  getBoard(ctx.getBoardDoc("b1"), "b1").shortIdPrefix;
+  getBoard(ctx.getBoardDoc(), "").shortIdPrefix;
 
 describe("GeneralSettings — ticket prefix", () => {
   it("starts empty (ids shown as #123)", () => {

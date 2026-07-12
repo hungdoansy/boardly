@@ -28,23 +28,21 @@ import { CardFace } from "../card/card";
  * remain openable and archivable.
  */
 export function Swimlanes({
-  boardId,
   groupBy,
   filter,
   filterCtx,
   onOpenCard,
 }: {
-  boardId: string;
   groupBy: GroupByField;
   filter?: Filter;
   filterCtx?: FilterContext;
   onOpenCard: (cardId: string) => void;
 }) {
-  const columns = useColumns(boardId);
-  const allCards = useAllCards(boardId);
-  const labels = useLabels(boardId);
-  const config = useBadgeConfig(boardId);
-  const actions = useCardActions(boardId);
+  const columns = useColumns();
+  const allCards = useAllCards();
+  const labels = useLabels();
+  const config = useBadgeConfig();
+  const actions = useCardActions();
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
   const lanes = useMemo(() => {

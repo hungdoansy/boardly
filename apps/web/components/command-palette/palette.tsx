@@ -12,13 +12,12 @@ import { FileText, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useColumns } from "../../lib/use-board";
-import { useOpenCardNav, useSelectedBoard } from "../../lib/use-boards";
+import { useOpenCardNav } from "../../lib/use-boards";
 import { useSearchDocs } from "../search/use-search";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [selected] = useSelectedBoard();
   const searchDocs = useSearchDocs();
   const openCard = useOpenCardNav();
 
@@ -55,11 +54,9 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
 
-        {selected ? (
-          <CommandGroup heading="Actions">
-            <NewCardItem boardId={selected} onRun={() => setOpen(false)} />
-          </CommandGroup>
-        ) : null}
+        <CommandGroup heading="Actions">
+          <NewCardItem onRun={() => setOpen(false)} />
+        </CommandGroup>
 
         {query.trim() && searchDocs.length > 0 ? (
           <CommandGroup heading="Cards">
@@ -67,7 +64,7 @@ export function CommandPalette() {
               <CommandItem
                 key={doc.cardId}
                 value={`card ${doc.title} ${doc.shortId} ${doc.labels.join(" ")} ${doc.boardTitle}`}
-                onSelect={() => run(() => openCard(doc.boardId, doc.cardId))}
+                onSelect={() => run(() => openCard(doc.cardId))}
               >
                 <FileText className="size-4" />
                 <span className="min-w-0 flex-1 truncate">{doc.title}</span>
@@ -81,9 +78,9 @@ export function CommandPalette() {
   );
 }
 
-function NewCardItem({ boardId, onRun }: { boardId: string; onRun: () => void }) {
-  const columns = useColumns(boardId);
-  const actions = useCardActions(boardId);
+function NewCardItem({ onRun }: { onRun: () => void }) {
+  const columns = useColumns();
+  const actions = useCardActions();
   const first = columns[0];
   if (!first) return null;
   return (

@@ -9,7 +9,6 @@
 /** A flattened, searchable projection of one card. */
 export interface SearchDoc {
   cardId: string;
-  boardId: string;
   boardTitle: string;
   title: string;
   description: string;

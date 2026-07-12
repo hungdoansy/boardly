@@ -7,9 +7,9 @@ import { useBadgeConfig, useSetBadgeConfig } from "../../lib/use-board";
 
 const labelOf = (key: string) => BADGE_FIELDS.find((f) => f.key === key)?.label ?? key;
 
-export function BadgeConfig({ boardId }: { boardId: string }) {
-  const config = useBadgeConfig(boardId);
-  const setConfig = useSetBadgeConfig(boardId);
+export function BadgeConfig() {
+  const config = useBadgeConfig();
+  const setConfig = useSetBadgeConfig();
 
   const enabled = config.filter((key) => BADGE_FIELDS.some((f) => f.key === key));
   const disabled = BADGE_FIELDS.filter((f) => !config.includes(f.key));

@@ -11,16 +11,16 @@ import { ProjectSettings } from "./project-settings";
 
 function setup(seed = true) {
   const ctx = createMemoryContext();
-  if (seed) execute(createProject, ctx, { boardId: "b1", id: "p1", name: "Web" });
+  if (seed) execute(createProject, ctx, { id: "p1", name: "Web" });
   render(
     <BoardlyProvider context={ctx}>
-      <ProjectSettings boardId="b1" />
+      <ProjectSettings />
     </BoardlyProvider>,
   );
   return ctx;
 }
 
-const projects = (ctx: MemoryContext) => listProjects(ctx.getBoardDoc("b1"));
+const projects = (ctx: MemoryContext) => listProjects(ctx.getBoardDoc());
 
 afterEach(() => cleanup());
 

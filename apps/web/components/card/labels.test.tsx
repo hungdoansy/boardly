@@ -4,7 +4,6 @@ import "@testing-library/jest-dom/vitest";
 import {
   addColumn as addColumnCmd,
   assignLabel,
-  createBoard,
   createCard,
   createLabel,
   deleteLabel,
@@ -12,7 +11,7 @@ import {
   renameLabel,
 } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { getCard } from "@boardly/sync";
+import { getCard, initBoard } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -21,19 +20,19 @@ import { useCardById } from "../../lib/use-board";
 import { LabelManager } from "../board/label-manager";
 import { CardLabels } from "./labels";
 
-function CardLabelsHarness({ boardId, cardId }: { boardId: string; cardId: string }) {
-  const card = useCardById(boardId, cardId);
-  return card ? <CardLabels boardId={boardId} card={card} /> : null;
+function CardLabelsHarness({ cardId }: { cardId: string }) {
+  const card = useCardById(cardId);
+  return card ? <CardLabels card={card} /> : null;
 }
 
 function seed(withLabel = false): MemoryContext {
   const ctx = createMemoryContext();
-  execute(createBoard, ctx, { id: "b1", title: "Board" });
-  execute(addColumnCmd, ctx, { boardId: "b1", id: "col1", title: "To Do" });
-  execute(createCard, ctx, { boardId: "b1", id: "c1", columnId: "col1", title: "Card" });
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
+  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
   if (withLabel) {
-    execute(createLabel, ctx, { boardId: "b1", id: "l1", name: "Bug", color: "#EB5757" });
-    execute(assignLabel, ctx, { boardId: "b1", cardId: "c1", labelId: "l1" });
+    execute(createLabel, ctx, { id: "l1", name: "Bug", color: "#EB5757" });
+    execute(assignLabel, ctx, { cardId: "c1", labelId: "l1" });
   }
   return ctx;
 }
@@ -41,7 +40,7 @@ function seed(withLabel = false): MemoryContext {
 const renderCardLabels = (ctx: MemoryContext) =>
   render(
     <BoardlyProvider context={ctx}>
-      <CardLabelsHarness boardId="b1" cardId="c1" />
+      <CardLabelsHarness cardId="c1" />
     </BoardlyProvider>,
   );
 
@@ -59,7 +58,7 @@ describe("CardLabels", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Create label" }));
 
-    expect(getCard(ctx.getBoardDoc("b1"), "c1")?.labelIds).toHaveLength(1);
+    expect(getCard(ctx.getBoardDoc(), "c1")?.labelIds).toHaveLength(1);
   });
 
   it("unassigns a label from the popover", () => {
@@ -68,7 +67,7 @@ describe("CardLabels", () => {
     fireEvent.click(screen.getByRole("button", { name: /edit/i }));
     fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /bug/i }));
 
-    expect(getCard(ctx.getBoardDoc("b1"), "c1")?.labelIds).toHaveLength(0);
+    expect(getCard(ctx.getBoardDoc(), "c1")?.labelIds).toHaveLength(0);
   });
 
   it("reflects a label rename on the card chip (propagates by id)", () => {
@@ -77,7 +76,7 @@ describe("CardLabels", () => {
     expect(screen.getByText("Bug")).toBeInTheDocument();
 
     act(() => {
-      execute(renameLabel, ctx, { boardId: "b1", labelId: "l1", name: "Defect" });
+      execute(renameLabel, ctx, { labelId: "l1", name: "Defect" });
     });
 
     expect(screen.getByText("Defect")).toBeInTheDocument();
@@ -90,7 +89,7 @@ describe("CardLabels", () => {
     expect(screen.getByText("Bug")).toBeInTheDocument();
 
     act(() => {
-      execute(deleteLabel, ctx, { boardId: "b1", labelId: "l1" });
+      execute(deleteLabel, ctx, { labelId: "l1" });
     });
 
     expect(screen.queryByText("Bug")).not.toBeInTheDocument();
@@ -102,7 +101,7 @@ describe("LabelManager", () => {
     const ctx = seed(true);
     render(
       <BoardlyProvider context={ctx}>
-        <LabelManager boardId="b1" />
+        <LabelManager />
       </BoardlyProvider>,
     );
     const input = screen.getByRole("textbox", { name: "Rename Bug" });

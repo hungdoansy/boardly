@@ -12,11 +12,11 @@ import { ProjectList } from "./project-list";
 
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
-  execute(createProject, ctx, { boardId: "b1", id: "p1", name: "Web" });
+  execute(createProject, ctx, { id: "p1", name: "Web" });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
-      <ProjectList boardId="b1" />
+      <ProjectList />
     </BoardlyProvider>,
   );
   return ctx;
@@ -42,7 +42,7 @@ describe("ProjectList", () => {
   it("creating a project adds it and selects it", () => {
     const ctx = setup();
     fireEvent.click(screen.getByRole("button", { name: "Add project" }));
-    expect(listProjects(ctx.getBoardDoc("b1")).map((p) => p.name)).toContain("New project");
+    expect(listProjects(ctx.getBoardDoc()).map((p) => p.name)).toContain("New project");
     expect(screen.getByRole("button", { name: "New project" })).toHaveAttribute(
       "aria-pressed",
       "true",

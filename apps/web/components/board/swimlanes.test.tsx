@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 
 import {
   addColumn as addColumnCmd,
-  createBoard,
   createCard,
   execute,
   setCardPriority,
@@ -11,7 +10,7 @@ import {
 } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { Priority } from "@boardly/domain";
-import { liveColumns } from "@boardly/sync";
+import { initBoard, liveColumns } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -19,18 +18,18 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { BoardView } from "./board-view";
 
 function setup(
-  seed: (ctx: MemoryContext, boardId: string) => void,
+  seed: (ctx: MemoryContext) => void,
   props?: { groupBy?: "status" | "priority" | "severity" | "label" | "assignee" | null },
 ) {
   const ctx = createMemoryContext();
-  const board = execute(createBoard, ctx, { title: "Board" });
-  seed(ctx, board.id);
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  seed(ctx);
   render(
     <BoardlyProvider context={ctx}>
-      <BoardView boardId={board.id} groupBy={props?.groupBy ?? null} />
+      <BoardView groupBy={props?.groupBy ?? null} />
     </BoardlyProvider>,
   );
-  return { ctx, boardId: board.id };
+  return { ctx };
 }
 
 afterEach(() => {
@@ -40,17 +39,16 @@ afterEach(() => {
 describe("Swimlanes (grouping)", () => {
   it("groups cards into lanes by priority with an ungrouped lane last", () => {
     setup(
-      (ctx, id) => {
-        const col = execute(addColumnCmd, ctx, { boardId: id, title: "Todo" });
+      (ctx) => {
+        const col = execute(addColumnCmd, ctx, { title: "Todo" });
         const a = execute(createCard, ctx, {
-          boardId: id,
           columnId: col.id,
           title: "Urgent card",
         })!;
-        const b = execute(createCard, ctx, { boardId: id, columnId: col.id, title: "High card" })!;
-        execute(createCard, ctx, { boardId: id, columnId: col.id, title: "No-prio card" });
-        execute(setCardPriority, ctx, { boardId: id, cardId: a.id, priority: Priority.Urgent });
-        execute(setCardPriority, ctx, { boardId: id, cardId: b.id, priority: Priority.High });
+        const b = execute(createCard, ctx, { columnId: col.id, title: "High card" })!;
+        execute(createCard, ctx, { columnId: col.id, title: "No-prio card" });
+        execute(setCardPriority, ctx, { cardId: a.id, priority: Priority.Urgent });
+        execute(setCardPriority, ctx, { cardId: b.id, priority: Priority.High });
       },
       { groupBy: "priority" },
     );
@@ -69,8 +67,8 @@ describe("Swimlanes (grouping)", () => {
 
   it("shows an empty-state when no cards match", () => {
     setup(
-      (ctx, id) => {
-        execute(addColumnCmd, ctx, { boardId: id, title: "Todo" });
+      (ctx) => {
+        execute(addColumnCmd, ctx, { title: "Todo" });
       },
       { groupBy: "priority" },
     );
@@ -78,8 +76,8 @@ describe("Swimlanes (grouping)", () => {
   });
 
   it("renders the normal column board (no lanes) when groupBy is null", () => {
-    setup((ctx, id) => {
-      execute(addColumnCmd, ctx, { boardId: id, title: "Todo" });
+    setup((ctx) => {
+      execute(addColumnCmd, ctx, { title: "Todo" });
     });
     expect(screen.queryByRole("region", { name: /^Lane:/ })).not.toBeInTheDocument();
   });
@@ -87,11 +85,11 @@ describe("Swimlanes (grouping)", () => {
 
 describe("WIP limits", () => {
   it("shows count/limit and flags over-limit columns", () => {
-    setup((ctx, id) => {
-      const col = execute(addColumnCmd, ctx, { boardId: id, title: "Todo" });
-      execute(createCard, ctx, { boardId: id, columnId: col.id, title: "One" });
-      execute(createCard, ctx, { boardId: id, columnId: col.id, title: "Two" });
-      execute(setColumnWipLimit, ctx, { boardId: id, columnId: col.id, wipLimit: 2 });
+    setup((ctx) => {
+      const col = execute(addColumnCmd, ctx, { title: "Todo" });
+      execute(createCard, ctx, { columnId: col.id, title: "One" });
+      execute(createCard, ctx, { columnId: col.id, title: "Two" });
+      execute(setColumnWipLimit, ctx, { columnId: col.id, wipLimit: 2 });
     });
     const badge = screen.getByRole("button", { name: "WIP limit for Todo" });
     expect(badge).toHaveTextContent("2/2");
@@ -99,14 +97,14 @@ describe("WIP limits", () => {
   });
 
   it("sets a WIP limit through the popover", () => {
-    const { ctx, boardId } = setup((ctx, id) => {
-      execute(addColumnCmd, ctx, { boardId: id, title: "Todo" });
+    const { ctx } = setup((ctx) => {
+      execute(addColumnCmd, ctx, { title: "Todo" });
     });
     fireEvent.click(screen.getByRole("button", { name: "WIP limit for Todo" }));
     const input = screen.getByRole("spinbutton", { name: "WIP limit" });
     fireEvent.change(input, { target: { value: "3" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(liveColumns(ctx.getBoardDoc(boardId))[0]!.wipLimit).toBe(3);
+    expect(liveColumns(ctx.getBoardDoc())[0]!.wipLimit).toBe(3);
   });
 });

@@ -10,9 +10,9 @@ import { useProjectActions, useProjects, useSelectedProject } from "../../lib/us
  * "All" clears the scope. Creating a project selects it (so new cards land in
  * it). Rename/recolor/archive live in Settings (Unit 6.8).
  */
-export function ProjectList({ boardId }: { boardId: string }) {
-  const projects = useProjects(boardId);
-  const actions = useProjectActions(boardId);
+export function ProjectList() {
+  const projects = useProjects();
+  const actions = useProjectActions();
   const [selected, select] = useSelectedProject();
 
   const rowClass = (active: boolean): string =>

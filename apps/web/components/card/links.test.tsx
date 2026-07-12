@@ -1,15 +1,9 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import {
-  addColumn as addColumnCmd,
-  addLink,
-  createBoard,
-  createCard,
-  execute,
-} from "@boardly/commands";
+import { addColumn as addColumnCmd, addLink, createCard, execute } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { getCard } from "@boardly/sync";
+import { getCard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -17,27 +11,27 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { useCardById } from "../../lib/use-board";
 import { CardLinks } from "./links";
 
-function Harness({ boardId, cardId }: { boardId: string; cardId: string }) {
-  const card = useCardById(boardId, cardId);
-  return card ? <CardLinks boardId={boardId} card={card} /> : null;
+function Harness({ cardId }: { cardId: string }) {
+  const card = useCardById(cardId);
+  return card ? <CardLinks card={card} /> : null;
 }
 
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
-  execute(createBoard, ctx, { id: "b1", title: "Board" });
-  execute(addColumnCmd, ctx, { boardId: "b1", id: "col1", title: "To Do" });
-  execute(createCard, ctx, { boardId: "b1", id: "c1", columnId: "col1", title: "Card" });
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
+  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
-      <Harness boardId="b1" cardId="c1" />
+      <Harness cardId="c1" />
     </BoardlyProvider>,
   );
   return ctx;
 }
 
 const field = () => screen.getByRole("textbox", { name: "New link URL" });
-const links = (ctx: MemoryContext) => getCard(ctx.getBoardDoc("b1"), "c1")?.links ?? [];
+const links = (ctx: MemoryContext) => getCard(ctx.getBoardDoc(), "c1")?.links ?? [];
 
 afterEach(() => {
   cleanup();
@@ -66,7 +60,6 @@ describe("CardLinks", () => {
   it("shows the unfurled title when present", () => {
     setup((ctx) => {
       execute(addLink, ctx, {
-        boardId: "b1",
         cardId: "c1",
         id: "l1",
         url: "https://example.com/x",
@@ -85,7 +78,7 @@ describe("CardLinks", () => {
 
   it("removes a link", () => {
     const ctx = setup((c) => {
-      execute(addLink, c, { boardId: "b1", cardId: "c1", id: "l1", url: "https://example.com/x" });
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://example.com/x" });
     });
     fireEvent.click(screen.getByRole("button", { name: /remove link/i }));
     expect(links(ctx)).toHaveLength(0);
@@ -99,7 +92,6 @@ describe("CardLinks", () => {
         ["l3", "Gamma"],
       ]) {
         execute(addLink, c, {
-          boardId: "b1",
           cardId: "c1",
           id,
           url: `https://example.com/${id}`,

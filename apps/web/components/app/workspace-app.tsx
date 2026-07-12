@@ -10,7 +10,8 @@ import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
-import { useBoards, useEnsureBoard, useSelectedBoard, useSettingsRoute } from "../../lib/use-boards";
+import { useBoardTitle } from "../../lib/use-board";
+import { useSeedDefaultBoard, useSettingsRoute } from "../../lib/use-boards";
 import { useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
@@ -42,9 +43,10 @@ export function WorkspaceApp() {
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const { userId } = useAuthSession();
-  // Single-board: provision + keep the one board selected (Unit 2).
-  useEnsureBoard();
-  const [boardId] = useSelectedBoard();
+  // Single per-user board: an empty doc is a valid board. INTERIM (removed in
+  // Unit 9): seed the default columns once so the board is usable while columns
+  // are still user-managed.
+  useSeedDefaultBoard();
   const [settingsOpen, setSettingsOpen] = useSettingsRoute();
 
   useEffect(() => {
@@ -85,7 +87,7 @@ function Shell() {
           </Button>
         </div>
 
-        {boardId ? <ProjectList boardId={boardId} /> : null}
+        <ProjectList />
 
         <div className="border-t border-line-subtle p-2">
           <div className="flex items-center gap-0.5">
@@ -126,8 +128,8 @@ function Shell() {
         </div>
       </aside>
 
-      {settingsOpen && boardId ? (
-        <SettingsView boardId={boardId} onClose={() => setSettingsOpen(false)} />
+      {settingsOpen ? (
+        <SettingsView onClose={() => setSettingsOpen(false)} />
       ) : (
         <MainArea />
       )}
@@ -139,9 +141,7 @@ function Shell() {
 }
 
 function MainArea() {
-  const boards = useBoards();
-  const [selected, select] = useSelectedBoard();
-  const active = boards.find((b) => b.id === selected) ?? null;
+  const title = useBoardTitle();
 
   const [activeView, setActiveView] = useState<ActiveView>({
     filter: emptyFilter(),
@@ -150,16 +150,6 @@ function MainArea() {
     sort: null,
     layout: "board",
   });
-  // Reset the applied view when switching boards (views are per-board).
-  useEffect(() => {
-    setActiveView({
-      filter: emptyFilter(),
-      view: null,
-      groupBy: null,
-      sort: null,
-      layout: "board",
-    });
-  }, [selected]);
 
   // The active project scope (Unit 6.7) is ANDed with the saved-view filter and
   // threaded down as one filter, so every card list (columns, reclaim, swimlanes,
@@ -184,50 +174,34 @@ function MainArea() {
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-canvas">
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-line-subtle px-4">
-        <h1 className="text-md font-semibold tracking-[-0.01em] text-fg">
-          {active ? active.title : "Boardly"}
-        </h1>
+        <h1 className="text-md font-semibold tracking-[-0.01em] text-fg">{title || "Boardly"}</h1>
         <div className="flex items-center gap-2">
-          {active ? (
-            <LayoutSwitch
-              layout={activeView.layout}
-              onChange={(layout) => setActiveView((v) => ({ ...v, layout, view: null }))}
-            />
-          ) : null}
-          {active ? (
-            <GroupMenu
-              groupBy={activeView.groupBy}
-              onChange={(groupBy) => setActiveView((v) => ({ ...v, groupBy, view: null }))}
-            />
-          ) : null}
-          {active ? (
-            <SortMenu
-              sort={activeView.sort}
-              onChange={(sort) => setActiveView((v) => ({ ...v, sort, view: null }))}
-            />
-          ) : null}
-          {active ? (
-            <ViewsMenu boardId={active.id} active={activeView} onChange={setActiveView} />
-          ) : null}
-          {active ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-fg-muted">
-                  <Tag className="size-3.5" />
-                  Labels
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80">
-                <LabelManager boardId={active.id} />
-              </PopoverContent>
-            </Popover>
-          ) : null}
-          <ImportExportMenu
-            boardId={active?.id ?? null}
-            boardTitle={active?.title ?? "board"}
-            onImported={select}
+          <LayoutSwitch
+            layout={activeView.layout}
+            onChange={(layout) => setActiveView((v) => ({ ...v, layout, view: null }))}
           />
-          {active ? <FocusToggle /> : null}
+          <GroupMenu
+            groupBy={activeView.groupBy}
+            onChange={(groupBy) => setActiveView((v) => ({ ...v, groupBy, view: null }))}
+          />
+          <SortMenu
+            sort={activeView.sort}
+            onChange={(sort) => setActiveView((v) => ({ ...v, sort, view: null }))}
+          />
+          <ViewsMenu active={activeView} onChange={setActiveView} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-fg-muted">
+                <Tag className="size-3.5" />
+                Labels
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80">
+              <LabelManager />
+            </PopoverContent>
+          </Popover>
+          <ImportExportMenu boardTitle={title || "board"} />
+          <FocusToggle />
           <kbd className="hidden items-center gap-1 rounded-[var(--radius-sm)] border border-line px-1.5 py-0.5 text-xs text-fg-faint sm:flex">
             <Command className="size-3" aria-hidden="true" />
             <span className="font-mono">K</span>
@@ -235,28 +209,13 @@ function MainArea() {
         </div>
       </header>
 
-      {active ? (
-        <main className="min-h-0 flex-1" data-focus-scope>
-          {activeView.layout === "list" ? (
-            <ListView
-              boardId={active.id}
-              filter={filter}
-              groupBy={activeView.groupBy}
-              sort={activeView.sort}
-            />
-          ) : (
-            <BoardView boardId={active.id} filter={filter} groupBy={activeView.groupBy} />
-          )}
-        </main>
-      ) : (
-        <main className="grid flex-1 place-items-center p-6" aria-busy="true">
-          <div
-            className="size-5 animate-spin rounded-full border-2 border-line border-t-transparent"
-            role="status"
-            aria-label="Loading board"
-          />
-        </main>
-      )}
+      <main className="min-h-0 flex-1" data-focus-scope>
+        {activeView.layout === "list" ? (
+          <ListView filter={filter} groupBy={activeView.groupBy} sort={activeView.sort} />
+        ) : (
+          <BoardView filter={filter} groupBy={activeView.groupBy} />
+        )}
+      </main>
     </div>
   );
 }

@@ -16,9 +16,9 @@ import { type LabelActions, useLabelActions, useLabels } from "../../lib/use-boa
  * click-to-open picker on the label's own dot, and "create new" gets its own
  * labeled section with the only always-visible palette.
  */
-export function LabelManager({ boardId }: { boardId: string }) {
-  const labels = useLabels(boardId);
-  const actions = useLabelActions(boardId);
+export function LabelManager() {
+  const labels = useLabels();
+  const actions = useLabelActions();
   const [name, setName] = useState("");
   const [color, setColor] = useState(LABEL_COLORS[1]!.value);
 

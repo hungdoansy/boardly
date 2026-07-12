@@ -25,9 +25,9 @@ import { useCardActivity, useColumns } from "../../lib/use-board";
 /** How many entries to render before a "Show older" affordance (perf on busy cards). */
 const PAGE = 30;
 
-export function CardActivity({ boardId, cardId }: { boardId: string; cardId: string }) {
-  const entries = useCardActivity(boardId, cardId);
-  const columns = useColumns(boardId);
+export function CardActivity({ cardId }: { cardId: string }) {
+  const entries = useCardActivity(cardId);
+  const columns = useColumns();
   const columnName = useMemo(() => {
     const map = new Map(columns.map((c: Column) => [c.id, c.title]));
     return (id: string | null): string =>

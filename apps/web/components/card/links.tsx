@@ -9,8 +9,8 @@ import { useState } from "react";
 import { useLinkActions } from "../../lib/use-board";
 import { ProviderIcon } from "./provider-icon";
 
-export function CardLinks({ boardId, card }: { boardId: string; card: Card }) {
-  const actions = useLinkActions(boardId);
+export function CardLinks({ card }: { card: Card }) {
+  const actions = useLinkActions();
   const [url, setUrl] = useState("");
 
   const add = (): void => {

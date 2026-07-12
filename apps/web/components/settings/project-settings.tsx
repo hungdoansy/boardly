@@ -9,9 +9,9 @@ import { useEffect, useState } from "react";
 import { type ProjectActions, useProjectActions, useProjects } from "../../lib/use-projects";
 
 /** Manage the board's projects: create, rename, recolor, archive. */
-export function ProjectSettings({ boardId }: { boardId: string }) {
-  const projects = useProjects(boardId);
-  const actions = useProjectActions(boardId);
+export function ProjectSettings() {
+  const projects = useProjects();
+  const actions = useProjectActions();
 
   return (
     <section className="flex max-w-md flex-col gap-2">

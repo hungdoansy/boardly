@@ -373,7 +373,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ### Phase 3 — Collapse web
 
-- [ ] **Unit 5: Web data layer — per-user doc keyed by the authenticated user; simplify sync-bridge**
+- [x] **Unit 5: Web data layer — per-user doc keyed by the authenticated user; simplify sync-bridge**
 
 **Goal:** Build the client context from the authenticated user id, attach the single doc, and delete board-entity hooks.
 
@@ -401,7 +401,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ---
 
-- [ ] **Unit 6: Web hooks + components — drop `boardId`, remove provisioning/selection**
+- [x] **Unit 6: Web hooks + components — drop `boardId`, remove provisioning/selection**
 
 **Goal:** Remove `boardId` from every hook/component/prop and the provisioning/selection UI; the app renders the one space directly.
 

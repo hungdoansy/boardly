@@ -1,13 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import {
-  addColumn,
-  createBoard,
-  createCard,
-  createMemoryContext,
-  execute,
-} from "@boardly/commands";
+import { addColumn, createCard, createMemoryContext, execute } from "@boardly/commands";
+import { initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -17,7 +12,6 @@ import { SearchDialog } from "./search";
 
 const doc = (over: Partial<SearchDoc>): SearchDoc => ({
   cardId: "id",
-  boardId: "b",
   boardTitle: "Board",
   title: "",
   description: "",
@@ -82,15 +76,11 @@ function seed() {
 
 function createMemoryContextWithSeed() {
   const ctx = createMemoryContext();
-  const board = execute(createBoard, ctx, { title: "Roadmap" });
-  const col = execute(addColumn, ctx, { boardId: board.id, title: "To Do" });
-  const a = execute(createCard, ctx, {
-    boardId: board.id,
-    columnId: col.id,
-    title: "Auth service",
-  });
-  execute(createCard, ctx, { boardId: board.id, columnId: col.id, title: "Redesign landing" });
-  return { ctx, boardId: board.id, cardA: a!.id };
+  initBoard(ctx.getBoardDoc(), { title: "Roadmap", now: 0 });
+  const col = execute(addColumn, ctx, { title: "To Do" });
+  const a = execute(createCard, ctx, { columnId: col.id, title: "Auth service" });
+  execute(createCard, ctx, { columnId: col.id, title: "Redesign landing" });
+  return { ctx, cardA: a!.id };
 }
 
 beforeEach(() => {

@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 
 import {
   addColumn as addColumnCmd,
-  createBoard,
   createCard,
   createMemoryContext,
   execute,
@@ -11,6 +10,7 @@ import {
   setCardStatus,
 } from "@boardly/commands";
 import { type Card, type Filter, Priority, type ResolvedView, Status } from "@boardly/domain";
+import { initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -45,32 +45,32 @@ function makeCard(over: Partial<Card>): Card {
 // ---- Data path: the ListView container over a real (memory) board doc ----
 
 function setup(
-  seed: (ctx: MemoryContext, boardId: string, columnId: string) => void,
+  seed: (ctx: MemoryContext, columnId: string) => void,
   props?: { groupBy?: "status" | "priority" | null; filter?: Filter },
 ) {
   const ctx = createMemoryContext();
-  const board = execute(createBoard, ctx, { title: "Board" });
-  const col = execute(addColumnCmd, ctx, { boardId: board.id, title: "Todo" });
-  seed(ctx, board.id, col.id);
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  const col = execute(addColumnCmd, ctx, { title: "Todo" });
+  seed(ctx, col.id);
   render(
     <BoardlyProvider context={ctx}>
-      <ListView boardId={board.id} groupBy={props?.groupBy ?? null} filter={props?.filter} />
+      <ListView groupBy={props?.groupBy ?? null} filter={props?.filter} />
     </BoardlyProvider>,
   );
-  return { ctx, boardId: board.id, columnId: col.id };
+  return { ctx, columnId: col.id };
 }
 
-const add = (ctx: MemoryContext, boardId: string, columnId: string, title: string) =>
-  execute(createCard, ctx, { boardId, columnId, title })!;
+const add = (ctx: MemoryContext, columnId: string, title: string) =>
+  execute(createCard, ctx, { columnId, title })!;
 
 afterEach(cleanup);
 
 describe("ListView (data path)", () => {
   it("renders a flat list of rows in card order", () => {
-    setup((ctx, id, col) => {
-      add(ctx, id, col, "Alpha");
-      add(ctx, id, col, "Beta");
-      add(ctx, id, col, "Gamma");
+    setup((ctx, col) => {
+      add(ctx, col, "Alpha");
+      add(ctx, col, "Beta");
+      add(ctx, col, "Gamma");
     });
     expect(screen.getAllByRole("button").map((r) => r.getAttribute("aria-label"))).toEqual([
       "Alpha",
@@ -81,13 +81,13 @@ describe("ListView (data path)", () => {
 
   it("groups rows into sections with counts when grouped", () => {
     setup(
-      (ctx, id, col) => {
-        const a = add(ctx, id, col, "Doing it");
-        const b = add(ctx, id, col, "Also doing");
-        const c = add(ctx, id, col, "Done one");
-        execute(setCardStatus, ctx, { boardId: id, cardId: a.id, status: Status.InProgress });
-        execute(setCardStatus, ctx, { boardId: id, cardId: b.id, status: Status.InProgress });
-        execute(setCardStatus, ctx, { boardId: id, cardId: c.id, status: Status.Done });
+      (ctx, col) => {
+        const a = add(ctx, col, "Doing it");
+        const b = add(ctx, col, "Also doing");
+        const c = add(ctx, col, "Done one");
+        execute(setCardStatus, ctx, { cardId: a.id, status: Status.InProgress });
+        execute(setCardStatus, ctx, { cardId: b.id, status: Status.InProgress });
+        execute(setCardStatus, ctx, { cardId: c.id, status: Status.Done });
       },
       { groupBy: "status" },
     );
@@ -100,7 +100,7 @@ describe("ListView (data path)", () => {
   });
 
   it("shows an empty state when nothing matches the filter", () => {
-    setup((ctx, id, col) => add(ctx, id, col, "Hidden"), {
+    setup((ctx, col) => add(ctx, col, "Hidden"), {
       filter: { op: "and", clauses: [{ field: "title", condition: "contains", values: ["zzz"] }] },
     });
     expect(screen.getByText(/no cards match/i)).toBeInTheDocument();
@@ -108,9 +108,9 @@ describe("ListView (data path)", () => {
   });
 
   it("renders terminal cards struck through", () => {
-    setup((ctx, id, col) => {
-      const c = add(ctx, id, col, "Finished");
-      execute(setCardStatus, ctx, { boardId: id, cardId: c.id, status: Status.Done });
+    setup((ctx, col) => {
+      const c = add(ctx, col, "Finished");
+      execute(setCardStatus, ctx, { cardId: c.id, status: Status.Done });
     });
     expect(screen.getByText("Finished")).toHaveClass("line-through");
   });

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn, createBoard, createMemoryContext, execute } from "@boardly/commands";
-import { cardsInColumn, liveColumns } from "@boardly/sync";
+import { addColumn, createMemoryContext, execute } from "@boardly/commands";
+import { cardsInColumn, initBoard, liveColumns } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -13,8 +13,8 @@ import { CommandPalette } from "./palette";
 function renderPalette(seedBoard = true) {
   const ctx = createMemoryContext();
   if (seedBoard) {
-    const board = execute(createBoard, ctx, { title: "Main board", id: "main" });
-    execute(addColumn, ctx, { boardId: board.id, title: "To Do" });
+    initBoard(ctx.getBoardDoc(), { title: "Main board", now: 0 });
+    execute(addColumn, ctx, { title: "To Do" });
   }
   render(
     <BoardlyProvider context={ctx}>
@@ -66,7 +66,7 @@ describe("CommandPalette", () => {
     pressCmdK();
     fireEvent.click(screen.getByText(/new card in/i));
 
-    const boardDoc = ctx.getBoardDoc("main");
+    const boardDoc = ctx.getBoardDoc();
     const firstColumn = liveColumns(boardDoc)[0]!;
     expect(cardsInColumn(boardDoc, firstColumn.id)).toHaveLength(1);
   });

@@ -36,9 +36,9 @@ interface DragData {
   title?: string;
 }
 
-export function BoardDndProvider({ boardId, children }: { boardId: string; children: ReactNode }) {
+export function BoardDndProvider({ children }: { children: ReactNode }) {
   const ctx = useBoardlyContext();
-  const doc = ctx.getBoardDoc(boardId);
+  const doc = ctx.getBoardDoc();
   const [active, setActive] = useState<ActiveItem | null>(null);
 
   const sensors = useSensors(
@@ -84,7 +84,6 @@ export function BoardDndProvider({ boardId, children }: { boardId: string; child
       });
       if (neighbors) {
         execute(moveColumn, ctx, {
-          boardId,
           columnId: activeId,
           afterId: neighbors.afterId,
           beforeId: neighbors.beforeId,
@@ -107,7 +106,6 @@ export function BoardDndProvider({ boardId, children }: { boardId: string; child
     });
     if (neighbors) {
       execute(moveCard, ctx, {
-        boardId,
         cardId: activeId,
         toColumnId,
         afterId: neighbors.afterId,

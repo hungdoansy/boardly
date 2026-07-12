@@ -13,24 +13,22 @@ import { SortableCard } from "./dnd";
 const ZEN_CONFIG = ["status"];
 
 export function ColumnCards({
-  boardId,
   columnId,
   onOpenCard,
   filter,
   filterCtx,
 }: {
-  boardId: string;
   columnId: string;
   onOpenCard: (cardId: string) => void;
   filter?: Filter;
   filterCtx?: FilterContext;
 }) {
-  const allCards = useCardsInColumn(boardId, columnId);
-  const labels = useLabels(boardId);
-  const config = useBadgeConfig(boardId);
+  const allCards = useCardsInColumn(columnId);
+  const labels = useLabels();
+  const config = useBadgeConfig();
   const { level } = useFocusMode();
   const effectiveConfig = level === "zen" ? ZEN_CONFIG : config;
-  const actions = useCardActions(boardId);
+  const actions = useCardActions();
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
 
   const cards = useMemo(

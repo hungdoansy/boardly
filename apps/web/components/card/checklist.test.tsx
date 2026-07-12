@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, createBoard, createCard, execute } from "@boardly/commands";
+import { addColumn as addColumnCmd, createCard, execute } from "@boardly/commands";
 import { createMemoryContext } from "@boardly/commands";
-import { getCard } from "@boardly/sync";
+import { getCard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -11,19 +11,19 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { useCardById } from "../../lib/use-board";
 import { Checklist } from "./checklist";
 
-function Harness({ boardId, cardId }: { boardId: string; cardId: string }) {
-  const card = useCardById(boardId, cardId);
-  return card ? <Checklist boardId={boardId} card={card} /> : null;
+function Harness({ cardId }: { cardId: string }) {
+  const card = useCardById(cardId);
+  return card ? <Checklist card={card} /> : null;
 }
 
 function setup() {
   const ctx = createMemoryContext();
-  execute(createBoard, ctx, { id: "b1", title: "Board" });
-  execute(addColumnCmd, ctx, { boardId: "b1", id: "col1", title: "To Do" });
-  execute(createCard, ctx, { boardId: "b1", id: "c1", columnId: "col1", title: "Card" });
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  execute(addColumnCmd, ctx, { id: "col1", title: "To Do" });
+  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
   render(
     <BoardlyProvider context={ctx}>
-      <Harness boardId="b1" cardId="c1" />
+      <Harness cardId="c1" />
     </BoardlyProvider>,
   );
   return ctx;
@@ -68,7 +68,7 @@ describe("Checklist", () => {
     const moveUps = screen.getAllByRole("button", { name: "Move up" });
     fireEvent.click(moveUps[1]!);
 
-    expect(getCard(ctx.getBoardDoc("b1"), "c1")?.checklist.map((i) => i.text)).toEqual([
+    expect(getCard(ctx.getBoardDoc(), "c1")?.checklist.map((i) => i.text)).toEqual([
       "Second",
       "First",
     ]);

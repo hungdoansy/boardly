@@ -7,9 +7,9 @@ import { useEffect, useState } from "react";
 
 import { type ChecklistActions, useChecklistActions } from "../../lib/use-board";
 
-export function Checklist({ boardId, card }: { boardId: string; card: Card }) {
+export function Checklist({ card }: { card: Card }) {
   const items = card.checklist;
-  const actions = useChecklistActions(boardId);
+  const actions = useChecklistActions();
   const done = items.filter((i) => i.done).length;
   const [draft, setDraft] = useState("");
 

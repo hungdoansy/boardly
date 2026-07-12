@@ -1,25 +1,25 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { addColumn as addColumnCmd, createBoard, createCard, execute } from "@boardly/commands";
+import { addColumn as addColumnCmd, createCard, execute } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { liveColumns, reclaimCards } from "@boardly/sync";
+import { initBoard, liveColumns, reclaimCards } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { BoardView } from "./board-view";
 
-function setup(seed?: (ctx: MemoryContext, boardId: string) => void) {
+function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
-  const board = execute(createBoard, ctx, { title: "Board" });
-  seed?.(ctx, board.id);
+  initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+  seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
-      <BoardView boardId={board.id} />
+      <BoardView />
     </BoardlyProvider>,
   );
-  return { ctx, boardId: board.id };
+  return { ctx };
 }
 
 function addColumnViaUi(title: string): void {
@@ -41,18 +41,18 @@ describe("BoardView columns", () => {
   });
 
   it("adds columns which persist in ord order", () => {
-    const { ctx, boardId } = setup();
+    const { ctx } = setup();
     addColumnViaUi("To Do");
     addColumnViaUi("Doing");
 
     expect(screen.getByText("To Do")).toBeInTheDocument();
     expect(screen.getByText("Doing")).toBeInTheDocument();
-    expect(liveColumns(ctx.getBoardDoc(boardId)).map((c) => c.title)).toEqual(["To Do", "Doing"]);
+    expect(liveColumns(ctx.getBoardDoc()).map((c) => c.title)).toEqual(["To Do", "Doing"]);
   });
 
   it("renames a column inline", () => {
-    setup((ctx, id) => {
-      execute(addColumnCmd, ctx, { boardId: id, title: "To Do" });
+    setup((ctx) => {
+      execute(addColumnCmd, ctx, { title: "To Do" });
     });
     fireEvent.dblClick(screen.getByText("To Do"));
     const input = screen.getByRole("textbox", { name: "Column name" });
@@ -62,15 +62,15 @@ describe("BoardView columns", () => {
   });
 
   it("deleting a column moves its cards to the Unsorted bucket (not lost)", () => {
-    const { ctx, boardId } = setup((ctx, id) => {
-      const column = execute(addColumnCmd, ctx, { boardId: id, title: "To Do" });
-      execute(createCard, ctx, { boardId: id, columnId: column.id, title: "Keep me" });
+    const { ctx } = setup((ctx) => {
+      const column = execute(addColumnCmd, ctx, { title: "To Do" });
+      execute(createCard, ctx, { columnId: column.id, title: "Keep me" });
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Delete To Do" }));
 
-    expect(liveColumns(ctx.getBoardDoc(boardId))).toHaveLength(0);
-    expect(reclaimCards(ctx.getBoardDoc(boardId))).toHaveLength(1);
+    expect(liveColumns(ctx.getBoardDoc())).toHaveLength(0);
+    expect(reclaimCards(ctx.getBoardDoc())).toHaveLength(1);
     expect(screen.getByText("Unsorted")).toBeInTheDocument();
   });
 });

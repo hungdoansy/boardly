@@ -27,7 +27,7 @@ const TITLES: Record<SectionKey, string> = {
  * board in the main area while the `#settings` route is active. Houses the
  * board-level ticket prefix, the card-face display config, and project mgmt.
  */
-export function SettingsView({ boardId, onClose }: { boardId: string; onClose: () => void }) {
+export function SettingsView({ onClose }: { onClose: () => void }) {
   const [section, setSection] = useState<SectionKey>("general");
 
   return (
@@ -69,16 +69,16 @@ export function SettingsView({ boardId, onClose }: { boardId: string; onClose: (
           <h2 className="mb-4 text-lg font-semibold tracking-[-0.01em] text-fg">
             {TITLES[section]}
           </h2>
-          {section === "general" ? <GeneralSettings boardId={boardId} /> : null}
+          {section === "general" ? <GeneralSettings /> : null}
           {section === "card-display" ? (
             <div className="max-w-md">
               <p className="mb-2 text-sm text-fg-muted">
                 Choose which badges appear on card faces, and their order.
               </p>
-              <BadgeConfig boardId={boardId} />
+              <BadgeConfig />
             </div>
           ) : null}
-          {section === "projects" ? <ProjectSettings boardId={boardId} /> : null}
+          {section === "projects" ? <ProjectSettings /> : null}
         </main>
       </div>
     </div>

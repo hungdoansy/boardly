@@ -11,9 +11,9 @@ import { useSetTicketPrefix, useTicketPrefix } from "../../lib/use-board";
  * empty allowed. It is display-only (ids are stored as integers), so changing it
  * only re-labels tickets and never renumbers anything.
  */
-export function GeneralSettings({ boardId }: { boardId: string }) {
-  const prefix = useTicketPrefix(boardId);
-  const setPrefix = useSetTicketPrefix(boardId);
+export function GeneralSettings() {
+  const prefix = useTicketPrefix();
+  const setPrefix = useSetTicketPrefix();
   const [draft, setDraft] = useState(prefix);
   useEffect(() => setDraft(prefix), [prefix]);
 

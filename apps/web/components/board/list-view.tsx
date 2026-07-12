@@ -30,19 +30,17 @@ import { CardDetail } from "../card/card-detail";
  * `groupBy` is set (Unit V1.3, R15/R16/R17).
  */
 export function ListView({
-  boardId,
   filter,
   groupBy,
   sort,
 }: {
-  boardId: string;
   filter?: Filter;
   groupBy?: GroupByField | null;
   sort?: Sort | null;
 }) {
-  const cards = useAllCards(boardId);
-  const labels = useLabels(boardId);
-  const config = useBadgeConfig(boardId);
+  const cards = useAllCards();
+  const labels = useLabels();
+  const config = useBadgeConfig();
   const { level } = useFocusMode();
   const [openCardId, setOpenCardId] = useSelectedCard();
   const { userId } = useAuthSession();
@@ -83,7 +81,7 @@ export function ListView({
           onOpen={setOpenCardId}
         />
       </div>
-      <CardDetail boardId={boardId} cardId={openCardId} onClose={closeCard} />
+      <CardDetail cardId={openCardId} onClose={closeCard} />
     </>
   );
 }

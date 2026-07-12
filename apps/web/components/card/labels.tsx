@@ -27,9 +27,9 @@ export function LabelChip({ label }: { label: Label }) {
 }
 
 /** Card's assigned label chips + a popover to assign/create labels. */
-export function CardLabels({ boardId, card }: { boardId: string; card: Card }) {
-  const labels = useLabels(boardId);
-  const actions = useLabelActions(boardId);
+export function CardLabels({ card }: { card: Card }) {
+  const labels = useLabels();
+  const actions = useLabelActions();
   const assignedIds = new Set(card.labelIds);
   const assigned = labels.filter((l) => assignedIds.has(l.id));
 

@@ -48,8 +48,8 @@ export function useSelectedProject(): [string | null, (id: string | null) => voi
 }
 
 /** Live, ord-sorted, non-archived projects for the board. */
-export function useProjects(boardId: string): Project[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useProjects(): Project[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useY(boardProjects(doc), () => listProjects(doc), { deep: true });
 }
 
@@ -60,30 +60,30 @@ export interface ProjectActions {
   archive(projectId: string): void;
 }
 
-export function useProjectActions(boardId: string): ProjectActions {
+export function useProjectActions(): ProjectActions {
   const ctx = useBoardlyContext();
   return {
     create: useCallback(
-      (name = "New project") => execute(createProject, ctx, { boardId, name })?.id ?? null,
-      [ctx, boardId],
+      (name = "New project") => execute(createProject, ctx, { name })?.id ?? null,
+      [ctx],
     ),
     rename: useCallback(
       (projectId: string, name: string) => {
-        execute(renameProject, ctx, { boardId, projectId, name });
+        execute(renameProject, ctx, { projectId, name });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     recolor: useCallback(
       (projectId: string, color: string) => {
-        execute(recolorProject, ctx, { boardId, projectId, color });
+        execute(recolorProject, ctx, { projectId, color });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     archive: useCallback(
       (projectId: string) => {
-        execute(archiveProject, ctx, { boardId, projectId });
+        execute(archiveProject, ctx, { projectId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
   };
 }

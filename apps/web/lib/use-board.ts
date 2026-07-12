@@ -64,15 +64,15 @@ import { useCallback } from "react";
 import { useBoardlyContext } from "./boardly-context";
 import { getSelectedProject } from "./use-projects";
 
-/** Live, ord-sorted columns of a board. */
-export function useColumns(boardId: string): Column[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+/** Live, ord-sorted columns of the board. */
+export function useColumns(): Column[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useY(boardColumns(doc), () => liveColumns(doc), { deep: true });
 }
 
 /** Live card count per live column, keyed by column id. Depends on both columns and cards. */
-export function useCardCounts(boardId: string): Record<string, number> {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useCardCounts(): Record<string, number> {
+  const doc = useBoardlyContext().getBoardDoc();
   return useYDoc(doc, () => {
     const counts: Record<string, number> = {};
     for (const col of liveColumns(doc)) counts[col.id] = cardsInColumn(doc, col.id).length;
@@ -81,42 +81,51 @@ export function useCardCounts(boardId: string): Record<string, number> {
 }
 
 /** Live ordered card-face badge config for the board. */
-export function useBadgeConfig(boardId: string): string[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
-  return useY(boardMeta(doc), () => getBoard(doc, boardId).badgeConfig, {
+export function useBadgeConfig(): string[] {
+  const ctx = useBoardlyContext();
+  const doc = ctx.getBoardDoc();
+  return useY(boardMeta(doc), () => getBoard(doc, ctx.userId ?? "").badgeConfig, {
     isEqual: (a, b) => a.length === b.length && a.every((k, i) => k === b[i]),
   });
 }
 
-export function useSetBadgeConfig(boardId: string): (config: string[]) => void {
+export function useSetBadgeConfig(): (config: string[]) => void {
   const ctx = useBoardlyContext();
   return useCallback(
     (config: string[]) => {
-      execute(setBadgeConfig, ctx, { boardId, config });
+      execute(setBadgeConfig, ctx, { config });
     },
-    [ctx, boardId],
+    [ctx],
   );
 }
 
-/** Live board ticket prefix (display-only; empty renders ids as #123). */
-export function useTicketPrefix(boardId: string): string {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
-  return useY(boardMeta(doc), () => getBoard(doc, boardId).shortIdPrefix);
+/** Live board title (per-user board). Empty until the board is seeded. */
+export function useBoardTitle(): string {
+  const ctx = useBoardlyContext();
+  const doc = ctx.getBoardDoc();
+  return useY(boardMeta(doc), () => getBoard(doc, ctx.userId ?? "").title);
 }
 
-export function useSetTicketPrefix(boardId: string): (prefix: string) => void {
+/** Live board ticket prefix (display-only; empty renders ids as #123). */
+export function useTicketPrefix(): string {
+  const ctx = useBoardlyContext();
+  const doc = ctx.getBoardDoc();
+  return useY(boardMeta(doc), () => getBoard(doc, ctx.userId ?? "").shortIdPrefix);
+}
+
+export function useSetTicketPrefix(): (prefix: string) => void {
   const ctx = useBoardlyContext();
   return useCallback(
     (prefix: string) => {
-      execute(setTicketPrefix, ctx, { boardId, prefix });
+      execute(setTicketPrefix, ctx, { prefix });
     },
-    [ctx, boardId],
+    [ctx],
   );
 }
 
 /** Live board label palette, sorted by ord. */
-export function useLabels(boardId: string): Label[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useLabels(): Label[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useY(boardLabels(doc), () => listLabels(doc), { deep: true });
 }
 
@@ -129,50 +138,49 @@ export interface LabelActions {
   unassign(cardId: string, labelId: string): void;
 }
 
-export function useLabelActions(boardId: string): LabelActions {
+export function useLabelActions(): LabelActions {
   const ctx = useBoardlyContext();
   return {
     create: useCallback(
-      (name: string, color: string) =>
-        execute(createLabel, ctx, { boardId, name, color })?.id ?? "",
-      [ctx, boardId],
+      (name: string, color: string) => execute(createLabel, ctx, { name, color })?.id ?? "",
+      [ctx],
     ),
     rename: useCallback(
       (labelId: string, name: string) => {
-        execute(renameLabel, ctx, { boardId, labelId, name });
+        execute(renameLabel, ctx, { labelId, name });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     recolor: useCallback(
       (labelId: string, color: string) => {
-        execute(recolorLabel, ctx, { boardId, labelId, color });
+        execute(recolorLabel, ctx, { labelId, color });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     remove: useCallback(
       (labelId: string) => {
-        execute(deleteLabel, ctx, { boardId, labelId });
+        execute(deleteLabel, ctx, { labelId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     assign: useCallback(
       (cardId: string, labelId: string) => {
-        execute(assignLabel, ctx, { boardId, cardId, labelId });
+        execute(assignLabel, ctx, { cardId, labelId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     unassign: useCallback(
       (cardId: string, labelId: string) => {
-        execute(unassignLabel, ctx, { boardId, cardId, labelId });
+        execute(unassignLabel, ctx, { cardId, labelId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
   };
 }
 
 /** Cards whose column was deleted (surfaced in the "Unsorted" bucket). Depends on columns + cards. */
-export function useReclaimedCards(boardId: string): Card[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useReclaimedCards(): Card[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useYDoc(doc, () => reclaimCards(doc));
 }
 
@@ -184,26 +192,26 @@ export interface ColumnActions {
 }
 
 /** Live, ord-sorted, non-archived cards in a column. */
-export function useCardsInColumn(boardId: string, columnId: string): Card[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useCardsInColumn(columnId: string): Card[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useY(boardCards(doc), () => cardsInColumn(doc, columnId), { deep: true });
 }
 
 /** All non-archived cards on the board (for swimlane grouping, Unit 4.2). */
-export function useAllCards(boardId: string): Card[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useAllCards(): Card[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useY(boardCards(doc), () => allLiveCards(doc), { deep: true });
 }
 
 /** A single live card by id (or null). Doc-level subscription (description is a nested Y.Text). */
-export function useCardById(boardId: string, cardId: string | null): Card | null {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useCardById(cardId: string | null): Card | null {
+  const doc = useBoardlyContext().getBoardDoc();
   return useYDoc(doc, () => (cardId ? getCard(doc, cardId) : null), { deps: [cardId] });
 }
 
 /** A card's activity timeline, newest-first (Unit 4.3). Empty when no card. */
-export function useCardActivity(boardId: string, cardId: string | null): ActivityEntry[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
+export function useCardActivity(cardId: string | null): ActivityEntry[] {
+  const doc = useBoardlyContext().getBoardDoc();
   return useYDoc(doc, () => (cardId ? cardActivity(doc, cardId) : []), { deps: [cardId] });
 }
 
@@ -218,57 +226,57 @@ export interface CardActions {
   archive(cardId: string): void;
 }
 
-export function useCardActions(boardId: string): CardActions {
+export function useCardActions(): CardActions {
   const ctx = useBoardlyContext();
   const create = useCallback(
     (columnId: string, title: string) => {
       // New cards inherit the sidebar's active project scope (null = no project).
       const projectId = getSelectedProject() ?? undefined;
-      return execute(createCard, ctx, { boardId, columnId, title, projectId })?.id ?? "";
+      return execute(createCard, ctx, { columnId, title, projectId })?.id ?? "";
     },
-    [ctx, boardId],
+    [ctx],
   );
   const rename = useCallback(
     (cardId: string, title: string) => {
-      execute(renameCard, ctx, { boardId, cardId, title });
+      execute(renameCard, ctx, { cardId, title });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setDescription = useCallback(
     (cardId: string, description: string) => {
-      execute(setCardDescription, ctx, { boardId, cardId, description });
+      execute(setCardDescription, ctx, { cardId, description });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setPriority = useCallback(
     (cardId: string, priority: PriorityValue) => {
-      execute(setCardPriority, ctx, { boardId, cardId, priority });
+      execute(setCardPriority, ctx, { cardId, priority });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setSeverity = useCallback(
     (cardId: string, severity: SeverityValue | null) => {
-      execute(setCardSeverity, ctx, { boardId, cardId, severity });
+      execute(setCardSeverity, ctx, { cardId, severity });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setStatus = useCallback(
     (cardId: string, status: Status) => {
-      execute(setCardStatus, ctx, { boardId, cardId, status });
+      execute(setCardStatus, ctx, { cardId, status });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setDueDate = useCallback(
     (cardId: string, dueDate: DueDate | null) => {
-      execute(setCardDueDate, ctx, { boardId, cardId, dueDate });
+      execute(setCardDueDate, ctx, { cardId, dueDate });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const archive = useCallback(
     (cardId: string) => {
-      execute(archiveCard, ctx, { boardId, cardId });
+      execute(archiveCard, ctx, { cardId });
     },
-    [ctx, boardId],
+    [ctx],
   );
   return {
     create,
@@ -294,32 +302,32 @@ export interface ChecklistActions {
   ): void;
 }
 
-export function useChecklistActions(boardId: string): ChecklistActions {
+export function useChecklistActions(): ChecklistActions {
   const ctx = useBoardlyContext();
   return {
     add: useCallback(
       (cardId: string, text: string) => {
-        execute(addChecklistItem, ctx, { boardId, cardId, text });
+        execute(addChecklistItem, ctx, { cardId, text });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     toggle: useCallback(
       (cardId: string, itemId: string) => {
-        execute(toggleChecklistItem, ctx, { boardId, cardId, itemId });
+        execute(toggleChecklistItem, ctx, { cardId, itemId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     setText: useCallback(
       (cardId: string, itemId: string, text: string) => {
-        execute(setChecklistItemText, ctx, { boardId, cardId, itemId, text });
+        execute(setChecklistItemText, ctx, { cardId, itemId, text });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     remove: useCallback(
       (cardId: string, itemId: string) => {
-        execute(deleteChecklistItem, ctx, { boardId, cardId, itemId });
+        execute(deleteChecklistItem, ctx, { cardId, itemId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     move: useCallback(
       (
@@ -328,14 +336,13 @@ export function useChecklistActions(boardId: string): ChecklistActions {
         neighbors: { afterId?: string | null; beforeId?: string | null },
       ) => {
         execute(moveChecklistItem, ctx, {
-          boardId,
           cardId,
           itemId,
           afterId: neighbors.afterId ?? null,
           beforeId: neighbors.beforeId ?? null,
         });
       },
-      [ctx, boardId],
+      [ctx],
     ),
   };
 }
@@ -346,7 +353,7 @@ export interface LinkActions {
   move(cardId: string, linkId: string, neighbors: { afterId?: string | null; beforeId?: string | null }): void;
 }
 
-export function useLinkActions(boardId: string): LinkActions {
+export function useLinkActions(): LinkActions {
   const ctx = useBoardlyContext();
   return {
     add: useCallback(
@@ -358,54 +365,50 @@ export function useLinkActions(boardId: string): LinkActions {
         if (detectProvider(url) === LinkProvider.Generic) {
           title = (await unfurl(url))?.title;
         }
-        execute(addLink, ctx, { boardId, cardId, url, title });
+        execute(addLink, ctx, { cardId, url, title });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     remove: useCallback(
       (cardId: string, linkId: string) => {
-        execute(removeLink, ctx, { boardId, cardId, linkId });
+        execute(removeLink, ctx, { cardId, linkId });
       },
-      [ctx, boardId],
+      [ctx],
     ),
     move: useCallback(
       (cardId, linkId, neighbors) => {
         execute(moveLink, ctx, {
-          boardId,
           cardId,
           linkId,
           afterId: neighbors.afterId ?? null,
           beforeId: neighbors.beforeId ?? null,
         });
       },
-      [ctx, boardId],
+      [ctx],
     ),
   };
 }
 
-export function useColumnActions(boardId: string): ColumnActions {
+export function useColumnActions(): ColumnActions {
   const ctx = useBoardlyContext();
-  const add = useCallback(
-    (title: string) => execute(addColumn, ctx, { boardId, title }).id,
-    [ctx, boardId],
-  );
+  const add = useCallback((title: string) => execute(addColumn, ctx, { title }).id, [ctx]);
   const rename = useCallback(
     (columnId: string, title: string) => {
-      execute(renameColumn, ctx, { boardId, columnId, title });
+      execute(renameColumn, ctx, { columnId, title });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const setWipLimit = useCallback(
     (columnId: string, wipLimit: number | null) => {
-      execute(setColumnWipLimit, ctx, { boardId, columnId, wipLimit });
+      execute(setColumnWipLimit, ctx, { columnId, wipLimit });
     },
-    [ctx, boardId],
+    [ctx],
   );
   const remove = useCallback(
     (columnId: string) => {
-      execute(archiveColumn, ctx, { boardId, columnId });
+      execute(archiveColumn, ctx, { columnId });
     },
-    [ctx, boardId],
+    [ctx],
   );
   return { add, rename, setWipLimit, remove };
 }

@@ -2,14 +2,8 @@
 import "@testing-library/jest-dom/vitest";
 
 import { Status } from "@boardly/domain";
-import {
-  addColumn,
-  createBoard,
-  createCard,
-  createMemoryContext,
-  execute,
-} from "@boardly/commands";
-import { getCard, listActivity } from "@boardly/sync";
+import { addColumn, createCard, createMemoryContext, execute } from "@boardly/commands";
+import { getCard, initBoard, listActivity } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -41,9 +35,9 @@ describe("StatusSelect", () => {
 
 // Integration: select → command layer → status changes, activity appended, and
 // the card's column is untouched (status is independent of column).
-function Harness({ boardId, cardId }: { boardId: string; cardId: string }) {
-  const card = useCardById(boardId, cardId);
-  const actions = useCardActions(boardId);
+function Harness({ cardId }: { cardId: string }) {
+  const card = useCardById(cardId);
+  const actions = useCardActions();
   if (!card) return null;
   return <StatusSelect value={card.status} onChange={(s) => actions.setStatus(card.id, s)} />;
 }
@@ -51,17 +45,16 @@ function Harness({ boardId, cardId }: { boardId: string; cardId: string }) {
 describe("StatusSelect ↔ command layer", () => {
   it("sets status via the command, logs activity, and does not move the card", () => {
     const ctx = createMemoryContext();
-    const board = execute(createBoard, ctx, { title: "B" });
-    const col = execute(addColumn, ctx, { boardId: board.id, title: "To Do" });
+    initBoard(ctx.getBoardDoc(), { title: "B", now: 0 });
+    const col = execute(addColumn, ctx, { title: "To Do" });
     const card = execute(createCard, ctx, {
-      boardId: board.id,
       columnId: col.id,
       title: "Card",
     })!;
 
     render(
       <BoardlyProvider context={ctx}>
-        <Harness boardId={board.id} cardId={card.id} />
+        <Harness cardId={card.id} />
       </BoardlyProvider>,
     );
 
@@ -72,7 +65,7 @@ describe("StatusSelect ↔ command layer", () => {
       fireEvent.click(screen.getByRole("menuitemradio", { name: /^In Review/i }));
     });
 
-    const doc = ctx.getBoardDoc(board.id);
+    const doc = ctx.getBoardDoc();
     const updated = getCard(doc, card.id);
     expect(updated?.status).toBe(Status.InReview);
     expect(updated?.columnId).toBe(col.id); // unchanged

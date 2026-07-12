@@ -37,7 +37,7 @@ export function SearchDialog({
   const hasQuery = deferred.trim().length > 0;
 
   const pick = (doc: SearchDoc): void => {
-    openCard(doc.boardId, doc.cardId);
+    openCard(doc.cardId);
     onOpenChange(false);
     setQuery("");
   };

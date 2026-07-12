@@ -34,21 +34,19 @@ import { Swimlanes } from "./swimlanes";
 const PRIORITY_CYCLE = Object.values(Priority).sort((a, b) => a - b);
 
 export function BoardView({
-  boardId,
   filter,
   groupBy,
 }: {
-  boardId: string;
   filter?: Filter;
   groupBy?: GroupByField | null;
 }) {
-  const columns = useColumns(boardId);
-  const counts = useCardCounts(boardId);
-  const reclaimed = useReclaimedCards(boardId);
-  const columnActions = useColumnActions(boardId);
-  const cardActions = useCardActions(boardId);
-  const labels = useLabels(boardId);
-  const config = useBadgeConfig(boardId);
+  const columns = useColumns();
+  const counts = useCardCounts();
+  const reclaimed = useReclaimedCards();
+  const columnActions = useColumnActions();
+  const cardActions = useCardActions();
+  const labels = useLabels();
+  const config = useBadgeConfig();
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const [openCardId, setOpenCardId] = useSelectedCard();
   const { userId } = useAuthSession();
@@ -65,13 +63,13 @@ export function BoardView({
   const boardRef = useRef<HTMLDivElement>(null);
   const cyclePriority = useCallback(
     (cardId: string) => {
-      const card = getCard(ctx.getBoardDoc(boardId), cardId);
+      const card = getCard(ctx.getBoardDoc(), cardId);
       if (!card) return;
       const current = card.priority ?? Priority.None;
       const next = PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(current) + 1) % PRIORITY_CYCLE.length]!;
       cardActions.setPriority(cardId, next);
     },
-    [ctx, boardId, cardActions],
+    [ctx, cardActions],
   );
   useBoardKeyboardNav(boardRef, {
     onOpenCard: setOpenCardId,
@@ -94,19 +92,18 @@ export function BoardView({
     return (
       <>
         <Swimlanes
-          boardId={boardId}
           groupBy={groupBy}
           filter={filter}
           filterCtx={filterCtx}
           onOpenCard={setOpenCardId}
         />
-        <CardDetail boardId={boardId} cardId={openCardId} onClose={closeCard} />
+        <CardDetail cardId={openCardId} onClose={closeCard} />
       </>
     );
   }
 
   return (
-    <BoardDndProvider boardId={boardId}>
+    <BoardDndProvider>
       <div ref={boardRef} className="flex h-full items-start gap-3 overflow-x-auto p-4">
         <SortableContext items={columns.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
           {columns.map((column) => (
@@ -119,7 +116,6 @@ export function BoardView({
               onDelete={() => columnActions.remove(column.id)}
             >
               <ColumnCards
-                boardId={boardId}
                 columnId={column.id}
                 onOpenCard={setOpenCardId}
                 filter={filter}
@@ -160,7 +156,7 @@ export function BoardView({
         <AddColumn onAdd={columnActions.add} />
       </div>
 
-      <CardDetail boardId={boardId} cardId={openCardId} onClose={closeCard} />
+      <CardDetail cardId={openCardId} onClose={closeCard} />
     </BoardDndProvider>
   );
 }

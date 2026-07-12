@@ -9,9 +9,9 @@ import { useCallback } from "react";
 import { useBoardlyContext } from "./boardly-context";
 
 /** Live list of the board's saved views. */
-export function useSavedViews(boardId: string): SavedView[] {
-  const doc = useBoardlyContext().getBoardDoc(boardId);
-  return useYDoc(doc, () => listViews(doc), { deps: [boardId] });
+export function useSavedViews(): SavedView[] {
+  const doc = useBoardlyContext().getBoardDoc();
+  return useYDoc(doc, () => listViews(doc));
 }
 
 export interface ViewActions {
@@ -19,16 +19,10 @@ export interface ViewActions {
   remove(viewId: string): void;
 }
 
-export function useViewActions(boardId: string): ViewActions {
+export function useViewActions(): ViewActions {
   const ctx = useBoardlyContext();
   return {
-    save: useCallback(
-      (view: SavedView) => void execute(saveView, ctx, { boardId, view }),
-      [ctx, boardId],
-    ),
-    remove: useCallback(
-      (viewId: string) => void execute(deleteView, ctx, { boardId, viewId }),
-      [ctx, boardId],
-    ),
+    save: useCallback((view: SavedView) => void execute(saveView, ctx, { view }), [ctx]),
+    remove: useCallback((viewId: string) => void execute(deleteView, ctx, { viewId }), [ctx]),
   };
 }

@@ -17,14 +17,13 @@ import { SeveritySelect } from "./severity-select";
 import { StatusSelect } from "./status-select";
 
 interface CardDetailProps {
-  boardId: string;
   cardId: string | null;
   onClose: () => void;
 }
 
-export function CardDetail({ boardId, cardId, onClose }: CardDetailProps) {
-  const card = useCardById(boardId, cardId);
-  const actions = useCardActions(boardId);
+export function CardDetail({ cardId, onClose }: CardDetailProps) {
+  const card = useCardById(cardId);
+  const actions = useCardActions();
   const open = cardId !== null && card !== null;
 
   return (
@@ -36,7 +35,7 @@ export function CardDetail({ boardId, cardId, onClose }: CardDetailProps) {
     >
       <SheetContent aria-describedby={undefined}>
         {card ? (
-          <CardDetailBody boardId={boardId} card={card} actions={actions} onClose={onClose} />
+          <CardDetailBody card={card} actions={actions} onClose={onClose} />
         ) : null}
       </SheetContent>
     </Sheet>
@@ -44,12 +43,10 @@ export function CardDetail({ boardId, cardId, onClose }: CardDetailProps) {
 }
 
 function CardDetailBody({
-  boardId,
   card,
   actions,
   onClose,
 }: {
-  boardId: string;
   card: Card;
   actions: ReturnType<typeof useCardActions>;
   onClose: () => void;
@@ -95,17 +92,17 @@ function CardDetailBody({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
-          <Checklist boardId={boardId} card={card} />
+          <Checklist card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Labels</h3>
-          <CardLabels boardId={boardId} card={card} />
+          <CardLabels card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Links</h3>
-          <CardLinks boardId={boardId} card={card} />
+          <CardLinks card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
@@ -115,7 +112,7 @@ function CardDetailBody({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Activity</h3>
-          <CardActivity boardId={boardId} cardId={card.id} />
+          <CardActivity cardId={card.id} />
         </section>
       </div>
 
