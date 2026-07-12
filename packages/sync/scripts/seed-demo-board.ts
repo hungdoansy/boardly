@@ -111,13 +111,21 @@ async function authenticate(): Promise<{ token: string; userId: string }> {
   return { token, userId: decodeJwtSub(token) };
 }
 
-async function registerBoard(token: string, id: string, title: string): Promise<void> {
+/**
+ * Register/affirm ownership of a board id. Returns true if it is (now) ours,
+ * false if it can't be adopted — 409 (owned by another account) or 400 (a
+ * legacy non-UUID id such as the web app's old "main"). The caller then skips
+ * and archives that ref rather than crashing. Other failures still throw.
+ */
+async function registerBoard(token: string, id: string, title: string): Promise<boolean> {
   const res = await fetch(`${API_URL}/boards`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
     body: JSON.stringify({ id, title }),
   });
-  if (!res.ok) throw new Error(`register board failed (${res.status})`);
+  if (res.ok) return true;
+  if (res.status === 409 || res.status === 400) return false;
+  throw new Error(`register board failed (${res.status})`);
 }
 
 function makeTicketMinter(token: string): (documentName: string) => Promise<string> {
@@ -460,35 +468,52 @@ async function main(): Promise<void> {
   const { token, userId } = await authenticate();
   const mintTicket = makeTicketMinter(token);
 
-  // Deterministic id so re-running never multiplies boards (Boardly is
-  // single-board): the workspace index keys by id, so we always target the one
-  // "demo" board rather than minting a fresh one each run.
-  const boardId = "demo";
-  console.log(`→ registering board ${boardId}`);
-  await registerBoard(token, boardId, BOARD_TITLE);
-
+  // Inspect the workspace first so we can REUSE an existing board rather than
+  // minting a new one every run (board ids are server-side UUIDs, so a fixed
+  // string id isn't an option). Single-board: keep one board, archive the rest.
   const workspaceDoc = new Y.Doc();
-  const boardDoc = new Y.Doc();
   const ws = connect(workspaceDoc, `workspace:${userId}`, mintTicket);
-  const bd = connect(boardDoc, `board:${boardId}`, mintTicket);
+  console.log("→ waiting for workspace sync…");
+  await ws.synced;
 
-  console.log("→ waiting for initial sync…");
-  await Promise.all([ws.synced, bd.synced]);
-
-  // Clean up any boards left by earlier non-idempotent runs — single-board means
-  // only the deterministic "demo" board should remain in the workspace list.
-  const stale = listBoards(workspaceDoc).filter((b) => b.id !== boardId);
+  // Single-board + idempotent: adopt the first board this account can own
+  // (affirming ownership repairs legacy refs that had no `boards` row), archive
+  // every other ref, and mint a fresh board only if none are adoptable. Legacy
+  // demo workspaces accumulated refs that are unowned or owned by other accounts
+  // (the shared-local-doc leak, see UNIT-6.2); foreign ones (409) are skipped.
+  const existing = listBoards(workspaceDoc);
+  let boardId: string | null = null;
+  for (const b of existing) {
+    if (await registerBoard(token, b.id, BOARD_TITLE)) {
+      boardId = b.id;
+      break;
+    }
+  }
+  const keep = boardId;
+  const stale = existing.filter((b) => b.id !== keep);
   if (stale.length > 0) {
-    console.log(`→ archiving ${stale.length} stale board(s) from earlier runs…`);
+    console.log(`→ archiving ${stale.length} stale/foreign board ref(s)…`);
     for (const b of stale) archiveBoardRef(workspaceDoc, b.id);
   }
+  if (!boardId) {
+    boardId = newId();
+    console.log(`→ registering fresh board ${boardId}`);
+    await registerBoard(token, boardId, BOARD_TITLE);
+  } else {
+    console.log(`→ reusing owned board ${boardId}`);
+  }
 
-  // Only populate a fresh board; skip on re-run so content isn't duplicated.
+  const boardDoc = new Y.Doc();
+  const bd = connect(boardDoc, `board:${boardId}`, mintTicket);
+  console.log("→ waiting for board sync…");
+  await bd.synced;
+
+  // Populate only an empty board; on re-run keep existing content (no dupes).
   if (liveColumns(boardDoc).length === 0) {
     console.log("→ building the demo board…");
     buildBoard(workspaceDoc, boardDoc, boardId, userId);
   } else {
-    console.log("→ demo board already populated; ensuring its workspace ref…");
+    console.log("→ demo board already populated; kept as-is.");
     addBoardRef(workspaceDoc, { id: boardId, title: BOARD_TITLE, icon: "🗂️", clientId: CLIENT_ID });
   }
 
