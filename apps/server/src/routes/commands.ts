@@ -6,7 +6,7 @@ import { z } from "zod";
 import { authenticateBearer } from "../auth/bearer";
 import type { TokenKeys } from "../auth/tokens";
 import type { Database } from "../db/client";
-import { boardDocName, workspaceDocName } from "../sync/naming";
+import { boardDocName } from "../sync/naming";
 
 export interface CommandRoutesOptions {
   db: Database;
@@ -19,6 +19,11 @@ export interface CommandRoutesOptions {
  * authenticated HTTP and executed **server-side against the live board doc** via
  * a Hocuspocus direct connection — so a REST/agent edit persists to Postgres and
  * broadcasts to connected clients exactly like a UI edit (server/UI parity).
+ *
+ * There is no `boardId` in the request: every command runs against the caller's
+ * single content doc `board:<userId>`, resolved from the authenticated user id.
+ * The doc is opened with the same mechanism the UI sync path uses — a short-lived
+ * `openDirectConnection`, whose `disconnect()` flushes to Postgres.
  */
 export async function commandRoutes(
   app: FastifyInstance,
@@ -47,50 +52,33 @@ export async function commandRoutes(
       return reply.status(400).send({ error: "invalid input", issues: parsed.error.issues });
     }
 
-    // Resolve the target doc from the input: board-scoped (has boardId) is
-    // authorized by identity — the content doc is keyed by the user id, so the
-    // boardId must be the caller's own (no ownership-table lookup).
-    const boardId =
-      typeof (parsed.data as { boardId?: unknown }).boardId === "string"
-        ? (parsed.data as { boardId: string }).boardId
-        : undefined;
+    // Resolve the caller's own content doc `board:<userId>`. No ownership lookup
+    // and no request-supplied id: a user can only ever reach the doc keyed by
+    // their authenticated identity.
+    const boardConn = await hocuspocus.openDirectConnection(boardDocName(userId), { userId });
 
-    if (boardId && boardId !== userId) {
-      return reply.status(403).send({ error: "forbidden" });
-    }
-
-    const wsConn = await hocuspocus.openDirectConnection(workspaceDocName(userId), { userId });
-    const boardConn = boardId
-      ? await hocuspocus.openDirectConnection(boardDocName(boardId), { userId })
-      : null;
-
-    const disconnectAll = async (): Promise<void> => {
+    const disconnect = async (): Promise<void> => {
       // disconnect() flushes the document to Postgres (and broadcasts to any
       // connected clients), so persistence is guaranteed before we respond.
-      await boardConn?.disconnect();
-      await wsConn.disconnect();
+      await boardConn.disconnect();
     };
 
     let result: unknown;
     try {
       const ctx: CommandContext = {
-        getWorkspaceDoc: () => wsConn.document!,
-        getBoardDoc: (id) => {
-          if (id === boardId && boardConn?.document) return boardConn.document;
-          throw new Error(`board ${id} is not available on this request`);
-        },
-        clientId: String((boardConn ?? wsConn).document?.clientID ?? "server"),
+        getBoardDoc: () => boardConn.document!,
+        clientId: String(boardConn.document?.clientID ?? "server"),
         now: () => Date.now(),
         userId,
       };
       result = execute(command, ctx, parsed.data);
     } catch (error) {
       request.log.error({ err: error }, "command execution failed");
-      await disconnectAll();
+      await disconnect();
       return reply.status(422).send({ error: "command failed" });
     }
 
-    await disconnectAll();
+    await disconnect();
     return reply.send({ result });
   });
 }

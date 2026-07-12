@@ -33,11 +33,6 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
       .returning({ id: users.id });
     return u!.id;
   }
-  // The board doc is `board:<userId>` (one per user, authorized by identity), so
-  // the board a user "owns" is simply the doc addressed by their own id.
-  function ownedBoard(userId: string): string {
-    return userId;
-  }
 
   const post = (
     name: string,
@@ -85,22 +80,22 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
     expect(createCard?.description.length).toBeGreaterThan(0);
   });
 
-  it("executes createCard on an owned board and persists it to Postgres", async () => {
+  it("executes createCard (no boardId) against the caller's doc and persists it to Postgres", async () => {
     const userId = await newUser();
-    const boardId = ownedBoard(userId);
     const auth = await bearer(userId);
 
-    const col = await post("addColumn", auth, { boardId, title: "To Do" });
+    const col = await post("addColumn", auth, { title: "To Do" });
     expect(col.statusCode).toBe(200);
     const columnId = (col.json() as { result: { id: string } }).result.id;
 
-    const card = await post("createCard", auth, { boardId, columnId, title: "From REST" });
+    const card = await post("createCard", auth, { columnId, title: "From REST" });
     expect(card.statusCode).toBe(200);
     const created = (card.json() as { result: { id: string; title: string } }).result;
     expect(created.title).toBe("From REST");
 
-    // Persisted to Postgres (reload the raw doc state and find the card).
-    const state = await loadDocState(handle.db, `board:${boardId}`);
+    // A second request reads the same doc back (its content survives the first
+    // request's flush + disconnect).
+    const state = await loadDocState(handle.db, `board:${userId}`);
     expect(state).toBeInstanceOf(Uint8Array);
     const doc = new Y.Doc();
     Y.applyUpdate(doc, state!);
@@ -110,34 +105,46 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
     expect(titles).toContain("From REST");
   });
 
-  it("REST and in-process execution produce the same doc state (parity)", async () => {
+  it("resolves the doc from the authenticated user id — two users write distinct docs", async () => {
+    const alice = await newUser();
+    const bob = await newUser();
+
+    const aCol = await post("addColumn", await bearer(alice), { title: "A" });
+    const aColId = (aCol.json() as { result: { id: string } }).result.id;
+    await post("createCard", await bearer(alice), { columnId: aColId, title: "Alice card" });
+
+    const bCol = await post("addColumn", await bearer(bob), { title: "B" });
+    const bColId = (bCol.json() as { result: { id: string } }).result.id;
+    await post("createCard", await bearer(bob), { columnId: bColId, title: "Bob card" });
+
+    const titlesOf = async (userId: string): Promise<Array<unknown>> => {
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, (await loadDocState(handle.db, `board:${userId}`))!);
+      return [...doc.getMap("cards").values()].map((c) =>
+        c instanceof Y.Map ? c.get("title") : undefined,
+      );
+    };
+    expect(await titlesOf(alice)).toEqual(["Alice card"]);
+    expect(await titlesOf(bob)).toEqual(["Bob card"]);
+  });
+
+  it("REST execution yields the same result shape as an in-process execution (parity)", async () => {
     const userId = await newUser();
-    const boardId = ownedBoard(userId);
     const auth = await bearer(userId);
-    const col = await post("addColumn", auth, { boardId, title: "Col" });
+    const col = await post("addColumn", auth, { title: "Col" });
     const columnId = (col.json() as { result: { id: string } }).result.id;
-    const res = await post("createCard", auth, { boardId, columnId, title: "Parity" });
+    const res = await post("createCard", auth, { columnId, title: "Parity" });
     const created = (res.json() as { result: { columnId: string; status: string } }).result;
     // Same shape a UI/in-memory execution yields (default status, linked column).
     expect(created.columnId).toBe(columnId);
     expect(created.status).toBe("todo");
   });
 
-  it("forbids a command against a board the user does not own (403)", async () => {
-    const owner = await newUser();
-    const boardId = ownedBoard(owner);
-    const attacker = await newUser();
-    const res = await post("addColumn", await bearer(attacker), { boardId, title: "x" });
-    expect(res.statusCode).toBe(403);
-  });
-
   it("rejects unknown command (404), invalid input (400), and no auth (401)", async () => {
-    const userId = await newUser();
-    const boardId = ownedBoard(userId);
-    const auth = await bearer(userId);
+    const auth = await bearer(await newUser());
 
     expect((await post("nopeCommand", auth, {})).statusCode).toBe(404);
-    expect((await post("addColumn", auth, { boardId })).statusCode).toBe(400); // missing title
-    expect((await post("addColumn", undefined, { boardId, title: "x" })).statusCode).toBe(401);
+    expect((await post("addColumn", auth, {})).statusCode).toBe(400); // missing title
+    expect((await post("addColumn", undefined, { title: "x" })).statusCode).toBe(401);
   });
 });

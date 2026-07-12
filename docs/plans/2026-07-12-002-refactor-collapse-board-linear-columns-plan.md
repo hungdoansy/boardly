@@ -348,7 +348,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ---
 
-- [ ] **Unit 4: Server REST + MCP — align the agent surface to boardId-less commands**
+- [x] **Unit 4: Server REST + MCP — align the agent surface to boardId-less commands**
 
 **Goal:** The REST command endpoint and MCP tools execute the new commands against the authenticated user's doc.
 
