@@ -1,4 +1,4 @@
-import { exportJson, parseJson, parseObsidian, Priority, Severity, Status } from "@boardly/domain";
+import { exportJson, parseJson, parseObsidian, Priority, Status } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
@@ -13,7 +13,6 @@ import {
   initBoard,
   setCardDueDate,
   setCardPriority,
-  setCardSeverity,
 } from "./board-doc";
 
 const NOW = 1_700_000_000_000;
@@ -26,7 +25,6 @@ function seededDoc() {
   const a = addCard(doc, { status: Status.Todo, title: "Fix login", now: NOW, clientId: "1" });
   addCard(doc, { status: Status.Done, title: "Ship it", now: NOW, clientId: "1" });
   setCardPriority(doc, a, Priority.High, NOW, "1");
-  setCardSeverity(doc, a, Severity.S2, NOW, "1");
   setCardDueDate(doc, a, { at: NOW + 1000, hasTime: false }, NOW, "1");
   assignLabel(doc, a, lbl, NOW);
   return { doc, a, lbl };
@@ -60,9 +58,9 @@ describe("board snapshot round-trip", () => {
     expect(fix).toMatchObject({
       status: Status.Todo,
       priority: Priority.High,
-      severity: Severity.S2,
       labelIds: [snap.labels[0]!.id],
     });
+    expect(fix).not.toHaveProperty("severity");
     expect(fix.dueDate?.at).toBe(NOW + 1000);
     expect(snap.labels.map((l) => l.name)).toEqual(["bug"]);
   });

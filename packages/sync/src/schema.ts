@@ -15,7 +15,6 @@ import {
   type LinkProvider,
   type PriorityValue,
   type Project,
-  type SeverityValue,
   type Status,
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
@@ -68,7 +67,6 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
   const labelsRaw = yc.get("labels");
   const checklistRaw = yc.get("checklist");
   const linksRaw = yc.get("links");
-  const severity = yc.get("severity");
 
   let dueDate: DueDate | null = null;
   if (dueRaw instanceof Y.Map) {
@@ -123,7 +121,6 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
     ord: getString(yc, "ord"),
     status: getString(yc, "status", DEFAULT_STATUS) as Status,
     priority: getNumber(yc, "priority", 0) as PriorityValue,
-    severity: typeof severity === "number" ? (severity as SeverityValue) : null,
     dueDate,
     labelIds,
     checklist,

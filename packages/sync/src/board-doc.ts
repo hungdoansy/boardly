@@ -14,7 +14,6 @@ import {
   type PriorityValue,
   type Project,
   type SavedView,
-  type SeverityValue,
   type SnapshotCard,
   type Status,
   DEFAULT_BADGE_CONFIG,
@@ -210,7 +209,6 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     card.set("ord", keyBetween(lastOrd, null, params.clientId));
     card.set("status", status);
     card.set("priority", Priority.None);
-    card.set("severity", null);
     card.set("dueDate", null);
     card.set("labels", new Y.Map<unknown>());
     card.set("checklist", new Y.Map<unknown>());
@@ -275,26 +273,6 @@ export function setCardPriority(
       if (from === priority) return;
       card.set("priority", priority);
       appendActivity(doc, { type: "priority", cardId, from, to: priority, at: now, actor });
-    },
-    now,
-  );
-}
-
-export function setCardSeverity(
-  doc: Y.Doc,
-  cardId: string,
-  severity: SeverityValue | null,
-  now: number,
-  actor?: string,
-): void {
-  withCard(
-    doc,
-    cardId,
-    (card) => {
-      const from = (card.get("severity") as SeverityValue | undefined) ?? null;
-      if (from === severity) return;
-      card.set("severity", severity);
-      appendActivity(doc, { type: "severity", cardId, from, to: severity, at: now, actor });
     },
     now,
   );
@@ -383,13 +361,6 @@ function rowToActivity(row: Y.Map<unknown>): ActivityEntry | null {
         type: "priority",
         from: (row.get("from") as PriorityValue | undefined) ?? Priority.None,
         to: (row.get("to") as PriorityValue | undefined) ?? Priority.None,
-      });
-    case "severity":
-      return withActor({
-        ...base,
-        type: "severity",
-        from: (row.get("from") as SeverityValue | undefined) ?? null,
-        to: (row.get("to") as SeverityValue | undefined) ?? null,
       });
     case "due":
       return withActor({
@@ -995,7 +966,6 @@ function buildCard(card: SnapshotCard): YCard {
   yc.set("ord", card.ord);
   yc.set("status", card.status);
   yc.set("priority", card.priority);
-  yc.set("severity", card.severity);
   if (card.dueDate) {
     const due = new Y.Map<unknown>();
     due.set("at", card.dueDate.at);

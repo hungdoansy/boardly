@@ -15,7 +15,6 @@ import {
   setCardDescription,
   setCardDueDate,
   setCardPriority,
-  setCardSeverity,
   setChecklistItemText,
   toggleChecklistItem,
 } from "./commands/card";
@@ -52,7 +51,6 @@ export const commands = [
   setCardDescription,
   setCardDueDate,
   setCardPriority,
-  setCardSeverity,
   archiveCard,
   getCard,
   addChecklistItem,

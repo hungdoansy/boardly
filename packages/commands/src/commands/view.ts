@@ -5,7 +5,7 @@ import { z } from "zod";
 import { defineCommand } from "../command";
 
 const clauseSchema = z.object({
-  field: z.enum(["status", "priority", "severity", "label", "dueDate", "assignee", "title"]),
+  field: z.enum(["status", "priority", "label", "dueDate", "assignee", "title"]),
   condition: z.enum([
     "is",
     "isNot",
@@ -37,7 +37,7 @@ const viewSchema = z.object({
   name: z.string().min(1).max(80),
   filter: groupSchema,
   sort: sortSchema.optional(),
-  groupBy: z.enum(["status", "priority", "severity", "label", "assignee"]).nullable().optional(),
+  groupBy: z.enum(["status", "priority", "label", "assignee"]).nullable().optional(),
   layout: z.enum(["board", "list"]).optional(),
   visibleBadges: z.array(z.string()).optional(),
 });

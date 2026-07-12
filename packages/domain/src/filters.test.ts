@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Priority, Severity } from "./enums";
+import { Priority } from "./enums";
 import {
   type Filter,
   PRESET_VIEWS,
@@ -29,7 +29,6 @@ function card(over: Partial<Card>): Card {
     ord: "a0",
     status: Status.Todo,
     priority: Priority.None,
-    severity: null,
     dueDate: null,
     labelIds: [],
     checklist: [],
@@ -101,13 +100,21 @@ describe("evaluateFilter", () => {
   });
 
   it("isSet / isEmpty conditions", () => {
-    const sevSet = and({ field: "severity", condition: "isSet" });
-    expect(evaluateFilter(card({ severity: Severity.S1 }), sevSet, ctx)).toBe(true);
-    expect(evaluateFilter(card({ severity: null }), sevSet, ctx)).toBe(false);
-
     const noLabels = and({ field: "label", condition: "isEmpty" });
     expect(evaluateFilter(card({ labelIds: [] }), noLabels, ctx)).toBe(true);
     expect(evaluateFilter(card({ labelIds: ["a"] }), noLabels, ctx)).toBe(false);
+  });
+
+  it("a stale clause referencing a removed field (e.g. severity) matches every card, not throws", () => {
+    // Legacy persisted saved view: `field` is no longer a valid `FilterField`
+    // at compile time, but must still degrade safely at runtime.
+    const stale = {
+      op: "and",
+      clauses: [{ field: "severity", condition: "is", values: [1] }],
+    } as unknown as Filter;
+    expect(() => evaluateFilter(card({}), stale, ctx)).not.toThrow();
+    expect(evaluateFilter(card({}), stale, ctx)).toBe(true);
+    expect(evaluateFilter(card({ priority: Priority.Urgent }), stale, ctx)).toBe(true);
   });
 
   it("hasAll requires every label; hasAny requires one", () => {
@@ -215,20 +222,33 @@ describe("groupCards", () => {
     const groups = groupCards([card({ id: "x", assigneeId: "u1" }), card({ id: "y" })], "assignee");
     expect(groups.map((g) => g.key)).toEqual(["u1", ""]);
   });
+
+  it("a legacy groupBy referencing a removed field (e.g. severity) resolves to a single ungrouped lane, not a crash", () => {
+    const cards = [card({ id: "a" }), card({ id: "b" })];
+    const legacyGroupBy = "severity" as unknown as Parameters<typeof groupCards>[1];
+    expect(() => groupCards(cards, legacyGroupBy)).not.toThrow();
+    const groups = groupCards(cards, legacyGroupBy);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.key).toBe("");
+    expect(groups[0]!.cards.map((c) => c.id)).toEqual(["a", "b"]);
+  });
 });
 
 describe("groupLabel", () => {
   it("resolves enum keys to display names", () => {
     expect(groupLabel("status", Status.InProgress)).toBe("In Progress");
     expect(groupLabel("priority", String(Priority.Urgent))).toBe("Urgent");
-    expect(groupLabel("severity", String(Severity.S1))).toBe("S1");
   });
 
   it("names the ungrouped lane per field", () => {
     expect(groupLabel("priority", "")).toBe("No priority");
-    expect(groupLabel("severity", "")).toBe("No severity");
     expect(groupLabel("label", "")).toBe("No label");
     expect(groupLabel("assignee", "")).toBe("Unassigned");
+  });
+
+  it("a legacy groupBy referencing a removed field (e.g. severity) resolves to a generic label, not undefined", () => {
+    const legacyGroupBy = "severity" as unknown as Parameters<typeof groupLabel>[0];
+    expect(groupLabel(legacyGroupBy, "")).toBe("Ungrouped");
   });
 
   it("resolves a label key via the provided name, else the raw id", () => {
@@ -324,7 +344,7 @@ describe("SavedView round-trip", () => {
       sort: { field: "priority", direction: "desc" },
       groupBy: "status",
       layout: "list",
-      visibleBadges: ["severity", "dueDate"],
+      visibleBadges: ["priority", "dueDate"],
     };
     const restored = JSON.parse(JSON.stringify(view)) as SavedView;
     expect(restored).toEqual(view);

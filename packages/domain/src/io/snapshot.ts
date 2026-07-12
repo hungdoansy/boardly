@@ -55,10 +55,6 @@ const cardSchema = z.object({
   priority: z
     .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
     .default(0),
-  severity: z
-    .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
-    .nullable()
-    .default(null),
   dueDate: dueDateSchema.nullable().default(null),
   assigneeId: z.string().optional(),
   labelIds: z.array(z.string()).default([]),

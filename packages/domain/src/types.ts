@@ -4,7 +4,7 @@
 //
 // `status` is added to `Card` in Unit 2.12 (workflow status), alongside
 // `packages/domain/src/status.ts`.
-import type { LinkProvider, PriorityValue, SeverityValue } from "./enums";
+import type { LinkProvider, PriorityValue } from "./enums";
 import type { Id } from "./ids";
 import type { Status } from "./status";
 
@@ -69,7 +69,6 @@ export interface Card {
    */
   status: Status;
   priority: PriorityValue;
-  severity: SeverityValue | null;
   dueDate: DueDate | null;
   assigneeId?: Id;
   labelIds: Id[];

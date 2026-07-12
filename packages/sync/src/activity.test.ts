@@ -1,4 +1,4 @@
-import { Priority, Severity, Status } from "@boardly/domain";
+import { Priority, Status } from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
@@ -11,7 +11,6 @@ import {
   moveCard,
   setCardDueDate,
   setCardPriority,
-  setCardSeverity,
   setCardStatus,
   setCardTitle,
 } from "./board-doc";
@@ -47,15 +46,14 @@ describe("card activity log", () => {
     expect(log[0]).toMatchObject({ type: "priority", from: Priority.None, to: Priority.High });
   });
 
-  it("logs severity and due-date changes, and clearing them", () => {
+  it("logs due-date changes, and clearing them", () => {
     const { doc } = setup();
     const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
-    setCardSeverity(doc, a, Severity.S1, NOW + 1, "u1");
     setCardDueDate(doc, a, { at: NOW + 100, hasTime: false }, NOW + 2, "u1");
     setCardDueDate(doc, a, null, NOW + 3, "u1");
 
     const types = cardActivity(doc, a).map((e) => e.type);
-    expect(types).toEqual(["due", "due", "severity", "created"]);
+    expect(types).toEqual(["due", "due", "created"]);
     const dues = cardActivity(doc, a).filter((e) => e.type === "due");
     expect(dues[0]).toMatchObject({ to: null }); // cleared (newest)
     expect(dues[1]).toMatchObject({ to: NOW + 100 });

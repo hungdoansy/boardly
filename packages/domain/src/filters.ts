@@ -1,14 +1,13 @@
 // Saved views: a nestable, pure filter model over cards, plus sort. Kept
 // framework-agnostic and side-effect-free so evaluation is fully unit-testable
 // and runs identically on any client. Persisted per board (Unit 4.1).
-import { PRIORITY_META, Priority, type PriorityValue, SEVERITY_META } from "./enums";
+import { PRIORITY_META, Priority, type PriorityValue } from "./enums";
 import { STATUS_META, Status, STATUS_ORDER } from "./status";
 import type { Card } from "./types";
 
 export type FilterField =
   | "status"
   | "priority"
-  | "severity"
   | "label"
   | "dueDate"
   | "assignee"
@@ -91,12 +90,6 @@ function matchesClause(card: Card, clause: FilterClause, ctx: FilterContext): bo
       if (clause.condition === "isEmpty") return p === Priority.None;
       return values.includes(p);
     }
-    case "severity":
-      if (clause.condition === "isSet") return card.severity !== null;
-      if (clause.condition === "isEmpty") return card.severity === null;
-      if (clause.condition === "isNot")
-        return card.severity !== null && !values.includes(card.severity);
-      return card.severity !== null && values.includes(card.severity);
     case "label": {
       const ids = card.labelIds;
       if (clause.condition === "isEmpty") return ids.length === 0;
@@ -190,7 +183,7 @@ export function sortCards(cards: Card[], sort: Sort): Card[] {
 
 // ----- Grouping (swimlanes, Unit 4.2) -----
 
-export type GroupByField = "status" | "priority" | "severity" | "label" | "assignee";
+export type GroupByField = "status" | "priority" | "label" | "assignee";
 
 export interface CardGroup {
   /** Group value; `""` is the ungrouped/missing lane (No priority, Unassigned, …). */
@@ -198,19 +191,25 @@ export interface CardGroup {
   cards: Card[];
 }
 
-/** Keys a card belongs to for a group-by field. `""` = missing; labels are multi-valued. */
+/**
+ * Keys a card belongs to for a group-by field. `""` = missing; labels are
+ * multi-valued. `default` also covers an unrecognized/legacy field value
+ * (e.g. a saved view's `groupBy` from before a field was removed) — it lands
+ * every card in the ungrouped lane rather than the caller iterating
+ * `undefined`.
+ */
 function groupKeys(card: Card, field: GroupByField): string[] {
   switch (field) {
     case "status":
       return [card.status];
     case "priority":
       return [card.priority === Priority.None ? "" : String(card.priority)];
-    case "severity":
-      return [card.severity === null ? "" : String(card.severity)];
     case "assignee":
       return [card.assigneeId ?? ""];
     case "label":
       return card.labelIds.length ? card.labelIds : [""];
+    default:
+      return [""];
   }
 }
 
@@ -222,7 +221,6 @@ const rankFor = (field: GroupByField, key: string, firstSeen: number): number =>
   if (key === "") return Number.POSITIVE_INFINITY; // ungrouped lane last
   if (field === "priority") return PRIORITY_GROUP_ORDER.indexOf(key);
   if (field === "status") return STATUS_ORDER.indexOf(key as (typeof STATUS_ORDER)[number]);
-  if (field === "severity") return Number(key);
   return firstSeen; // label / assignee: order of first appearance
 };
 
@@ -258,7 +256,11 @@ export function groupCards(cards: Card[], groupBy: GroupByField): CardGroup[] {
  * Human label for a swimlane. Enum fields resolve to their display names; the
  * empty key is the ungrouped lane ("No priority", "Unassigned", …). Label and
  * assignee keys are opaque ids — pass `labelName` to resolve a label's name;
- * an assignee key falls back to the raw id (no user directory yet).
+ * an assignee key falls back to the raw id (no user directory yet). An
+ * unrecognized/legacy `groupBy` (e.g. a saved view's field from before it was
+ * removed) resolves to a generic "Ungrouped" rather than `undefined` — this
+ * is called directly by swimlane/list-view rendering, not only through
+ * `groupCards`.
  */
 export function groupLabel(
   groupBy: GroupByField,
@@ -269,14 +271,14 @@ export function groupLabel(
     switch (groupBy) {
       case "priority":
         return "No priority";
-      case "severity":
-        return "No severity";
       case "label":
         return "No label";
       case "assignee":
         return "Unassigned";
       case "status":
         return "No status";
+      default:
+        return "Ungrouped";
     }
   }
   switch (groupBy) {
@@ -284,12 +286,12 @@ export function groupLabel(
       return STATUS_META[key as Status]?.name ?? key;
     case "priority":
       return PRIORITY_META[Number(key) as PriorityValue]?.name ?? key;
-    case "severity":
-      return SEVERITY_META[Number(key) as keyof typeof SEVERITY_META]?.name ?? key;
     case "label":
       return opts?.labelName ?? key;
     case "assignee":
       return key;
+    default:
+      return "Ungrouped";
   }
 }
 

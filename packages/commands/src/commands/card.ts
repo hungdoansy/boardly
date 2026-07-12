@@ -10,7 +10,6 @@ import {
   setCardDescription as syncSetDescription,
   setCardDueDate as syncSetDueDate,
   setCardPriority as syncSetPriority,
-  setCardSeverity as syncSetSeverity,
   setCardTitle,
   setChecklistItemText as syncSetChecklistItemText,
   toggleChecklistItem as syncToggleChecklistItem,
@@ -93,20 +92,6 @@ export const setCardPriority = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc();
     syncSetPriority(doc, input.cardId, input.priority, ctx.now(), ctx.userId ?? ctx.clientId);
-    return syncGetCard(doc, input.cardId);
-  },
-});
-
-export const setCardSeverity = defineCommand({
-  name: "setCardSeverity",
-  description: "Set or clear a card's severity (1=S1 … 4=S4, or null to clear).",
-  input: z.object({
-    cardId: z.string(),
-    severity: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).nullable(),
-  }),
-  run: (ctx, input) => {
-    const doc = ctx.getBoardDoc();
-    syncSetSeverity(doc, input.cardId, input.severity, ctx.now(), ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });

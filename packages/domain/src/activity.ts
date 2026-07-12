@@ -2,7 +2,7 @@
 // (history/activity feed) expands the event set and adds a UI. Append-only:
 // entries are never rewritten, so the log is a faithful, CRDT-safe history.
 // `type` is the discriminant; each kind adds only the fields it needs.
-import type { PriorityValue, SeverityValue } from "./enums";
+import type { PriorityValue } from "./enums";
 import type { Status } from "./status";
 
 interface ActivityBase {
@@ -46,13 +46,6 @@ export interface PriorityChangeActivity extends ActivityBase {
   to: PriorityValue;
 }
 
-/** A card's severity changed (null = cleared / unset). */
-export interface SeverityChangeActivity extends ActivityBase {
-  type: "severity";
-  from: SeverityValue | null;
-  to: SeverityValue | null;
-}
-
 /** A card's due date was set or cleared (null = cleared). */
 export interface DueChangeActivity extends ActivityBase {
   type: "due";
@@ -71,7 +64,6 @@ export type ActivityEntry =
   | RenamedActivity
   | StatusChangeActivity
   | PriorityChangeActivity
-  | SeverityChangeActivity
   | DueChangeActivity
   | ArchivedActivity;
 

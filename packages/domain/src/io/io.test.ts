@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Priority, Severity } from "../enums";
+import { Priority } from "../enums";
 import { Status } from "../status";
 import { exportJson, parseJson } from "./json";
 import { exportMarkdown } from "./markdown";
@@ -26,7 +26,6 @@ const snapshot: BoardSnapshot = {
       ord: "a0",
       status: Status.Todo,
       priority: Priority.High,
-      severity: Severity.S2,
       dueDate: { at: 1_700_000_000_000, hasTime: false },
       labelIds: ["l1"],
       checklist: [{ id: "ci1", text: "repro", done: true, ord: "a0" }],
@@ -43,7 +42,6 @@ const snapshot: BoardSnapshot = {
       ord: "a0",
       status: Status.Done,
       priority: Priority.None,
-      severity: null,
       dueDate: null,
       labelIds: [],
       checklist: [],
@@ -72,11 +70,11 @@ describe("JSON round-trip", () => {
     expect(restored.cards[0]).toMatchObject({
       status: Status.Todo,
       priority: Priority.None,
-      severity: null,
       dueDate: null,
       labelIds: [],
       archived: false,
     });
+    expect(restored.cards[0]).not.toHaveProperty("severity");
   });
 });
 
