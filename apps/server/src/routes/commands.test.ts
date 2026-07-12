@@ -84,11 +84,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
     const userId = await newUser();
     const auth = await bearer(userId);
 
-    const col = await post("addColumn", auth, { title: "To Do" });
-    expect(col.statusCode).toBe(200);
-    const columnId = (col.json() as { result: { id: string } }).result.id;
-
-    const card = await post("createCard", auth, { columnId, title: "From REST" });
+    const card = await post("createCard", auth, { title: "From REST" });
     expect(card.statusCode).toBe(200);
     const created = (card.json() as { result: { id: string; title: string } }).result;
     expect(created.title).toBe("From REST");
@@ -109,13 +105,8 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
     const alice = await newUser();
     const bob = await newUser();
 
-    const aCol = await post("addColumn", await bearer(alice), { title: "A" });
-    const aColId = (aCol.json() as { result: { id: string } }).result.id;
-    await post("createCard", await bearer(alice), { columnId: aColId, title: "Alice card" });
-
-    const bCol = await post("addColumn", await bearer(bob), { title: "B" });
-    const bColId = (bCol.json() as { result: { id: string } }).result.id;
-    await post("createCard", await bearer(bob), { columnId: bColId, title: "Bob card" });
+    await post("createCard", await bearer(alice), { title: "Alice card" });
+    await post("createCard", await bearer(bob), { title: "Bob card" });
 
     const titlesOf = async (userId: string): Promise<Array<unknown>> => {
       const doc = new Y.Doc();
@@ -131,12 +122,10 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
   it("REST execution yields the same result shape as an in-process execution (parity)", async () => {
     const userId = await newUser();
     const auth = await bearer(userId);
-    const col = await post("addColumn", auth, { title: "Col" });
-    const columnId = (col.json() as { result: { id: string } }).result.id;
-    const res = await post("createCard", auth, { columnId, title: "Parity" });
-    const created = (res.json() as { result: { columnId: string; status: string } }).result;
-    // Same shape a UI/in-memory execution yields (default status, linked column).
-    expect(created.columnId).toBe(columnId);
+    const res = await post("createCard", auth, { title: "Parity" });
+    const created = (res.json() as { result: { title: string; status: string } }).result;
+    // Same shape a UI/in-memory execution yields (default status = Todo).
+    expect(created.title).toBe("Parity");
     expect(created.status).toBe("todo");
   });
 
@@ -144,7 +133,7 @@ describe.skipIf(!DATABASE_URL)("REST command API (integration, real db + sync)",
     const auth = await bearer(await newUser());
 
     expect((await post("nopeCommand", auth, {})).statusCode).toBe(404);
-    expect((await post("addColumn", auth, {})).statusCode).toBe(400); // missing title
-    expect((await post("addColumn", undefined, { title: "x" })).statusCode).toBe(401);
+    expect((await post("createCard", auth, {})).statusCode).toBe(400); // missing title
+    expect((await post("createCard", undefined, { title: "x" })).statusCode).toBe(401);
   });
 });
