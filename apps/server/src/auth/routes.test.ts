@@ -86,6 +86,58 @@ describe.skipIf(!DATABASE_URL)("auth routes (integration, real db)", () => {
     expect(login.json().refreshToken).toBeUndefined();
   });
 
+  // Own app instance so these logins don't consume the shared per-IP login
+  // rate-limit budget of the surrounding tests.
+  it("desktop (Tauri) origin gets the refresh token in the body and rotates on refresh", async () => {
+    const { app: desktop, handle: h } = await makeApp();
+    try {
+      const e = email();
+      await desktop.inject({
+        method: "POST",
+        url: "/auth/signup",
+        payload: { email: e, password: PASSWORD },
+      });
+      const login = await desktop.inject({
+        method: "POST",
+        url: "/auth/login",
+        headers: { origin: "tauri://localhost" },
+        payload: { email: e, password: PASSWORD },
+      });
+      expect(login.statusCode).toBe(200);
+      // Desktop can't use the httpOnly cookie → also gets the token in the body
+      // to stash in the OS keychain. The cookie is still set (harmless there).
+      const rt1 = login.json().refreshToken as string;
+      expect(rt1).toBeTruthy();
+      expect(cookieOf(login)).toBeTruthy();
+
+      // Refresh with the body token (what the desktop keychain path sends) →
+      // returns a ROTATED body token.
+      const r1 = await desktop.inject({
+        method: "POST",
+        url: "/auth/refresh",
+        headers: { origin: "tauri://localhost" },
+        payload: { refreshToken: rt1 },
+      });
+      expect(r1.statusCode).toBe(200);
+      const rt2 = r1.json().refreshToken as string;
+      expect(rt2).toBeTruthy();
+      expect(rt2).not.toBe(rt1);
+
+      // The rotated token still refreshes — the keychain stays valid across
+      // relaunches (this is exactly what was broken before the fix).
+      const r2 = await desktop.inject({
+        method: "POST",
+        url: "/auth/refresh",
+        headers: { origin: "tauri://localhost" },
+        payload: { refreshToken: rt2 },
+      });
+      expect(r2.statusCode).toBe(200);
+    } finally {
+      await desktop.close();
+      await h.pool.end();
+    }
+  });
+
   it("returns a generic 401 for a wrong password (no enumeration)", async () => {
     const e = email();
     await app.inject({

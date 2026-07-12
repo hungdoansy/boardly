@@ -79,6 +79,18 @@ Two problems surfaced and were fixed during bring-up:
   `localhost` is a secure context so http from the tauri origin isn't blocked). The refresh token is
   stored in the OS keychain (Rust `keyring` commands), so desktop auth doesn't depend on a
   cross-origin cookie.
+- **Desktop auth fix (found during bring-up).** The refresh token was delivered as an httpOnly
+  cookie *only* — which the Tauri webview can't use (cross-site `tauri://localhost` → `http://localhost`
+  over an insecure scheme). The keychain path in `apps/web/lib/api-client.ts` only fires when the
+  login/refresh **body** carries `refreshToken`, which the server never sent. Result: `bootstrap()`
+  → `refresh()` failed on every mount, and since `AuthGate` re-bootstraps on navigation, a
+  successful login was immediately undone → bounced back to `/login`. Fix (server-only,
+  `apps/server/src/auth/routes.ts`): return `refreshToken` in the login **and** refresh bodies when
+  the request `Origin` is a desktop origin (`tauri://localhost` / `https://tauri.localhost`). Gating
+  on `Origin` (which page JS cannot forge) keeps the web deploy's httpOnly protection intact — an
+  existing test asserts a *spoofed header* still gets no body token. Refresh returns the **rotated**
+  token so the keychain stays valid across the rotation family. No client rebuild needed (the client
+  already stores/sends a body token). Regression test added in `routes.test.ts`.
 
 ## How to verify
 

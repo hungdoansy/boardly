@@ -168,11 +168,44 @@ the app with those credentials to see it.
 
 ---
 
+## Checking logs
+
+**Server (Docker):**
+```bash
+docker compose -f docker-compose.prod.yml logs -f server   # follow live
+docker compose -f docker-compose.prod.yml logs --tail 100 server
+```
+The server logs boot lines, migrations, and errors (per-request logging is off by design). To
+sanity-check the API directly:
+```bash
+curl -s localhost:8788/health                              # {"status":"ok","db":"up"}
+# reproduce a login exactly as the desktop app does (its origin is tauri://localhost):
+curl -s -X POST localhost:8788/auth/login -H "Origin: tauri://localhost" \
+  -H "content-type: application/json" -d '{"email":"you@example.com","password":"…"}'
+```
+
+**Desktop app (webview console):** the production build has no devtools. To see the app's own
+console/network errors, run it in **dev mode** (which has right-click → Inspect) pointed at the
+production backend:
+```bash
+export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
+NEXT_PUBLIC_API_URL=http://localhost:8788 pnpm --filter @boardly/desktop dev
+```
+Then right-click in the window → **Inspect Element** → **Console** / **Network** tabs.
+
+---
+
 ## Troubleshooting
 
 **`curl localhost:8788/health` fails / app can't reach the server**
 - Is Docker Desktop running? Is the stack up? `docker compose -f docker-compose.prod.yml ps`.
 - Check logs: `docker compose -f docker-compose.prod.yml logs server`.
+
+**Log in bounces straight back to the login screen (desktop)**
+- Fixed: the server now returns the refresh token in the login/refresh body for the desktop origin
+  (`tauri://localhost`) so it can live in the OS keychain — previously it was cookie-only and the
+  cookie couldn't reach the Tauri webview, so every post-login session check logged you out. Make
+  sure your production server is rebuilt (`docker compose -f docker-compose.prod.yml up -d --build`).
 
 **`boardly-prod-db` is "unhealthy" / restarting after an image change**
 - A newer Postgres major can't open a data dir created by an older one. Keep `POSTGRES_IMAGE` in
