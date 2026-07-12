@@ -38,8 +38,8 @@ function pie(fraction: number): string {
 /**
  * Linear-style workflow status icon. Self-contained SVG (no icon dep), colored
  * by the `color` prop so the domain owns the palette. Renders an outline ring
- * for unstarted states, a progress pie for started ones, and a filled disc with
- * a check / cross for done / canceled.
+ * for unstarted states, a progress pie for started ones, a filled disc with a
+ * check / cross for done / canceled, and an outlined square-slash for duplicate.
  */
 export function StatusIcon({
   variant,
@@ -52,7 +52,7 @@ export function StatusIcon({
   className?: string;
   size?: number;
 }) {
-  const filled = variant === "done" || variant === "canceled" || variant === "duplicate";
+  const filled = variant === "done" || variant === "canceled";
   return (
     <svg
       width={size}
@@ -83,6 +83,26 @@ export function StatusIcon({
               strokeLinecap="round"
             />
           )}
+        </>
+      ) : variant === "duplicate" ? (
+        <>
+          <rect
+            x={2.5}
+            y={2.5}
+            width={9}
+            height={9}
+            rx={1.5}
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+          />
+          <path
+            d="M2.2 11.8 L11.8 2.2"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </>
       ) : (
         <>
