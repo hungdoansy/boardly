@@ -1,5 +1,11 @@
 # UNIT 2.3: Priority & severity fields + badges
 
+> **Superseded (2026-07-12):** severity — the field this unit introduced — was
+> removed completely (domain, sync, commands, UI, seed data) per
+> `docs/plans/2026-07-12-003-fix-card-polish-severity-removal-plan.md`. Priority
+> is unaffected and remains as described below. This doc is kept for historical
+> rationale only.
+
 - **Plan unit:** 2.3 (`docs/plans/2026-07-09-001-feat-boardly-full-build-plan.md` → Phase 2)
 - **Status:** done
 - **Requirements:** R6, R7

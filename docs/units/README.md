@@ -29,6 +29,14 @@ reuse a number namespace). The plans, newest last:
   - `UNIT-7.9` — web board: render fixed status columns; drag sets status; show/hide-empty toggle.
   - `UNIT-7.10` — web: Settings placement and the ESC escape ladder.
   - `UNIT-7.11` — docs: rewrite `PLAN.md` + `DESIGN.md` + this index; rewrite the demo seed (this doc).
+- `docs/plans/2026-07-12-003-fix-card-polish-severity-removal-plan.md` — glyph→SVG fixes, cmd+K
+  contrast fix, remove `severity` end-to-end, relayout the card face into three fixed lines:
+  - `UNIT-1` — strip the remaining Unicode glyphs (link-cluster tooltip, filter-builder checkmark).
+  - `UNIT-2` — fix the cmd+K palette's selected-row contrast (`bg-overlay` → `bg-selected`).
+  - `UNIT-3` — remove `severity` from domain, sync, and the command layer (REST/MCP follow via the catalog).
+  - `UNIT-4` — remove `severity` from the web UI and the demo seed script.
+  - `UNIT-5` — relayout the card face into three fixed lines (ticket id/deadline/checklist, labels, priority/links/project).
+  - `UNIT-6` — one-off script to purge persisted `severity` data from the real account.
 
 ## Convention
 

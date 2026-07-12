@@ -1,5 +1,11 @@
 # UNIT-P3 — Card-face layout & unified badge language
 
+> **Superseded (2026-07-12):** the two-tier (middle/bottom row) layout below was
+> replaced by a fixed three-line layout — see `UNIT-5` and
+> `docs/plans/2026-07-12-003-fix-card-polish-severity-removal-plan.md`. The
+> title row (status glyph + title) and the shared `CHIP`/`CHIP_ICON` shell are
+> unchanged; this doc is kept for the shell's original rationale.
+
 Polish pass on the board card face: reorganize the three tiers, lead the title
 with the status glyph, and give every info element one consistent Linear-style
 chip shell. Requested interactively after Unit 7 landed.
