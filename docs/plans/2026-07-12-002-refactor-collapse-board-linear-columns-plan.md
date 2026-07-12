@@ -464,7 +464,7 @@ Each unit is an atomic commit with tests green (typecheck/lint/unit; e2e + dark-
 
 ---
 
-- [ ] **Unit 8: Commands — remove column commands; `moveCard` sets status; add `setShowEmptyColumns`**
+- [x] **Unit 8: Commands — remove column commands; `moveCard` sets status; add `setShowEmptyColumns`**
 
 **Goal:** Delete the column commands, repurpose the card move to a status move (drag applies status), and expose the empty-columns toggle as a command.
 

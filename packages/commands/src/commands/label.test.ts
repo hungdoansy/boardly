@@ -3,15 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { addColumn } from "./column";
 import { createCard } from "./card";
 import { assignLabel, createLabel, deleteLabel, renameLabel, unassignLabel } from "./label";
 
 function seed() {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  execute(addColumn, ctx, { id: "col1", title: "To Do" });
-  execute(createCard, ctx, { id: "c1", columnId: "col1", title: "Card" });
+  execute(createCard, ctx, { id: "c1", title: "Card" });
   return ctx;
 }
 

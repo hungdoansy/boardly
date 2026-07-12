@@ -1,3 +1,4 @@
+import { type Status, STATUS_VALUES } from "@boardly/domain";
 import {
   addCard,
   addChecklistItem as syncAddChecklistItem,
@@ -18,11 +19,15 @@ import { z } from "zod";
 
 import { defineCommand } from "../command";
 
+// Enum derived from the domain Status values so the agent surface can't drift.
+// A card's status IS its column, so creating/moving a card places it by status.
+const statusInput = z.enum(STATUS_VALUES as [Status, ...Status[]]);
+
 export const createCard = defineCommand({
   name: "createCard",
-  description: "Create a card in a column.",
+  description: "Create a card in a status column (defaults to Todo).",
   input: z.object({
-    columnId: z.string(),
+    status: statusInput.optional(),
     title: z.string().min(1),
     projectId: z.string().optional(),
     id: z.string().optional(),
@@ -31,7 +36,7 @@ export const createCard = defineCommand({
     const doc = ctx.getBoardDoc();
     const id = addCard(doc, {
       id: input.id,
-      columnId: input.columnId,
+      status: input.status,
       title: input.title,
       projectId: input.projectId,
       now: ctx.now(),
@@ -44,10 +49,11 @@ export const createCard = defineCommand({
 
 export const moveCard = defineCommand({
   name: "moveCard",
-  description: "Move a card to a column at a position between two neighbor cards.",
+  description:
+    "Move a card to a status column at a position between two neighbor cards (drag path: applies the status and slots the card).",
   input: z.object({
     cardId: z.string(),
-    toColumnId: z.string(),
+    toStatus: statusInput,
     afterId: z.string().nullish(),
     beforeId: z.string().nullish(),
   }),
@@ -56,7 +62,7 @@ export const moveCard = defineCommand({
     syncMoveCard(
       doc,
       input.cardId,
-      input.toColumnId,
+      input.toStatus,
       { afterId: input.afterId ?? null, beforeId: input.beforeId ?? null },
       ctx.clientId,
       ctx.now(),

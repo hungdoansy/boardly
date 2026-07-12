@@ -6,7 +6,6 @@ export * from "./context";
 export * from "./command";
 export * from "./catalog";
 export * from "./commands/board";
-export * from "./commands/column";
 export * from "./commands/card";
 export * from "./commands/label";
 export * from "./commands/project";

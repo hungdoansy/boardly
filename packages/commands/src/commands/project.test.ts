@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { addColumn } from "./column";
 import { createCard } from "./card";
 import {
   archiveProject,
@@ -16,7 +15,6 @@ import {
 function seed() {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
-  execute(addColumn, ctx, { id: "col1", title: "To Do" });
   return ctx;
 }
 
@@ -42,12 +40,7 @@ describe("project commands", () => {
   it("archiving hides the project but leaves a card's projectId intact", () => {
     const ctx = seed();
     execute(createProject, ctx, { id: "p1", name: "Web" });
-    execute(createCard, ctx, {
-      id: "c1",
-      columnId: "col1",
-      title: "Card",
-      projectId: "p1",
-    });
+    execute(createCard, ctx, { id: "c1", title: "Card", projectId: "p1" });
     execute(archiveProject, ctx, { projectId: "p1" });
 
     expect(listProjects(ctx.getBoardDoc())).toHaveLength(0);
@@ -58,12 +51,7 @@ describe("project commands", () => {
     const ctx = seed();
     execute(createProject, ctx, { id: "p1", name: "Web" });
     execute(createProject, ctx, { id: "p2", name: "API" });
-    execute(createCard, ctx, {
-      id: "c1",
-      columnId: "col1",
-      title: "Card",
-      projectId: "p1",
-    });
+    execute(createCard, ctx, { id: "c1", title: "Card", projectId: "p1" });
     expect(getCard(ctx.getBoardDoc(), "c1")?.projectId).toBe("p1");
 
     execute(setCardProject, ctx, { cardId: "c1", projectId: "p2" });

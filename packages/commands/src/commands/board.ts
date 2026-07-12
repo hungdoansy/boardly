@@ -3,6 +3,7 @@ import {
   getBoard,
   renameBoard as syncRenameBoard,
   setBadgeConfig as syncSetBadgeConfig,
+  setShowEmptyColumns as syncSetShowEmptyColumns,
   setTicketPrefix as syncSetTicketPrefix,
 } from "@boardly/sync";
 import { z } from "zod";
@@ -43,6 +44,17 @@ export const setTicketPrefix = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc();
     syncSetTicketPrefix(doc, normalizeTicketPrefix(input.prefix), ctx.now());
+    return getBoard(doc, boardId(ctx));
+  },
+});
+
+export const setShowEmptyColumns = defineCommand({
+  name: "setShowEmptyColumns",
+  description: "Toggle whether empty status columns are shown on the board.",
+  input: z.object({ show: z.boolean() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    syncSetShowEmptyColumns(doc, input.show, ctx.now());
     return getBoard(doc, boardId(ctx));
   },
 });
