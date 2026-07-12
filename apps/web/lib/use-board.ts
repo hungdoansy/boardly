@@ -65,11 +65,17 @@ import { getSelectedProject } from "./use-projects";
 /** Live card count per fixed status column, keyed by status. Depends on cards. */
 export function useCardCounts(): Record<Status, number> {
   const doc = useBoardlyContext().getBoardDoc();
-  return useY(boardCards(doc), () => {
-    const counts = {} as Record<Status, number>;
-    for (const status of STATUS_ORDER) counts[status] = cardsInStatus(doc, status).length;
-    return counts;
-  });
+  return useY(
+    boardCards(doc),
+    () => {
+      const counts = {} as Record<Status, number>;
+      for (const status of STATUS_ORDER) counts[status] = cardsInStatus(doc, status).length;
+      return counts;
+    },
+    // Card status is a nested Y.Map field; without deep the counts (and the
+    // hide-empty-columns toggle that derives from them) go stale on a move.
+    { deep: true },
+  );
 }
 
 /** Live ordered card-face badge config for the board. */

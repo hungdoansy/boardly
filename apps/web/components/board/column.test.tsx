@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createCard, execute } from "@boardly/commands";
+import { createCard, execute, setCardStatus } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
-import { getBoard, initBoard } from "@boardly/sync";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cardsInStatus, getBoard, initBoard } from "@boardly/sync";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
@@ -67,5 +67,32 @@ describe("BoardView fixed status columns", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show empty columns" }));
     expect(getBoard(ctx.getBoardDoc(), "me").showEmptyColumns).toBe(true);
     expect(screen.getAllByRole("region")).toHaveLength(STATUS_ORDER.length);
+  });
+
+  it("reacts to an in-session status change while hiding empty columns", () => {
+    // Regression: card counts subscribe to nested Y.Map status changes (deep),
+    // so moving a card re-derives which columns are non-empty without a reload.
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.Todo, title: "Mover" });
+    });
+    const cardId = cardsInStatus(ctx.getBoardDoc(), Status.Todo)[0]!.id;
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide empty columns" }));
+    expect(screen.getAllByRole("region")).toHaveLength(1);
+    expect(screen.getByRole("region").getAttribute("aria-label")).toBe(
+      `Column: ${STATUS_META[Status.Todo].name}`,
+    );
+
+    // Move the card's status; the only visible column must follow it to In Progress.
+    // Wrap the external Yjs mutation in act so the useY-driven re-render flushes.
+    act(() => {
+      execute(setCardStatus, ctx, { cardId, status: Status.InProgress });
+    });
+
+    const visible = screen.getAllByRole("region");
+    expect(visible).toHaveLength(1);
+    expect(visible[0]!.getAttribute("aria-label")).toBe(
+      `Column: ${STATUS_META[Status.InProgress].name}`,
+    );
   });
 });
