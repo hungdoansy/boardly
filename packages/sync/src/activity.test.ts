@@ -37,7 +37,7 @@ describe("card activity log", () => {
     const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
     // Drag to a new column = a status change.
     moveCard(doc, a, Status.InProgress, { afterId: null, beforeId: null }, "1", NOW + 1, "u1");
-    setCardPriority(doc, a, Priority.High, NOW + 2, "u1");
+    setCardPriority(doc, a, Priority.High, NOW + 2, "1", "u1");
 
     // Newest-first for the card timeline.
     const log = cardActivity(doc, a);
@@ -62,7 +62,7 @@ describe("card activity log", () => {
   it("does not log a no-op change (same value)", () => {
     const { doc } = setup();
     const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
-    setCardPriority(doc, a, Priority.None, NOW + 1, "u1"); // unchanged
+    setCardPriority(doc, a, Priority.None, NOW + 1, "1", "u1"); // unchanged
     setCardTitle(doc, a, "A", NOW + 2, "u1"); // unchanged
     setCardStatus(doc, a, Status.Todo, NOW + 3, "u1"); // unchanged
     expect(cardActivity(doc, a).map((e) => e.type)).toEqual(["created"]);
@@ -97,7 +97,7 @@ describe("card activity log", () => {
     const { doc } = setup();
     const a = addCard(doc, { status: Status.Todo, title: "A", now: NOW, clientId: "1" });
     const b = addCard(doc, { status: Status.Todo, title: "B", now: NOW, clientId: "1" });
-    setCardPriority(doc, b, Priority.Urgent, NOW + 1, "u1");
+    setCardPriority(doc, b, Priority.Urgent, NOW + 1, "1", "u1");
     expect(cardActivity(doc, a).map((e) => e.type)).toEqual(["created"]);
     expect(cardActivity(doc, b).map((e) => e.type)).toEqual(["priority", "created"]);
   });

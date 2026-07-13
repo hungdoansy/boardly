@@ -94,7 +94,7 @@ export const setCardPriority = defineCommand({
   }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc();
-    syncSetPriority(doc, input.cardId, input.priority, ctx.now(), ctx.userId ?? ctx.clientId);
+    syncSetPriority(doc, input.cardId, input.priority, ctx.now(), ctx.clientId, ctx.userId ?? ctx.clientId);
     return syncGetCard(doc, input.cardId);
   },
 });

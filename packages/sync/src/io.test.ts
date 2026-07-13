@@ -24,7 +24,7 @@ function seededDoc() {
   const lbl = addLabel(doc, { name: "bug", color: "#eb5757", now: NOW, clientId: "1" });
   const a = addCard(doc, { status: Status.Todo, title: "Fix login", now: NOW, clientId: "1" });
   addCard(doc, { status: Status.Done, title: "Ship it", now: NOW, clientId: "1" });
-  setCardPriority(doc, a, Priority.High, NOW, "1");
+  setCardPriority(doc, a, Priority.High, NOW, "1", "1");
   setCardDueDate(doc, a, { at: NOW + 1000, hasTime: false }, NOW, "1");
   assignLabel(doc, a, lbl, NOW);
   return { doc, a, lbl };

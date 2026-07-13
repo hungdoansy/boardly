@@ -450,7 +450,7 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
     if (spec.assignSelf) boardCards(boardDoc).get(id)?.set("assigneeId", userId);
     if (spec.description) setCardDescription(boardDoc, id, spec.description, tick());
     if (spec.priority !== undefined && spec.priority !== Priority.None)
-      setCardPriority(boardDoc, id, spec.priority, tick(), userId);
+      setCardPriority(boardDoc, id, spec.priority, tick(), CLIENT_ID, userId);
     if (spec.dueInDays !== undefined)
       setCardDueDate(
         boardDoc,

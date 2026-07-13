@@ -56,6 +56,14 @@ function maxOrd(ords: string[]): string | null {
   return max;
 }
 
+function minOrd(ords: string[]): string | null {
+  let min: string | null = null;
+  for (const ord of ords) {
+    if (min === null || compareOrd(ord, min) < 0) min = ord;
+  }
+  return min;
+}
+
 function rawLiveCardsInStatus(doc: Y.Doc, status: Status): YCard[] {
   return [...boardCards(doc).values()].filter(
     (c) => getStatus(c) === status && !getBool(c, "archived"),
@@ -186,6 +194,8 @@ export interface AddCardParams {
   status?: Status;
   title: string;
   projectId?: string;
+  /** Initial priority; defaults to None. An Urgent card is slotted at the top. */
+  priority?: PriorityValue;
   now: number;
   clientId: string;
   createdBy?: string;
@@ -194,21 +204,27 @@ export interface AddCardParams {
 export function addCard(doc: Y.Doc, params: AddCardParams): string {
   const id = params.id ?? newId();
   const status = params.status ?? DEFAULT_STATUS;
+  const priority = params.priority ?? Priority.None;
   doc.transact(() => {
     const meta = boardMeta(doc);
     const cards = boardCards(doc);
     const seq = getNumber(meta, "shortIdSeq") + 1;
     meta.set("shortIdSeq", seq);
-    const lastOrd = maxOrd(rawLiveCardsInStatus(doc, status).map((c) => getString(c, "ord")));
+    // Urgent cards land at the top of their column; everything else appends.
+    const ords = rawLiveCardsInStatus(doc, status).map((c) => getString(c, "ord"));
+    const ord =
+      priority === Priority.Urgent
+        ? keyBetween(null, minOrd(ords), params.clientId)
+        : keyBetween(maxOrd(ords), null, params.clientId);
     const card = new Y.Map<unknown>();
     card.set("id", id);
     card.set("number", seq);
     card.set("title", params.title);
     if (params.projectId !== undefined) card.set("projectId", params.projectId);
     card.set("description", new Y.Text());
-    card.set("ord", keyBetween(lastOrd, null, params.clientId));
+    card.set("ord", ord);
     card.set("status", status);
-    card.set("priority", Priority.None);
+    card.set("priority", priority);
     card.set("dueDate", null);
     card.set("labels", new Y.Map<unknown>());
     card.set("related", new Y.Map<unknown>());
@@ -264,6 +280,7 @@ export function setCardPriority(
   cardId: string,
   priority: PriorityValue,
   now: number,
+  clientId: string,
   actor?: string,
 ): void {
   withCard(
@@ -273,6 +290,14 @@ export function setCardPriority(
       const from = (card.get("priority") as PriorityValue | undefined) ?? Priority.None;
       if (from === priority) return;
       card.set("priority", priority);
+      // Becoming Urgent floats the card to the top of its column, once (the card
+      // stays freely draggable afterwards). Other transitions never reorder.
+      if (from !== Priority.Urgent && priority === Priority.Urgent) {
+        const others = rawLiveCardsInStatus(doc, getStatus(card))
+          .filter((c) => getString(c, "id") !== cardId)
+          .map((c) => getString(c, "ord"));
+        card.set("ord", keyBetween(null, minOrd(others), clientId));
+      }
       appendActivity(doc, { type: "priority", cardId, from, to: priority, at: now, actor });
     },
     now,

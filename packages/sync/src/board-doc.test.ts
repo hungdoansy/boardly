@@ -276,6 +276,62 @@ describe("relations (untyped, symmetric)", () => {
   });
 });
 
+describe("urgent floats to top", () => {
+  const idsInStatus = (doc: Y.Doc, status: Status) =>
+    cardsInStatus(doc, status).map((c) => c.title);
+
+  it("moves a card to the top of its column when set to Urgent", () => {
+    const { doc } = setup();
+    addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    const c = addCard(doc, { status: TODO, title: "C", now: NOW, clientId: "1" });
+    expect(idsInStatus(doc, TODO)).toEqual(["A", "B", "C"]);
+    setCardPriority(doc, c, Priority.Urgent, NOW + 1, "1");
+    expect(idsInStatus(doc, TODO)).toEqual(["C", "A", "B"]);
+  });
+
+  it("creates an Urgent card at the top of its column", () => {
+    const { doc } = setup();
+    addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addCard(doc, { status: TODO, title: "U", priority: Priority.Urgent, now: NOW, clientId: "1" });
+    expect(idsInStatus(doc, TODO)).toEqual(["U", "A", "B"]);
+  });
+
+  it("does not reorder when set to a non-Urgent priority", () => {
+    const { doc } = setup();
+    addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    setCardPriority(doc, b, Priority.High, NOW + 1, "1");
+    expect(idsInStatus(doc, TODO)).toEqual(["A", "B"]);
+  });
+
+  it("does not reorder when the card is already Urgent", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", priority: Priority.Urgent, now: NOW, clientId: "1" });
+    addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    // A is already Urgent (and at top). Re-set Urgent → no change, no crash.
+    setCardPriority(doc, a, Priority.Urgent, NOW + 1, "1");
+    expect(idsInStatus(doc, TODO)).toEqual(["A", "B"]);
+  });
+
+  it("floats the most-recently-set Urgent card to the very top", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    setCardPriority(doc, a, Priority.Urgent, NOW + 1, "1");
+    setCardPriority(doc, b, Priority.Urgent, NOW + 2, "1");
+    expect(idsInStatus(doc, TODO)).toEqual(["B", "A"]);
+  });
+
+  it("handles the only card in a column (no neighbors)", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    setCardPriority(doc, a, Priority.Urgent, NOW + 1, "1");
+    expect(idsInStatus(doc, TODO)).toEqual(["A"]);
+  });
+});
+
 describe("hard delete", () => {
   it("removes the card from selectors and the doc", () => {
     const { doc } = setup();
@@ -397,7 +453,7 @@ describe("field setters", () => {
   it("sets a typed field and bumps updatedAt", () => {
     const { doc } = setup();
     const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
-    setCardPriority(doc, a, Priority.Urgent, NOW + 5);
+    setCardPriority(doc, a, Priority.Urgent, NOW + 5, "1");
     const card = getCard(doc, a);
     expect(card?.priority).toBe(Priority.Urgent);
     expect(card?.updatedAt).toBe(NOW + 5);

@@ -381,7 +381,7 @@ cross-card cleanup; existing `Dialog` usage in `card-composer.tsx`.
 Archive behavior unchanged; confirm-dialog gating works; dark-mode screenshot of the footer with
 both Archive and Delete; tests green.
 
-- [ ] **Unit 3 (UNIT-9.3): Urgent floats to top on set**
+- [x] **Unit 3 (UNIT-9.3): Urgent floats to top on set**
 
 **Goal:** Transitioning a card to Urgent moves it to the top of its status column exactly once;
 it remains normally draggable afterward.
