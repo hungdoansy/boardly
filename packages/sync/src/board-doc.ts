@@ -196,6 +196,8 @@ export interface AddCardParams {
   projectId?: string;
   /** Initial priority; defaults to None. An Urgent card is slotted at the top. */
   priority?: PriorityValue;
+  /** Initial label ids (e.g. seeded from the active filter, Unit 9.5). */
+  labelIds?: string[];
   now: number;
   clientId: string;
   createdBy?: string;
@@ -226,7 +228,9 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     card.set("status", status);
     card.set("priority", priority);
     card.set("dueDate", null);
-    card.set("labels", new Y.Map<unknown>());
+    const labels = new Y.Map<unknown>();
+    for (const labelId of params.labelIds ?? []) labels.set(labelId, true);
+    card.set("labels", labels);
     card.set("related", new Y.Map<unknown>());
     card.set("checklist", new Y.Map<unknown>());
     card.set("links", new Y.Map<unknown>());

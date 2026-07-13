@@ -32,6 +32,10 @@ export const createCard = defineCommand({
     status: statusInput.optional(),
     title: z.string().min(1),
     projectId: z.string().optional(),
+    priority: z
+      .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+      .optional(),
+    labelIds: z.array(z.string()).optional(),
     id: z.string().optional(),
   }),
   run: (ctx, input) => {
@@ -41,6 +45,8 @@ export const createCard = defineCommand({
       status: input.status,
       title: input.title,
       projectId: input.projectId,
+      priority: input.priority,
+      labelIds: input.labelIds,
       now: ctx.now(),
       clientId: ctx.clientId,
       createdBy: ctx.userId,

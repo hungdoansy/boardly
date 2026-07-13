@@ -6,6 +6,7 @@ import {
   PRESET_VIEWS,
   type ResolvedView,
   type SavedView,
+  deriveCardDefaults,
   emptyFilter,
   evaluateFilter,
   groupCards,
@@ -18,6 +19,68 @@ import { Status } from "./status";
 import type { Card } from "./types";
 
 const NOW = new Date("2026-07-10T12:00:00Z").getTime();
+
+describe("deriveCardDefaults", () => {
+  const and = (...clauses: Filter["clauses"]): Filter => ({ op: "and", clauses });
+
+  it("derives projectId from a single project `is` clause", () => {
+    const f = and({ field: "project", condition: "is", values: ["p1"] });
+    expect(deriveCardDefaults(f)).toEqual({ projectId: "p1" });
+  });
+
+  it("derives priority and labels together", () => {
+    const f = and(
+      { field: "priority", condition: "is", values: [Priority.Urgent] },
+      { field: "label", condition: "hasAny", values: ["l1", "l2"] },
+    );
+    expect(deriveCardDefaults(f)).toEqual({ priority: Priority.Urgent, labelIds: ["l1", "l2"] });
+  });
+
+  it("unions label ids across multiple label clauses (hasAny + hasAll)", () => {
+    const f = and(
+      { field: "label", condition: "hasAny", values: ["l1"] },
+      { field: "label", condition: "hasAll", values: ["l2", "l3"] },
+    );
+    expect(deriveCardDefaults(f)).toEqual({ labelIds: ["l1", "l2", "l3"] });
+  });
+
+  it("returns {} for a top-level OR group", () => {
+    const f: Filter = {
+      op: "or",
+      clauses: [{ field: "project", condition: "is", values: ["p1"] }],
+    };
+    expect(deriveCardDefaults(f)).toEqual({});
+  });
+
+  it("ignores negations, ranges, text, assignee, and status clauses", () => {
+    const f = and(
+      { field: "priority", condition: "isNot", values: [Priority.High] },
+      { field: "dueDate", condition: "isWithin", values: ["week"] },
+      { field: "title", condition: "contains", values: ["bug"] },
+      { field: "assignee", condition: "is", values: ["@me"] },
+      { field: "status", condition: "is", values: [Status.Done] },
+    );
+    expect(deriveCardDefaults(f)).toEqual({});
+  });
+
+  it("skips multi-value priority/project (a card has exactly one)", () => {
+    const f = and({ field: "priority", condition: "is", values: [Priority.High, Priority.Urgent] });
+    expect(deriveCardDefaults(f)).toEqual({});
+  });
+
+  it("ignores nested groups (top-level only) but still reads sibling clauses", () => {
+    const f = and(
+      { op: "and", clauses: [{ field: "priority", condition: "is", values: [Priority.Urgent] }] },
+      { field: "project", condition: "is", values: ["p1"] },
+    );
+    // The nested priority is ignored; the direct project clause is read.
+    expect(deriveCardDefaults(f)).toEqual({ projectId: "p1" });
+  });
+
+  it("returns {} for the empty filter", () => {
+    expect(deriveCardDefaults(emptyFilter())).toEqual({});
+  });
+});
 
 function card(over: Partial<Card>): Card {
   return {

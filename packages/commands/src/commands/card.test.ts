@@ -101,3 +101,20 @@ describe("deleteCard", () => {
     expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toHaveLength(0);
   });
 });
+
+describe("createCard with filter-seeded defaults", () => {
+  it("persists a seeded priority and labels, and floats an Urgent card to the top", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A" }); // plain, appends
+    const seeded = execute(createCard, ctx, {
+      id: "b",
+      title: "B",
+      priority: 4,
+      labelIds: ["l1", "l2"],
+    });
+    expect(seeded?.priority).toBe(4);
+    expect(seeded?.labelIds.sort()).toEqual(["l1", "l2"]);
+    // Urgent → slotted at the top of Todo (before the earlier plain card).
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["b", "a"]);
+  });
+});

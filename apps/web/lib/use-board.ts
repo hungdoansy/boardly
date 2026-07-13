@@ -1,6 +1,14 @@
 "use client";
 
-import type { ActivityEntry, Card, DueDate, Label, PriorityValue, Status } from "@boardly/domain";
+import type {
+  ActivityEntry,
+  Card,
+  CardDefaults,
+  DueDate,
+  Label,
+  PriorityValue,
+  Status,
+} from "@boardly/domain";
 import {
   detectProvider,
   isGithubRepoUrl,
@@ -217,8 +225,12 @@ export function useCardActivity(cardId: string | null): ActivityEntry[] {
 }
 
 export interface CardActions {
-  /** Create a card in a status column (a card's column IS its status; defaults to Todo). */
-  create(title: string, status?: Status): string;
+  /**
+   * Create a card in a status column (a card's column IS its status; defaults to
+   * Todo). `defaults` (e.g. derived from the active filter, Unit 9.5) seeds the
+   * card's project/priority/labels so it satisfies the current filter.
+   */
+  create(title: string, status?: Status, defaults?: CardDefaults): string;
   rename(cardId: string, title: string): void;
   setDescription(cardId: string, description: string): void;
   setPriority(cardId: string, priority: PriorityValue): void;
@@ -235,10 +247,19 @@ export interface CardActions {
 export function useCardActions(): CardActions {
   const ctx = useBoardlyContext();
   const create = useCallback(
-    (title: string, status?: Status) => {
-      // New cards inherit the sidebar's active project scope (null = no project).
-      const projectId = getSelectedProject() ?? undefined;
-      return execute(createCard, ctx, { title, status, projectId })?.id ?? "";
+    (title: string, status?: Status, defaults?: CardDefaults) => {
+      // New cards inherit the active filter's implied fields (Unit 9.5); the
+      // sidebar project scope is the fallback for project when not filter-derived.
+      const projectId = defaults?.projectId ?? getSelectedProject() ?? undefined;
+      return (
+        execute(createCard, ctx, {
+          title,
+          status,
+          projectId,
+          priority: defaults?.priority,
+          labelIds: defaults?.labelIds,
+        })?.id ?? ""
+      );
     },
     [ctx],
   );

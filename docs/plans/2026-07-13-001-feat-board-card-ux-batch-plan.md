@@ -466,7 +466,7 @@ branch + never-throw); the existing capability entries in `capabilities/default.
 drawer link opens the system browser (Rust changes require rebuilding the Tauri app — note in the
 unit doc); web still opens a new tab and supports cmd/middle-click.
 
-- [ ] **Unit 5 (UNIT-9.5): Filter-aware card creation**
+- [x] **Unit 5 (UNIT-9.5): Filter-aware card creation**
 
 **Goal:** Adding a card while a filter is active seeds its project, priority, and labels from the
 filter so the new card satisfies the filter and stays visible.

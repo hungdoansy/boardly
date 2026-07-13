@@ -1,6 +1,12 @@
 "use client";
 
-import { type Filter, type FilterContext, type Status, evaluateFilter } from "@boardly/domain";
+import {
+  type Filter,
+  type FilterContext,
+  type Status,
+  deriveCardDefaults,
+  evaluateFilter,
+} from "@boardly/domain";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useMemo } from "react";
 
@@ -43,6 +49,10 @@ export function ColumnCards({
     [allCards, filter, filterCtx],
   );
 
+  // A card added while a filter is active inherits the filter's implied fields
+  // (project/priority/labels) so it stays visible (Unit 9.5).
+  const cardDefaults = useMemo(() => (filter ? deriveCardDefaults(filter) : undefined), [filter]);
+
   return (
     <>
       <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -59,8 +69,8 @@ export function ColumnCards({
         ))}
       </SortableContext>
       <CardComposer
-        onAdd={(title) => actions.create(title, status)}
-        onCreateDetailed={(title) => onOpenCard(actions.create(title, status))}
+        onAdd={(title) => actions.create(title, status, cardDefaults)}
+        onCreateDetailed={(title) => onOpenCard(actions.create(title, status, cardDefaults))}
       />
     </>
   );

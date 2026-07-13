@@ -126,6 +126,44 @@ function matchesClause(card: Card, clause: FilterClause, ctx: FilterContext): bo
   }
 }
 
+/** Settable card fields a new card can inherit from the active filter (Unit 9.5). */
+export interface CardDefaults {
+  projectId?: string;
+  priority?: PriorityValue;
+  labelIds?: string[];
+}
+
+/**
+ * Derive seed values for a new card from the active filter, so a card created
+ * while a filter is applied satisfies it. Only the TOP-LEVEL **AND** group's
+ * direct clauses are read: `priority is X` / `project is X` (single value only —
+ * a card has exactly one of each) and `label hasAny/hasAll [...]` (all values,
+ * which satisfies either condition). A top-level OR, nested groups, negations,
+ * ranges, and title/assignee/status clauses are ignored (ambiguous, or not a
+ * create-time field — status is the column). Empty/absent seeds → `{}`.
+ */
+export function deriveCardDefaults(filter: Filter): CardDefaults {
+  const defaults: CardDefaults = {};
+  if (filter.op !== "and") return defaults;
+  const labelIds: string[] = [];
+  for (const node of filter.clauses) {
+    if (isFilterGroup(node)) continue;
+    const values = node.values ?? [];
+    if (node.field === "priority" && node.condition === "is" && values.length === 1) {
+      defaults.priority = values[0] as PriorityValue;
+    } else if (node.field === "project" && node.condition === "is" && values.length === 1) {
+      defaults.projectId = String(values[0]);
+    } else if (
+      node.field === "label" &&
+      (node.condition === "hasAny" || node.condition === "hasAll")
+    ) {
+      for (const v of values) labelIds.push(String(v));
+    }
+  }
+  if (labelIds.length > 0) defaults.labelIds = labelIds;
+  return defaults;
+}
+
 /** Evaluate a (nestable) filter against a card. Empty group → match. */
 export function evaluateFilter(card: Card, filter: Filter, ctx: FilterContext): boolean {
   const results = filter.clauses.map((node) =>
