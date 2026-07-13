@@ -11,6 +11,7 @@ import {
   boardToSnapshot,
   buildBoardFromSnapshot,
   cardsInStatus,
+  deleteCard,
   getBoard,
   getCard,
   initBoard,
@@ -272,6 +273,44 @@ describe("relations (untyped, symmetric)", () => {
     buildBoardFromSnapshot(copy, snap, NOW);
     expect(getCard(copy, a)?.relatedIds).toEqual([b]);
     expect(getCard(copy, b)?.relatedIds).toEqual([a]);
+  });
+});
+
+describe("hard delete", () => {
+  it("removes the card from selectors and the doc", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    deleteCard(doc, a, NOW);
+    expect(getCard(doc, a)).toBeNull();
+    expect(boardCards(doc).has(a)).toBe(false);
+    expect(cardsInStatus(doc, TODO).map((c) => c.title)).toEqual(["B"]);
+  });
+
+  it("strips the deleted id from other cards' relations (no dangling ref)", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addRelation(doc, a, b, NOW);
+    deleteCard(doc, a, NOW);
+    expect(getCard(doc, b)?.relatedIds).toEqual([]);
+  });
+
+  it("is a no-op for an unknown id", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    deleteCard(doc, "ghost", NOW);
+    expect(getCard(doc, a)?.title).toBe("A");
+  });
+
+  it("archive keeps the card in the doc, unlike delete", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    archiveCard(doc, a, NOW);
+    expect(boardCards(doc).has(a)).toBe(true); // still stored (future archive view)
+    expect(getCard(doc, a)?.archived).toBe(true);
+    deleteCard(doc, a, NOW);
+    expect(boardCards(doc).has(a)).toBe(false); // now gone
   });
 });
 

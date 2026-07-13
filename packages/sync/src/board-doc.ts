@@ -744,6 +744,25 @@ export function archiveCard(doc: Y.Doc, cardId: string, now: number, actor?: str
   );
 }
 
+/**
+ * Hard-delete a card: remove it from the doc entirely (unlike {@link archiveCard},
+ * which keeps it for a future archive view). First strips the id from every
+ * other card's `related` set so no dangling relation survives (mirrors
+ * {@link deleteLabel}'s cross-card cleanup), then deletes the card's own map key.
+ */
+export function deleteCard(doc: Y.Doc, cardId: string, now: number): void {
+  doc.transact(() => {
+    const cards = boardCards(doc);
+    if (!cards.has(cardId)) return;
+    for (const card of cards.values()) {
+      const set = card.get("related");
+      if (set instanceof Y.Map && set.has(cardId)) set.delete(cardId);
+    }
+    cards.delete(cardId);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
 // ----- labels -----
 
 export interface AddLabelParams {

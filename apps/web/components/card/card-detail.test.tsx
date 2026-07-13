@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { CardDetail } from "./card-detail";
 
-function setup() {
+function setup(onClose: () => void = () => {}) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   execute(createCard, ctx, {
@@ -19,7 +19,7 @@ function setup() {
   });
   render(
     <BoardlyProvider context={ctx}>
-      <CardDetail cardId="c1" onClose={() => {}} />
+      <CardDetail cardId="c1" onClose={onClose} />
     </BoardlyProvider>,
   );
   return { ctx };
@@ -73,6 +73,30 @@ describe("CardDetail", () => {
     fireEvent.change(input, { target: { value: "Renamed" } });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(getCard(ctx.getBoardDoc(), "c1")?.title).toBe("Renamed");
+  });
+
+  it("cancelling the delete dialog does not delete the card", () => {
+    const { ctx } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(getCard(ctx.getBoardDoc(), "c1")).not.toBeNull();
+  });
+
+  it("confirming the delete dialog hard-deletes the card and closes the drawer", () => {
+    let closed = false;
+    const { ctx } = setup(() => {
+      closed = true;
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete card" }));
+    expect(getCard(ctx.getBoardDoc(), "c1")).toBeNull();
+    expect(closed).toBe(true);
+  });
+
+  it("archiving keeps the card in the doc (distinct from delete)", () => {
+    const { ctx } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(getCard(ctx.getBoardDoc(), "c1")?.archived).toBe(true);
   });
 
   it("opens when cardId changes from null (deps invalidation)", () => {

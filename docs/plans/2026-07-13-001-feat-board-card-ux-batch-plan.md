@@ -335,7 +335,7 @@ structure in `apps/web/components/card/`; `useSelectedCard` in `apps/web/lib/use
 `getCard` and in both cards' drawers; clicking a chip opens that card; snapshot round-trip
 preserves relations; dark-mode screenshot of the Related section; typecheck/lint/build green.
 
-- [ ] **Unit 2 (UNIT-9.2): Hard delete card — sync, command, drawer UI**
+- [x] **Unit 2 (UNIT-9.2): Hard delete card — sync, command, drawer UI**
 
 **Goal:** A Delete action permanently removes a card from the board doc after confirmation,
 cleaning up inbound related-refs; Archive is untouched.

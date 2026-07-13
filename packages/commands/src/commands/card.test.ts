@@ -4,7 +4,7 @@ import { ZodError } from "zod";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { addRelatedCard, createCard, moveCard, removeRelatedCard } from "./card";
+import { addRelatedCard, createCard, deleteCard, moveCard, removeRelatedCard } from "./card";
 
 function seed() {
   const ctx = createMemoryContext({ clientId: "c1", now: () => 100 });
@@ -89,5 +89,15 @@ describe("related cards", () => {
 
     const unrelated = execute(removeRelatedCard, ctx, { cardId: "a", relatedId: "b" });
     expect(unrelated?.relatedIds).toEqual([]);
+  });
+});
+
+describe("deleteCard", () => {
+  it("hard-deletes a card so it is no longer fetchable", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A" });
+    const res = execute(deleteCard, ctx, { cardId: "a" });
+    expect(res).toEqual({ id: "a", deleted: true });
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toHaveLength(0);
   });
 });

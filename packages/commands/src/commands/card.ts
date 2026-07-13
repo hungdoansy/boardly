@@ -4,6 +4,7 @@ import {
   addChecklistItem as syncAddChecklistItem,
   addRelation as syncAddRelation,
   archiveCard as syncArchiveCard,
+  deleteCard as syncDeleteCard,
   deleteChecklistItem as syncDeleteChecklistItem,
   getCard as syncGetCard,
   moveCard as syncMoveCard,
@@ -238,6 +239,16 @@ export const removeRelatedCard = defineCommand({
     const doc = ctx.getBoardDoc();
     syncRemoveRelation(doc, input.cardId, input.relatedId, ctx.now());
     return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const deleteCard = defineCommand({
+  name: "deleteCard",
+  description: "Permanently delete a card from the board (hard delete — not reversible; unlike archive).",
+  input: z.object({ cardId: z.string() }),
+  run: (ctx, input) => {
+    syncDeleteCard(ctx.getBoardDoc(), input.cardId, ctx.now());
+    return { id: input.cardId, deleted: true };
   },
 });
 

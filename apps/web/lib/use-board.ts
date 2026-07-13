@@ -18,6 +18,7 @@ import {
   assignLabel,
   createCard,
   createLabel,
+  deleteCard,
   deleteChecklistItem,
   deleteLabel,
   execute,
@@ -225,6 +226,8 @@ export interface CardActions {
   setDueDate(cardId: string, dueDate: DueDate | null): void;
   setProject(cardId: string, projectId: string | null): void;
   archive(cardId: string): void;
+  /** Permanently delete a card (hard delete; distinct from archive). */
+  delete(cardId: string): void;
   addRelated(cardId: string, relatedId: string): void;
   removeRelated(cardId: string, relatedId: string): void;
 }
@@ -281,6 +284,12 @@ export function useCardActions(): CardActions {
     },
     [ctx],
   );
+  const del = useCallback(
+    (cardId: string) => {
+      execute(deleteCard, ctx, { cardId });
+    },
+    [ctx],
+  );
   const addRelated = useCallback(
     (cardId: string, relatedId: string) => {
       execute(addRelatedCard, ctx, { cardId, relatedId });
@@ -302,6 +311,7 @@ export function useCardActions(): CardActions {
     setDueDate,
     setProject,
     archive,
+    delete: del,
     addRelated,
     removeRelated,
   };

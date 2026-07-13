@@ -40,6 +40,11 @@ describe("catalog", () => {
     expect(getCommand("addRelatedCard")).toBeDefined();
     expect(getCommand("removeRelatedCard")).toBeDefined();
   });
+
+  it("registers deleteCard (hard delete) alongside archiveCard", () => {
+    expect(getCommand("deleteCard")).toBeDefined();
+    expect(getCommand("archiveCard")).toBeDefined();
+  });
 });
 
 describe("commands (single per-user doc)", () => {

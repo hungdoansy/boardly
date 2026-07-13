@@ -1,8 +1,19 @@
 "use client";
 
 import type { Card } from "@boardly/domain";
-import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from "@boardly/ui";
-import { Archive } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@boardly/ui";
+import { Archive, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
@@ -55,6 +66,7 @@ function CardDetailBody({
 }) {
   const [title, setTitle] = useState(card.title);
   useEffect(() => setTitle(card.title), [card.title]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const commitTitle = (): void => {
     const trimmed = title.trim();
@@ -123,7 +135,7 @@ function CardDetailBody({
         </section>
       </div>
 
-      <div className="border-t border-line-subtle p-3">
+      <div className="flex items-center gap-1 border-t border-line-subtle p-3">
         <Button
           type="button"
           variant="ghost"
@@ -132,12 +144,50 @@ function CardDetailBody({
             actions.archive(card.id);
             onClose();
           }}
-          className="text-[var(--danger)] hover:text-[var(--danger)]"
+          className="text-fg-muted"
         >
           <Archive className="size-3.5" />
-          Archive card
+          Archive
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setConfirmDelete(true)}
+          className="text-[var(--danger)] hover:text-[var(--danger)]"
+        >
+          <Trash2 className="size-3.5" />
+          Delete
         </Button>
       </div>
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Delete this card?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-fg-muted">
+            This permanently deletes <span className="text-fg">{card.title}</span> and can&rsquo;t
+            be undone. To keep it for later, archive it instead.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                actions.delete(card.id);
+                setConfirmDelete(false);
+                onClose();
+              }}
+            >
+              <Trash2 className="size-3.5" />
+              Delete card
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
