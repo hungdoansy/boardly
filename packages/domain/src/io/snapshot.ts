@@ -58,6 +58,7 @@ const cardSchema = z.object({
   dueDate: dueDateSchema.nullable().default(null),
   assigneeId: z.string().optional(),
   labelIds: z.array(z.string()).default([]),
+  relatedIds: z.array(z.string()).default([]),
   checklist: z.array(checklistItemSchema).default([]),
   links: z.array(linkSchema).default([]),
   archived: z.boolean().default(false),

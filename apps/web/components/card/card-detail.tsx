@@ -15,6 +15,7 @@ import { CardLinks } from "./links";
 import { MarkdownEditor } from "./markdown-editor";
 import { PrioritySelect } from "./priority-select";
 import { ProjectSelect } from "./project-select";
+import { CardRelated } from "./related";
 import { StatusSelect } from "./status-select";
 
 interface CardDetailProps {
@@ -99,6 +100,11 @@ function CardDetailBody({
         <section className="flex flex-col gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Links</h3>
           <CardLinks card={card} />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Related</h3>
+          <CardRelated card={card} />
         </section>
 
         <section className="flex flex-col gap-2">

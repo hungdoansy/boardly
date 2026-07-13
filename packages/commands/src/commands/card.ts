@@ -2,11 +2,13 @@ import { type Status, STATUS_VALUES } from "@boardly/domain";
 import {
   addCard,
   addChecklistItem as syncAddChecklistItem,
+  addRelation as syncAddRelation,
   archiveCard as syncArchiveCard,
   deleteChecklistItem as syncDeleteChecklistItem,
   getCard as syncGetCard,
   moveCard as syncMoveCard,
   moveChecklistItem as syncMoveChecklistItem,
+  removeRelation as syncRemoveRelation,
   setCardDescription as syncSetDescription,
   setCardDueDate as syncSetDueDate,
   setCardPriority as syncSetPriority,
@@ -214,6 +216,28 @@ export const archiveCard = defineCommand({
       ctx.userId ?? ctx.clientId,
     );
     return { id: input.cardId, archived: true };
+  },
+});
+
+export const addRelatedCard = defineCommand({
+  name: "addRelatedCard",
+  description: "Relate two cards (untyped, symmetric — the link shows on both cards).",
+  input: z.object({ cardId: z.string(), relatedId: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    syncAddRelation(doc, input.cardId, input.relatedId, ctx.now());
+    return syncGetCard(doc, input.cardId);
+  },
+});
+
+export const removeRelatedCard = defineCommand({
+  name: "removeRelatedCard",
+  description: "Remove a relation between two cards (symmetric).",
+  input: z.object({ cardId: z.string(), relatedId: z.string() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    syncRemoveRelation(doc, input.cardId, input.relatedId, ctx.now());
+    return syncGetCard(doc, input.cardId);
   },
 });
 

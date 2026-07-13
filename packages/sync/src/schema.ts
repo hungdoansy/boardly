@@ -65,6 +65,7 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
   const description = yc.get("description");
   const dueRaw = yc.get("dueDate");
   const labelsRaw = yc.get("labels");
+  const relatedRaw = yc.get("related");
   const checklistRaw = yc.get("checklist");
   const linksRaw = yc.get("links");
 
@@ -74,6 +75,8 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
   }
 
   const labelIds = labelsRaw instanceof Y.Map ? Array.from(labelsRaw.keys()) : ([] as string[]);
+  const relatedIds =
+    relatedRaw instanceof Y.Map ? Array.from(relatedRaw.keys()).sort() : ([] as string[]);
 
   const checklist: ChecklistItem[] = [];
   if (checklistRaw instanceof Y.Map) {
@@ -123,6 +126,7 @@ export function cardToPlain(yc: YCard, opts?: { prefix?: string; number?: number
     priority: getNumber(yc, "priority", 0) as PriorityValue,
     dueDate,
     labelIds,
+    relatedIds,
     checklist,
     links,
     archived: getBool(yc, "archived"),

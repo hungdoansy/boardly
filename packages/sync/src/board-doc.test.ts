@@ -5,8 +5,11 @@ import * as Y from "yjs";
 import {
   addCard,
   addLink,
+  addRelation,
   allLiveCards,
   archiveCard,
+  boardToSnapshot,
+  buildBoardFromSnapshot,
   cardsInStatus,
   getBoard,
   getCard,
@@ -14,6 +17,7 @@ import {
   listActivity,
   moveCard,
   moveLink,
+  removeRelation,
   setCardDescription,
   setCardPriority,
   setCardStatus,
@@ -211,6 +215,63 @@ describe("moveCard", () => {
     // Move B to the very start (before A)
     moveCard(doc, b, TODO, { afterId: null, beforeId: a }, "1", NOW);
     expect(cardsInStatus(doc, TODO).map((c) => c.id)).toEqual([b, a]);
+  });
+});
+
+describe("relations (untyped, symmetric)", () => {
+  it("relates two cards symmetrically", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: DOING, title: "B", now: NOW, clientId: "1" });
+    addRelation(doc, a, b, NOW);
+    expect(getCard(doc, a)?.relatedIds).toEqual([b]);
+    expect(getCard(doc, b)?.relatedIds).toEqual([a]);
+  });
+
+  it("removes a relation from both cards", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addRelation(doc, a, b, NOW);
+    removeRelation(doc, a, b, NOW);
+    expect(getCard(doc, a)?.relatedIds).toEqual([]);
+    expect(getCard(doc, b)?.relatedIds).toEqual([]);
+  });
+
+  it("is a no-op for a self-relation", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    addRelation(doc, a, a, NOW);
+    expect(getCard(doc, a)?.relatedIds).toEqual([]);
+  });
+
+  it("is a no-op when the other card is missing (no partial write)", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    addRelation(doc, a, "ghost", NOW);
+    expect(getCard(doc, a)?.relatedIds).toEqual([]);
+  });
+
+  it("is idempotent (adding twice keeps one entry each side)", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addRelation(doc, a, b, NOW);
+    addRelation(doc, a, b, NOW);
+    expect(getCard(doc, a)?.relatedIds).toEqual([b]);
+    expect(getCard(doc, b)?.relatedIds).toEqual([a]);
+  });
+
+  it("round-trips relatedIds through export → import", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
+    addRelation(doc, a, b, NOW);
+    const snap = boardToSnapshot(doc, "u");
+    const copy = new Y.Doc();
+    buildBoardFromSnapshot(copy, snap, NOW);
+    expect(getCard(copy, a)?.relatedIds).toEqual([b]);
+    expect(getCard(copy, b)?.relatedIds).toEqual([a]);
   });
 });
 

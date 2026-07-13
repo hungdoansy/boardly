@@ -276,7 +276,7 @@ setCardPriority(doc, id, p, now, clientId):
 
 ## Implementation Units
 
-- [ ] **Unit 1 (UNIT-9.1): Related tickets — model, sync, commands, and drawer UI**
+- [x] **Unit 1 (UNIT-9.1): Related tickets — model, sync, commands, and drawer UI**
 
 **Goal:** A card carries an untyped, symmetric set of related card ids — mutated through the
 command layer, merge-safe under Yjs, and managed from a Related section in the card drawer where

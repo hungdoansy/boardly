@@ -5,12 +5,14 @@ import type { Command } from "./command";
 import { renameBoard, setBadgeConfig, setShowEmptyColumns, setTicketPrefix } from "./commands/board";
 import {
   addChecklistItem,
+  addRelatedCard,
   archiveCard,
   createCard,
   deleteChecklistItem,
   getCard,
   moveCard,
   moveChecklistItem,
+  removeRelatedCard,
   renameCard,
   setCardDescription,
   setCardDueDate,
@@ -58,6 +60,8 @@ export const commands = [
   setChecklistItemText,
   deleteChecklistItem,
   moveChecklistItem,
+  addRelatedCard,
+  removeRelatedCard,
   setCardStatus,
   createLabel,
   renameLabel,

@@ -211,6 +211,7 @@ export function addCard(doc: Y.Doc, params: AddCardParams): string {
     card.set("priority", Priority.None);
     card.set("dueDate", null);
     card.set("labels", new Y.Map<unknown>());
+    card.set("related", new Y.Map<unknown>());
     card.set("checklist", new Y.Map<unknown>());
     card.set("links", new Y.Map<unknown>());
     card.set("archived", false);
@@ -681,6 +682,53 @@ export function moveCard(
   });
 }
 
+// ----- relations (untyped, symmetric — Unit 9.1) -----
+
+/** Get (or lazily create) a card's `related` set map. */
+function relatedOf(card: YCard): Y.Map<unknown> {
+  const set = card.get("related");
+  if (set instanceof Y.Map) return set;
+  const created = new Y.Map<unknown>();
+  card.set("related", created);
+  return created;
+}
+
+/**
+ * Symmetrically relate two cards (untyped). Writes both directions in one
+ * transaction so either card's drawer shows the link with no read-time join.
+ * No-op for a self-relation or a missing card.
+ */
+export function addRelation(doc: Y.Doc, aId: string, bId: string, now: number): void {
+  if (aId === bId) return;
+  doc.transact(() => {
+    const a = boardCards(doc).get(aId);
+    const b = boardCards(doc).get(bId);
+    if (!(a instanceof Y.Map) || !(b instanceof Y.Map)) return;
+    relatedOf(a).set(bId, true);
+    relatedOf(b).set(aId, true);
+    a.set("updatedAt", now);
+    b.set("updatedAt", now);
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
+/** Symmetrically remove a relation between two cards (both directions). */
+export function removeRelation(doc: Y.Doc, aId: string, bId: string, now: number): void {
+  doc.transact(() => {
+    for (const [self, other] of [
+      [aId, bId],
+      [bId, aId],
+    ] as const) {
+      const card = boardCards(doc).get(self);
+      if (!(card instanceof Y.Map)) continue;
+      const set = card.get("related");
+      if (set instanceof Y.Map) set.delete(other);
+      card.set("updatedAt", now);
+    }
+    boardMeta(doc).set("updatedAt", now);
+  });
+}
+
 /** Soft-delete a card: removed from selectors, kept in the map (for undo/sync). */
 export function archiveCard(doc: Y.Doc, cardId: string, now: number, actor?: string): void {
   withCard(
@@ -977,6 +1025,9 @@ function buildCard(card: SnapshotCard): YCard {
   const labels = new Y.Map<unknown>();
   for (const id of card.labelIds) labels.set(id, true);
   yc.set("labels", labels);
+  const related = new Y.Map<unknown>();
+  for (const id of card.relatedIds ?? []) related.set(id, true);
+  yc.set("related", related);
   const checklist = new Y.Map<unknown>();
   for (const item of card.checklist) {
     const yi = new Y.Map<unknown>();

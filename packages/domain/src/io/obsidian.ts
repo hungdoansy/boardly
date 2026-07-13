@@ -60,6 +60,7 @@ export function parseObsidian(text: string, boardTitle = "Imported board"): Boar
         priority: 0,
         dueDate: null,
         labelIds: [],
+        relatedIds: [],
         checklist: [],
         links: [],
         archived: false,

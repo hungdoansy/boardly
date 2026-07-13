@@ -13,6 +13,7 @@ import { fetchGithubRepoDescription, unfurl } from "./unfurl-client";
 import {
   addChecklistItem,
   addLink,
+  addRelatedCard,
   archiveCard,
   assignLabel,
   createCard,
@@ -24,6 +25,7 @@ import {
   moveLink,
   recolorLabel,
   removeLink,
+  removeRelatedCard,
   renameCard,
   renameLabel,
   setBadgeConfig,
@@ -223,6 +225,8 @@ export interface CardActions {
   setDueDate(cardId: string, dueDate: DueDate | null): void;
   setProject(cardId: string, projectId: string | null): void;
   archive(cardId: string): void;
+  addRelated(cardId: string, relatedId: string): void;
+  removeRelated(cardId: string, relatedId: string): void;
 }
 
 export function useCardActions(): CardActions {
@@ -277,6 +281,18 @@ export function useCardActions(): CardActions {
     },
     [ctx],
   );
+  const addRelated = useCallback(
+    (cardId: string, relatedId: string) => {
+      execute(addRelatedCard, ctx, { cardId, relatedId });
+    },
+    [ctx],
+  );
+  const removeRelated = useCallback(
+    (cardId: string, relatedId: string) => {
+      execute(removeRelatedCard, ctx, { cardId, relatedId });
+    },
+    [ctx],
+  );
   return {
     create,
     rename,
@@ -286,6 +302,8 @@ export function useCardActions(): CardActions {
     setDueDate,
     setProject,
     archive,
+    addRelated,
+    removeRelated,
   };
 }
 

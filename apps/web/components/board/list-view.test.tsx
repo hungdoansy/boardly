@@ -30,6 +30,7 @@ function makeCard(over: Partial<Card>): Card {
     priority: Priority.None,
     dueDate: null,
     labelIds: [],
+    relatedIds: [],
     checklist: [],
     links: [],
     archived: false,

@@ -35,6 +35,11 @@ describe("catalog", () => {
   it("registers setShowEmptyColumns", () => {
     expect(getCommand("setShowEmptyColumns")).toBeDefined();
   });
+
+  it("registers the related-card commands", () => {
+    expect(getCommand("addRelatedCard")).toBeDefined();
+    expect(getCommand("removeRelatedCard")).toBeDefined();
+  });
 });
 
 describe("commands (single per-user doc)", () => {

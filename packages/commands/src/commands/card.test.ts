@@ -4,7 +4,7 @@ import { ZodError } from "zod";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { createCard, moveCard } from "./card";
+import { addRelatedCard, createCard, moveCard, removeRelatedCard } from "./card";
 
 function seed() {
   const ctx = createMemoryContext({ clientId: "c1", now: () => 100 });
@@ -74,5 +74,20 @@ describe("moveCard", () => {
     ).toThrow(ZodError);
     // Untouched: still in Todo.
     expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["a"]);
+  });
+});
+
+describe("related cards", () => {
+  it("relates two cards symmetrically and unrelates them", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A" });
+    execute(createCard, ctx, { id: "b", title: "B" });
+
+    const a = execute(addRelatedCard, ctx, { cardId: "a", relatedId: "b" });
+    expect(a?.relatedIds).toEqual(["b"]);
+    expect(execute(addRelatedCard, ctx, { cardId: "b", relatedId: "a" })?.relatedIds).toEqual(["a"]);
+
+    const unrelated = execute(removeRelatedCard, ctx, { cardId: "a", relatedId: "b" });
+    expect(unrelated?.relatedIds).toEqual([]);
   });
 });

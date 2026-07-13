@@ -26,6 +26,7 @@ function makeCard(over: Partial<import("@boardly/domain").Card>): import("@board
     priority: Priority.None,
     dueDate: null,
     labelIds: [],
+    relatedIds: [],
     checklist: [],
     links: [],
     archived: false,

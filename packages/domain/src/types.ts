@@ -72,6 +72,8 @@ export interface Card {
   dueDate: DueDate | null;
   assigneeId?: Id;
   labelIds: Id[];
+  /** Untyped, symmetric relations to other cards (Unit 9.1). Sorted by id. */
+  relatedIds: Id[];
   checklist: ChecklistItem[];
   links: CardLink[];
   archived: boolean;
