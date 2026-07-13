@@ -583,7 +583,7 @@ keyboard open.
 **Verification:** `card.test.tsx` asserts a body click opens; manual drag on the board still
 reorders without opening; keyboard Enter still opens; tests green.
 
-- [ ] **Unit 8 (UNIT-9.8): Slack link shows workspace name, no arrow**
+- [x] **Unit 8 (UNIT-9.8): Slack link shows workspace name, no arrow**
 
 **Goal:** Slack links display the workspace name (or "Slack" when it can't be derived) and drop
 the deep-link arrow.

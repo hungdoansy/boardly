@@ -59,15 +59,17 @@ describe("LinkCluster", () => {
   });
 
   it("strips the deep-link marker from a provider's title instead of leaking the glyph", () => {
+    // Claude sessions still use the deep-link marker ("session →"); Slack no
+    // longer does (UNIT-9.8), so it's the right fixture for marker-stripping.
     const link: CardLink = {
       id: "l0",
-      url: "https://acme.slack.com/archives/C123/p456",
-      provider: "slack",
+      url: "https://claude.ai/code/session_abc",
+      provider: "claude",
       ord: "a0",
     };
     const { container } = render(<LinkCluster links={[link]} />);
     const title = icons(container)[0]?.getAttribute("title");
-    expect(title).toBe("msg");
+    expect(title).toBe("session");
     expect(title).not.toMatch(/→/);
   });
 

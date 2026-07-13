@@ -107,7 +107,9 @@ describe("detectProvider", () => {
 describe("shortLabelFor", () => {
   it("labels each provider compactly", () => {
     expect(shortLabelFor("https://linear.app/acme/issue/ABC-123/title")).toBe("ABC-123");
-    expect(shortLabelFor("https://acme.slack.com/archives/C0/p1")).toBe("msg →");
+    expect(shortLabelFor("https://acme.slack.com/archives/C0/p1")).toBe("Acme");
+    expect(shortLabelFor("https://app.slack.com/client/T1/C1")).toBe("Slack");
+    expect(shortLabelFor("https://slack.com/archives/C0/p1")).toBe("Slack");
     expect(shortLabelFor("https://github.com/facebook/react/pull/42")).toBe("facebook/react#42");
     expect(shortLabelFor("https://github.com/facebook/react/issues/99")).toBe("facebook/react#99");
     expect(shortLabelFor("https://github.com/facebook/react")).toBe("facebook/react");
@@ -163,6 +165,17 @@ describe("stripDeepLinkMarker", () => {
       label: "example.com",
       isDeepLink: false,
     });
+  });
+
+  it("no longer flags Slack as a deep link (no arrow, UNIT-9.8)", () => {
+    expect(stripDeepLinkMarker(shortLabelFor("https://acme.slack.com/archives/C0/p1"))).toEqual({
+      label: "Acme",
+      isDeepLink: false,
+    });
+    // Other providers keep the deep-link marker (and its arrow affordance).
+    expect(stripDeepLinkMarker(shortLabelFor("https://claude.ai/code/session_x")).isDeepLink).toBe(
+      true,
+    );
   });
 });
 
