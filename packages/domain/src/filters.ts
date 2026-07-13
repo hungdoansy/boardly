@@ -164,6 +164,26 @@ export function deriveCardDefaults(filter: Filter): CardDefaults {
   return defaults;
 }
 
+/**
+ * Count cards per status, applying `filter` (absent/empty → count all). Every
+ * status is present in the result (0 when none). Used by the board to decide
+ * which columns are empty *under the active filter* (Unit 9.6) so the hide-empty
+ * toggle and the column header counts agree with what the columns render.
+ */
+export function countByStatus(
+  cards: Card[],
+  filter: Filter | undefined,
+  ctx: FilterContext = { now: 0 },
+): Record<Status, number> {
+  const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<Status, number>;
+  const active = filter && !isEmptyFilter(filter) ? filter : null;
+  for (const card of cards) {
+    if (active && !evaluateFilter(card, active, ctx)) continue;
+    counts[card.status] = (counts[card.status] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** Evaluate a (nestable) filter against a card. Empty group → match. */
 export function evaluateFilter(card: Card, filter: Filter, ctx: FilterContext): boolean {
   const results = filter.clauses.map((node) =>

@@ -6,6 +6,7 @@ import {
   PRESET_VIEWS,
   type ResolvedView,
   type SavedView,
+  countByStatus,
   deriveCardDefaults,
   emptyFilter,
   evaluateFilter,
@@ -19,6 +20,44 @@ import { Status } from "./status";
 import type { Card } from "./types";
 
 const NOW = new Date("2026-07-10T12:00:00Z").getTime();
+
+describe("countByStatus", () => {
+  const cards = [
+    card({ id: "a", status: Status.Todo, priority: Priority.Urgent }),
+    card({ id: "b", status: Status.Todo, priority: Priority.None }),
+    card({ id: "c", status: Status.InProgress, priority: Priority.Urgent }),
+  ];
+
+  it("counts all cards per status when there is no filter", () => {
+    const counts = countByStatus(cards, undefined);
+    expect(counts[Status.Todo]).toBe(2);
+    expect(counts[Status.InProgress]).toBe(1);
+    expect(counts[Status.Done]).toBe(0); // every status present, zero when none
+  });
+
+  it("counts only cards matching the active filter", () => {
+    const urgent: Filter = {
+      op: "and",
+      clauses: [{ field: "priority", condition: "is", values: [Priority.Urgent] }],
+    };
+    const counts = countByStatus(cards, urgent, { now: NOW });
+    expect(counts[Status.Todo]).toBe(1); // only card "a"
+    expect(counts[Status.InProgress]).toBe(1); // card "c"
+  });
+
+  it("counts nothing when the filter matches no card (all statuses zero)", () => {
+    const none: Filter = {
+      op: "and",
+      clauses: [{ field: "status", condition: "is", values: [Status.Done] }],
+    };
+    const counts = countByStatus(cards, none, { now: NOW });
+    expect(Object.values(counts).every((n) => n === 0)).toBe(true);
+  });
+
+  it("treats the empty filter as no filter (counts all)", () => {
+    expect(countByStatus(cards, emptyFilter())[Status.Todo]).toBe(2);
+  });
+});
 
 describe("deriveCardDefaults", () => {
   const and = (...clauses: Filter["clauses"]): Filter => ({ op: "and", clauses });

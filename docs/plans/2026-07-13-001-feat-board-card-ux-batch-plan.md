@@ -513,7 +513,7 @@ filter so the new card satisfies the filter and stays visible.
 extended `createCard`; manual: filter to a project + priority, add a card, confirm it appears with
 those fields; tests green.
 
-- [ ] **Unit 6 (UNIT-9.6): Empty-column hiding honors the active filter**
+- [x] **Unit 6 (UNIT-9.6): Empty-column hiding honors the active filter**
 
 **Goal:** With "hide empty columns" on and a filter active, a column with zero matching cards is
 hidden; the column header count reflects the filtered set.

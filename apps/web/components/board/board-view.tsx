@@ -6,6 +6,7 @@ import {
   type GroupByField,
   Priority,
   STATUS_ORDER,
+  countByStatus,
 } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { Eye, EyeOff } from "lucide-react";
@@ -14,8 +15,8 @@ import { useCallback, useMemo, useRef } from "react";
 import { useAuthSession } from "../../lib/auth-store";
 import { useBoardlyContext } from "../../lib/boardly-context";
 import {
+  useAllCards,
   useCardActions,
-  useCardCounts,
   useSetShowEmptyColumns,
   useShowEmptyColumns,
 } from "../../lib/use-board";
@@ -35,7 +36,7 @@ export function BoardView({
   filter?: Filter;
   groupBy?: GroupByField | null;
 }) {
-  const counts = useCardCounts();
+  const allCards = useAllCards();
   const cardActions = useCardActions();
   const showEmptyColumns = useShowEmptyColumns();
   const setShowEmptyColumns = useSetShowEmptyColumns();
@@ -46,9 +47,16 @@ export function BoardView({
     [userId],
   );
 
+  // Per-status counts under the ACTIVE filter (Unit 9.6), so both the header
+  // counts and the hide-empty toggle agree with what each column renders.
+  const counts = useMemo(
+    () => countByStatus(allCards, filter, filterCtx),
+    [allCards, filter, filterCtx],
+  );
+
   // Fixed columns: the eight statuses in STATUS_ORDER. When "hide empty" is on,
-  // drop the zero-card ones. Note this counts unfiltered cards — a status with
-  // cards that the active filter hides still shows (its column just renders empty).
+  // drop columns with no cards *matching the active filter* — a status whose
+  // cards are all filtered out hides too.
   const visibleStatuses = useMemo(
     () => (showEmptyColumns ? STATUS_ORDER : STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0)),
     [showEmptyColumns, counts],
