@@ -10,6 +10,7 @@
       "allow": [{ "url": "https://*" }]
     },
     "notification:default",
-    "deep-link:default"
+    "deep-link:default",
+    "opener:allow-open-url"
   ]
 }

@@ -6,6 +6,8 @@ import { Button, Input } from "@boardly/ui";
 import { ArrowUpRight, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { useState } from "react";
 
+import { openExternal } from "../../lib/open-external";
+import { isTauri } from "../../lib/platform";
 import { useLinkActions } from "../../lib/use-board";
 import { ProviderIcon } from "./provider-icon";
 
@@ -48,6 +50,16 @@ export function CardLinks({ card }: { card: Card }) {
                   href={isSafeHttpUrl(link.url) ? link.url : "#"}
                   target="_blank"
                   rel="noreferrer"
+                  // On desktop the Tauri webview won't open a `target="_blank"`
+                  // anchor in the OS browser, so intercept and route through the
+                  // opener plugin. On web the native anchor is left alone
+                  // (preserves cmd/middle-click and new-tab).
+                  onClick={(e) => {
+                    if (isTauri()) {
+                      e.preventDefault();
+                      void openExternal(link.url);
+                    }
+                  }}
                   className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                 >
                   <ProviderIcon provider={link.provider} />

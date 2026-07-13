@@ -425,7 +425,7 @@ helpers; the existing activity append in `setCardPriority`.
 **Verification:** Sync/command tests prove the one-time re-slot and the no-ops; manual: cycle a
 mid-column card to Urgent (keyboard `p`/drawer) and watch it jump to top; tests green.
 
-- [ ] **Unit 4 (UNIT-9.4): Desktop opens external links (Tauri opener)**
+- [x] **Unit 4 (UNIT-9.4): Desktop opens external links (Tauri opener)**
 
 **Goal:** Clicking a link in the drawer opens the OS browser on desktop and a new tab on web.
 

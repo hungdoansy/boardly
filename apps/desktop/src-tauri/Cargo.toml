@@ -24,6 +24,9 @@ serde_json = "1"
 tauri-plugin-http = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-deep-link = "2"
+# Open external links in the OS default browser (UNIT-9.4) — the webview won't
+# hand a `target="_blank"` navigation to the browser on its own.
+tauri-plugin-opener = "2"
 
 # Refresh-token storage in the OS keychain (Keychain / Credential Manager /
 # libsecret) — not Stronghold. `keyring` v3 with the platform-native backends.

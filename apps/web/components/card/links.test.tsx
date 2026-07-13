@@ -68,6 +68,15 @@ describe("CardLinks", () => {
     expect(screen.getByText("Example Page")).toBeInTheDocument();
   });
 
+  it("renders a link as an external anchor to its URL (opens natively on web)", () => {
+    setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://example.com/x", title: "Ex" });
+    });
+    const anchor = screen.getByRole("link", { name: /Ex/ });
+    expect(anchor).toHaveAttribute("href", "https://example.com/x");
+    expect(anchor).toHaveAttribute("target", "_blank");
+  });
+
   it("ignores a non-http(s) url (XSS guard)", () => {
     const ctx = setup();
     fireEvent.change(field(), { target: { value: "javascript:alert(1)" } });
