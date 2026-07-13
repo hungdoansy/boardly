@@ -550,7 +550,7 @@ hidden; the column header count reflects the filtered set.
 **Verification:** Component test asserting `visibleStatuses` responds to the filter; manual:
 filter to one project, toggle hide-empty, watch non-matching columns disappear; tests green.
 
-- [ ] **Unit 7 (UNIT-9.7): Whole-card click opens the drawer**
+- [x] **Unit 7 (UNIT-9.7): Whole-card click opens the drawer**
 
 **Goal:** Clicking anywhere on a card face opens its detail drawer, without breaking drag or
 keyboard open.

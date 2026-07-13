@@ -57,7 +57,11 @@ export function CardFace({ card, labels, project, config, onOpen }: CardFaceProp
   return (
     <article
       aria-label={`Card: ${card.title}`}
-      className="rounded-[var(--radius-md)] border border-line-subtle bg-elevated px-2.5 py-2 transition-colors duration-[var(--dur-fast)] hover:border-line hover:bg-hover"
+      onClick={onOpen}
+      // The whole face opens the card (UNIT-9.7): keyboard open stays on the
+      // focusable drag wrapper (Enter, via keyboard-nav); dnd-kit's 5px
+      // activation distance keeps a real drag from also firing this click.
+      className="cursor-pointer rounded-[var(--radius-md)] border border-line-subtle bg-elevated px-2.5 py-2 transition-colors duration-[var(--dur-fast)] hover:border-line hover:bg-hover"
     >
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="font-mono text-xs text-fg-faint">{card.shortId}</span>
@@ -72,22 +76,15 @@ export function CardFace({ card, labels, project, config, onOpen }: CardFaceProp
             <StatusBadge status={card.status} />
           </span>
         ) : null}
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={onOpen}
-          className="min-w-0 flex-1 text-left focus-visible:outline-none"
+        <span
+          className={
+            terminal
+              ? "min-w-0 flex-1 line-clamp-2 text-base leading-snug text-fg-faint line-through"
+              : "min-w-0 flex-1 line-clamp-2 text-base leading-snug text-fg"
+          }
         >
-          <span
-            className={
-              terminal
-                ? "line-clamp-2 text-base leading-snug text-fg-faint line-through"
-                : "line-clamp-2 text-base leading-snug text-fg"
-            }
-          >
-            {card.title}
-          </span>
-        </button>
+          {card.title}
+        </span>
       </div>
 
       {labelNodes.length > 0 ? (

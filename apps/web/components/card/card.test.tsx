@@ -79,6 +79,15 @@ describe("cards", () => {
     expect(onOpenCard).toHaveBeenCalledWith("card-1");
   });
 
+  it("opens the card detail when clicking the card body, not just the title", () => {
+    const { onOpenCard } = setup((ctx, status) => {
+      execute(createCard, ctx, { status, id: "card-1", title: "Open me" });
+    });
+    // The ticket id is a non-title region; the whole face is clickable.
+    fireEvent.click(screen.getByText("#1"));
+    expect(onOpenCard).toHaveBeenCalledWith("card-1");
+  });
+
   it("only creates a card via the 'with details' button once confirmed", () => {
     const { ctx, status, onOpenCard } = setup();
     fireEvent.click(screen.getByRole("button", { name: "Add card with details" }));
