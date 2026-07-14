@@ -10,7 +10,9 @@ import {
   recolorProject,
   renameProject,
   setCardProject,
+  showProject,
 } from "./project";
+import { listArchivedProjects } from "@boardly/sync";
 
 function seed() {
   const ctx = createMemoryContext();
@@ -44,6 +46,20 @@ describe("project commands", () => {
     execute(archiveProject, ctx, { projectId: "p1" });
 
     expect(listProjects(ctx.getBoardDoc())).toHaveLength(0);
+    expect(listArchivedProjects(ctx.getBoardDoc()).map((p) => p.id)).toEqual(["p1"]);
+    expect(getCard(ctx.getBoardDoc(), "c1")?.projectId).toBe("p1");
+  });
+
+  it("showProject restores a hidden project (card keeps its projectId throughout)", () => {
+    const ctx = seed();
+    execute(createProject, ctx, { id: "p1", name: "Web" });
+    execute(createCard, ctx, { id: "c1", title: "Card", projectId: "p1" });
+
+    execute(archiveProject, ctx, { projectId: "p1" });
+    execute(showProject, ctx, { projectId: "p1" });
+
+    expect(listProjects(ctx.getBoardDoc()).map((p) => p.id)).toEqual(["p1"]);
+    expect(listArchivedProjects(ctx.getBoardDoc())).toHaveLength(0);
     expect(getCard(ctx.getBoardDoc(), "c1")?.projectId).toBe("p1");
   });
 

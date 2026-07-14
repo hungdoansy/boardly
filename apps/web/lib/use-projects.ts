@@ -7,8 +7,9 @@ import {
   execute,
   recolorProject,
   renameProject,
+  showProject,
 } from "@boardly/commands";
-import { boardProjects, listProjects } from "@boardly/sync";
+import { boardProjects, listArchivedProjects, listProjects } from "@boardly/sync";
 import { useY } from "@boardly/sync/react";
 import { useCallback, useSyncExternalStore } from "react";
 
@@ -43,12 +44,21 @@ export function useProjects(): Project[] {
   return useY(boardProjects(doc), () => listProjects(doc), { deep: true });
 }
 
+/** Live, ord-sorted, hidden (archived) projects — for the Settings restore list. */
+export function useArchivedProjects(): Project[] {
+  const doc = useBoardlyContext().getBoardDoc();
+  return useY(boardProjects(doc), () => listArchivedProjects(doc), { deep: true });
+}
+
 export interface ProjectActions {
   /** Create a project, returning it (so callers can build its URL ref) or null. */
   create(name?: string): Project | null;
   rename(projectId: string, name: string): void;
   recolor(projectId: string, color: string): void;
+  /** Hide a project from the board (reversible with {@link ProjectActions.show}). */
   archive(projectId: string): void;
+  /** Restore a hidden project to the board. */
+  show(projectId: string): void;
 }
 
 export function useProjectActions(): ProjectActions {
@@ -73,6 +83,12 @@ export function useProjectActions(): ProjectActions {
     archive: useCallback(
       (projectId: string) => {
         execute(archiveProject, ctx, { projectId });
+      },
+      [ctx],
+    ),
+    show: useCallback(
+      (projectId: string) => {
+        execute(showProject, ctx, { projectId });
       },
       [ctx],
     ),

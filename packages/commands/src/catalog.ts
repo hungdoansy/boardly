@@ -38,6 +38,7 @@ import {
   recolorProject,
   renameProject,
   setCardProject,
+  showProject,
 } from "./commands/project";
 import { searchCards } from "./commands/search";
 import { setCardStatus } from "./commands/status";
@@ -79,6 +80,7 @@ export const commands = [
   renameProject,
   recolorProject,
   archiveProject,
+  showProject,
   listProjectsCommand,
   setCardProject,
   searchCards,

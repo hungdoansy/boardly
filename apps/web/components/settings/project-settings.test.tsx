@@ -46,9 +46,19 @@ describe("ProjectSettings", () => {
     expect(projects(ctx)[0]?.color).toBe("#4EA7FC");
   });
 
-  it("archives a project (removed from the list)", () => {
+  it("hides a project (removed from the active list, shown under Hidden)", () => {
     const ctx = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Archive Web" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide Web" }));
     expect(projects(ctx)).toHaveLength(0);
+    // It moves into the Hidden section with a restore control.
+    expect(screen.getByText("Hidden")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show Web" })).toBeInTheDocument();
+  });
+
+  it("restores a hidden project via Show", () => {
+    const ctx = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Hide Web" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Web" }));
+    expect(projects(ctx).map((p) => p.name)).toEqual(["Web"]);
   });
 });

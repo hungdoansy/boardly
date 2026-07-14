@@ -974,9 +974,30 @@ export function archiveProject(doc: Y.Doc, projectId: string, now: number): void
   );
 }
 
+/** Restore a hidden (archived) project to the active list. Inverse of {@link archiveProject}. */
+export function unarchiveProject(doc: Y.Doc, projectId: string, now: number): void {
+  withProject(
+    doc,
+    projectId,
+    (p) => {
+      p.set("archived", false);
+      p.delete("deletedAt");
+    },
+    now,
+  );
+}
+
 export function listProjects(doc: Y.Doc): Project[] {
   return [...boardProjects(doc).values()]
     .filter((p): p is Y.Map<unknown> => p instanceof Y.Map && !getBool(p, "archived"))
+    .map(projectToPlain)
+    .sort(byOrd);
+}
+
+/** Archived (hidden) projects — for the "Hidden" restore list in Settings. */
+export function listArchivedProjects(doc: Y.Doc): Project[] {
+  return [...boardProjects(doc).values()]
+    .filter((p): p is Y.Map<unknown> => p instanceof Y.Map && getBool(p, "archived"))
     .map(projectToPlain)
     .sort(byOrd);
 }

@@ -6,6 +6,7 @@ import {
   recolorProject as syncRecolorProject,
   renameProject as syncRenameProject,
   setCardProject as syncSetCardProject,
+  unarchiveProject as syncUnarchiveProject,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -59,6 +60,16 @@ export const archiveProject = defineCommand({
   run: (ctx, input) => {
     syncArchiveProject(ctx.getBoardDoc(), input.projectId, ctx.now());
     return { id: input.projectId, archived: true };
+  },
+});
+
+export const showProject = defineCommand({
+  name: "showProject",
+  description: "Restore a hidden (archived) project to the board list.",
+  input: z.object({ projectId: z.string() }),
+  run: (ctx, input) => {
+    syncUnarchiveProject(ctx.getBoardDoc(), input.projectId, ctx.now());
+    return { id: input.projectId, archived: false };
   },
 });
 
