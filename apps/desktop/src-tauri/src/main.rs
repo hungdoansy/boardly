@@ -9,6 +9,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use keyring::Entry;
+use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::Emitter;
 
 /// Keychain service name (namespaced to the app identifier).
 const KEYRING_SERVICE: &str = "vn.moonbase.boardly";
@@ -58,6 +60,60 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            // Tauri auto-generates a default macOS menu whose Window→Close binds
+            // Cmd+W to `close_window` — with our single window that terminates the
+            // app, so Cmd+W quits like Cmd+Q. Install a fully custom menu instead:
+            // keep Quit on Cmd+Q, and rebind Cmd+W to a custom "Close View" item
+            // that the web layer turns into an Escape (close the open ticket /
+            // dialog / settings / project scope), never closing the window.
+            //
+            // Replacing the default menu drops the standard App + Edit submenus, so
+            // re-add them or macOS text-editing shortcuts (Cmd+C/V/X/A/Z) break.
+            let handle = app.handle();
+            let app_menu = SubmenuBuilder::new(handle, "Boardly")
+                .about(None)
+                .separator()
+                .services()
+                .separator()
+                .hide()
+                .hide_others()
+                .show_all()
+                .separator()
+                .quit()
+                .build()?;
+            let edit_menu = SubmenuBuilder::new(handle, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
+            let close_view = MenuItemBuilder::with_id("close-view", "Close View")
+                .accelerator("CmdOrCtrl+W")
+                .build(handle)?;
+            let window_menu = SubmenuBuilder::new(handle, "Window")
+                .minimize()
+                .item(&close_view)
+                .build()?;
+            let menu = MenuBuilder::new(handle)
+                .item(&app_menu)
+                .item(&edit_menu)
+                .item(&window_menu)
+                .build()?;
+            app.set_menu(menu)?;
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "close-view" {
+                // Route to the web layer (see apps/web/lib/desktop-menu.ts), which
+                // dispatches a synthetic Escape so the existing ESC ladder closes
+                // the current view without touching the window.
+                let _ = app.emit("menu-close-view", ());
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             keyring_set,
             keyring_get,
