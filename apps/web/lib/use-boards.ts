@@ -32,23 +32,32 @@ function useHashTicketNumber(): number | null {
 }
 
 /**
+ * The Linear-style hash body (no leading `#`) that opens `cardId`, preserving
+ * the current project scope segment. Falls back to the scoped board when the
+ * card is gone. Shared by the ticket-hash writer and the "Copy link" action.
+ */
+export function cardHashBody(ctx: ReturnType<typeof useBoardlyContext>, cardId: string): string {
+  const doc = ctx.getBoardDoc();
+  const { projectRef } = parseRoute(currentHashBody());
+  const card = getCard(doc, cardId);
+  if (!card) return buildBoardHash(projectRef);
+  const ref = formatTicketRef(getBoard(doc, ctx.userId ?? "").shortIdPrefix, card.number, card.title);
+  return buildBoardHash(projectRef, ref);
+}
+
+/** Absolute URL to a card (origin + path + ticket hash) — for copy-to-clipboard. */
+export function buildCardHref(ctx: ReturnType<typeof useBoardlyContext>, cardId: string): string {
+  const base =
+    typeof window === "undefined" ? "" : window.location.origin + window.location.pathname;
+  return `${base}#${cardHashBody(ctx, cardId)}`;
+}
+
+/**
  * Write (or clear) the Linear-style ticket hash for a card, keeping the current
  * project scope segment so closing the card returns to the same scoped board.
  */
 function writeCardHash(ctx: ReturnType<typeof useBoardlyContext>, cardId: string): void {
-  const doc = ctx.getBoardDoc();
-  const { projectRef } = parseRoute(currentHashBody());
-  const card = getCard(doc, cardId);
-  if (!card) {
-    writeHashBody(buildBoardHash(projectRef));
-    return;
-  }
-  const ref = formatTicketRef(
-    getBoard(doc, ctx.userId ?? "").shortIdPrefix,
-    card.number,
-    card.title,
-  );
-  writeHashBody(buildBoardHash(projectRef, ref));
+  writeHashBody(cardHashBody(ctx, cardId));
 }
 
 /**

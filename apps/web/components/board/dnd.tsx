@@ -24,6 +24,7 @@ import { createPortal } from "react-dom";
 import { useBoardlyContext } from "../../lib/boardly-context";
 import { planMove } from "../../lib/dnd";
 import { CardFace } from "../card/card";
+import { CardContextMenu } from "../card/card-context-menu";
 import { BoardColumn } from "./column";
 
 interface ActiveItem {
@@ -149,22 +150,24 @@ export function SortableCard({
     data: { type: "card", status, title: card.title } satisfies DragData,
   });
   return (
-    <div
-      ref={setNodeRef}
-      data-nav="card"
-      data-card-id={card.id}
-      data-column-id={status}
-      style={{
-        transform: CSS.Translate.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : undefined,
-      }}
-      className="rounded-[var(--radius-md)] touch-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-      {...attributes}
-      {...listeners}
-    >
-      <CardFace card={card} labels={labels} project={project} config={config} onOpen={onOpen} />
-    </div>
+    <CardContextMenu card={card} onOpen={onOpen}>
+      <div
+        ref={setNodeRef}
+        data-nav="card"
+        data-card-id={card.id}
+        data-column-id={status}
+        style={{
+          transform: CSS.Translate.toString(transform),
+          transition,
+          opacity: isDragging ? 0.4 : undefined,
+        }}
+        className="rounded-[var(--radius-md)] touch-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        {...attributes}
+        {...listeners}
+      >
+        <CardFace card={card} labels={labels} project={project} config={config} onOpen={onOpen} />
+      </div>
+    </CardContextMenu>
   );
 }
 
