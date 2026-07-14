@@ -30,6 +30,22 @@ doc must exist and be committed by the time its checkbox is ticked (see the plan
 
 Keep `PLAN.md`, the plan file, and `DESIGN.md` current when a change invalidates them.
 
+**Same-commit rule (enforced by a soft pre-commit hook).** Any commit that changes product
+source — `apps/**`, `packages/**/src`, or any `**/src-tauri/**` — must stage at least one doc
+surface in the _same_ commit:
+
+- a `docs/units/UNIT-<id>-*.md` for a feature / spec / behavior change (a new unit doc, or an update
+  to the owning unit's **Follow-ups / known gaps** for a bug-fix or micro-polish);
+- `docs/design/DESIGN.md` for **any** visual/interaction change — including icon or glyph swaps,
+  focus-ring or tab-order changes, badge/token/spacing tweaks, and new reusable primitives (these
+  are precisely the changes historically shipped undocumented);
+- `docs/plans/*` or `PLAN.md` for a scope change.
+
+The commit subject **should** carry the `UNIT-<id>` it advances. A `pre-commit` hook
+(`scripts/check-docs-touched.mjs`, run via husky) **warns** — it never blocks — when source is
+staged with no doc surface; heed it, or for a deliberate exception just proceed. Do **not** ship code
+first and backfill docs later, and never bury product code in a `docs(...)`-typed commit.
+
 ## 2. Design (binding — see `docs/design/DESIGN.md`)
 
 - The UI must look and feel like **Linear**: fast, dense, calm, keyboard-first, content-first.

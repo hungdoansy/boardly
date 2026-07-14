@@ -14,6 +14,15 @@ export default defineConfig({
       "apps/web",
       "apps/server",
       "apps/mcp",
+      // Root-level dev tooling (the docs-discipline git-hook guard).
+      {
+        test: {
+          name: "scripts",
+          root: "./scripts",
+          environment: "node",
+          include: ["**/*.test.mjs"],
+        },
+      },
     ],
   },
 });

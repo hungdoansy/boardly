@@ -1,0 +1,5 @@
+# Format only the staged files (never `prettier --write .` — see CLAUDE.md §4 / repo memory).
+pnpm exec lint-staged
+
+# Non-blocking reminder to document source changes (CLAUDE.md §1). Always exits 0.
+node scripts/check-docs-touched.mjs

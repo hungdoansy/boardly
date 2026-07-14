@@ -13,7 +13,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -28,12 +29,17 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "fake-indexeddb": "6.2.5",
     "globals": "17.7.0",
+    "husky": "9.1.7",
     "jsdom": "29.1.1",
+    "lint-staged": "17.0.8",
     "prettier": "3.9.4",
     "turbo": "2.10.4",
     "typescript": "5.9.3",
     "typescript-eslint": "8.63.0",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.10"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,yml,yaml}": "prettier --write"
   }
 }
