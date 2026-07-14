@@ -49,6 +49,42 @@ describe("ProjectList", () => {
     );
   });
 
+  it("renames a project inline on double-click (Enter commits)", () => {
+    const ctx = setup();
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Web" }));
+    const input = screen.getByRole("textbox", { name: "Rename Web" });
+    fireEvent.change(input, { target: { value: "Frontend" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(listProjects(ctx.getBoardDoc())[0]?.name).toBe("Frontend");
+  });
+
+  it("cancels an inline rename on Escape (name unchanged)", () => {
+    const ctx = setup();
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Web" }));
+    const input = screen.getByRole("textbox", { name: "Rename Web" });
+    fireEvent.change(input, { target: { value: "Nope" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(listProjects(ctx.getBoardDoc())[0]?.name).toBe("Web");
+    expect(screen.getByRole("button", { name: "Web" })).toBeInTheDocument();
+  });
+
+  it("renames via the right-click context menu", async () => {
+    const ctx = setup();
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Web" }), { clientX: 5, clientY: 5 });
+    fireEvent.click(await screen.findByText("Rename"));
+    const input = screen.getByRole("textbox", { name: "Rename Web" });
+    fireEvent.change(input, { target: { value: "Platform" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(listProjects(ctx.getBoardDoc())[0]?.name).toBe("Platform");
+  });
+
+  it("hides a project via the context menu", async () => {
+    const ctx = setup();
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Web" }), { clientX: 5, clientY: 5 });
+    fireEvent.click(await screen.findByText("Hide"));
+    expect(listProjects(ctx.getBoardDoc())).toHaveLength(0);
+  });
+
   it("shows no active row while the Settings view is open", () => {
     setup();
     fireEvent.click(screen.getByRole("button", { name: "Web" }));
