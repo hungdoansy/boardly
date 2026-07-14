@@ -118,4 +118,35 @@ describe("CardDetail", () => {
     );
     expect(screen.getByRole("textbox", { name: "Card title" })).toHaveValue("Later");
   });
+
+  it("orders the drawer sections with Related directly above Labels", () => {
+    setup();
+    const known = new Set([
+      "Description",
+      "Properties",
+      "Links",
+      "Checklist",
+      "Related",
+      "Labels",
+      "Activity",
+    ]);
+    const order = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent ?? "")
+      .filter((t) => known.has(t));
+    expect(order).toEqual([
+      "Description",
+      "Properties",
+      "Links",
+      "Checklist",
+      "Related",
+      "Labels",
+      "Activity",
+    ]);
+  });
+
+  it("right-aligns the Delete action in the footer", () => {
+    setup();
+    expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("ml-auto");
+  });
 });

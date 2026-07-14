@@ -47,9 +47,7 @@ export function CardDetail({ cardId, onClose }: CardDetailProps) {
       }}
     >
       <SheetContent aria-describedby={undefined}>
-        {card ? (
-          <CardDetailBody card={card} actions={actions} onClose={onClose} />
-        ) : null}
+        {card ? <CardDetailBody card={card} actions={actions} onClose={onClose} /> : null}
       </SheetContent>
     </Sheet>
   );
@@ -115,13 +113,13 @@ function CardDetailBody({
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Related</h3>
-          <CardRelated card={card} />
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
+          <Checklist card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Checklist</h3>
-          <Checklist card={card} />
+          <h3 className="text-xs font-medium uppercase tracking-wide text-fg-faint">Related</h3>
+          <CardRelated card={card} />
         </section>
 
         <section className="flex flex-col gap-2">
@@ -154,7 +152,7 @@ function CardDetailBody({
           variant="ghost"
           size="sm"
           onClick={() => setConfirmDelete(true)}
-          className="text-[var(--danger)] hover:text-[var(--danger)]"
+          className="ml-auto text-[var(--danger)] hover:text-[var(--danger)]"
         >
           <Trash2 className="size-3.5" />
           Delete
