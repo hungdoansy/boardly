@@ -36,8 +36,8 @@ Your data lives only on this laptop (in Docker's Postgres volume). Nothing leave
 
 - **Docker Desktop** — running. That's all you need to *use* the app once it's built.
 - To **rebuild** the desktop app or the backend image you also need (already set up on this machine):
-  - Node **22.17.1** + pnpm **11.1.3** — use the pinned bin:
-    `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"`
+  - Node **24.15.0** + pnpm **11.1.3** (matches `.nvmrc` — this is the machine's default node, no
+    `PATH` export needed).
   - Rust (`cargo`) — for the Tauri build.
 
 ---
@@ -111,15 +111,15 @@ once via **right-click (or Control-click) → Open → Open**. macOS remembers t
 After pulling code changes, rebuild:
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
-export NEXT_PUBLIC_API_URL=http://localhost:8788
 pnpm --filter @boardly/desktop tauri:build
 ```
 
-`NEXT_PUBLIC_API_URL` bakes the backend URL into the web bundle. If you omit it the app defaults to
-`http://localhost:8787` (the dev port) and won't reach the Docker backend — always set 8788 for the
-production build. Then reinstall from the new `.dmg` (or copy the fresh `Boardly.app` over the old
-one in `/Applications`).
+`apps/web/.env.production` bakes `NEXT_PUBLIC_API_URL=http://localhost:8788` into the web bundle for
+every production build automatically (Next.js auto-loads it for `next build`, never for `next dev`) —
+so the app reaches the Docker backend without any manual export. If you ever need a different backend
+URL for a one-off build, override it inline: `NEXT_PUBLIC_API_URL=http://... pnpm --filter
+@boardly/desktop tauri:build`. Then reinstall from the new `.dmg` (or copy the fresh `Boardly.app`
+over the old one in `/Applications`).
 
 ---
 
@@ -140,7 +140,6 @@ Want a fully populated example board instead of a blank slate? Seed the demo acc
 backend running, from the repo root:
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
 API_URL=http://localhost:8788 \
   apps/server/node_modules/.bin/tsx packages/sync/scripts/seed-demo-board.ts
 ```
@@ -188,7 +187,6 @@ curl -s -X POST localhost:8788/auth/login -H "Origin: tauri://localhost" \
 console/network errors, run it in **dev mode** (which has right-click → Inspect) pointed at the
 production backend:
 ```bash
-export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
 NEXT_PUBLIC_API_URL=http://localhost:8788 pnpm --filter @boardly/desktop dev
 ```
 Then right-click in the window → **Inspect Element** → **Console** / **Network** tabs.
@@ -245,8 +243,7 @@ Typical dev session (leaves production running and untouched):
 
 ```bash
 docker compose up -d                         # start the dev database (boardly-dev-db)
-export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"
-pnpm --filter @boardly/server dev            # dev API server on :8787 (watches, reloads)
+pnpm --filter @boardly/server dev            # dev API server on :8787 (watches, reloads, reads .env)
 pnpm --filter @boardly/web dev               # dev web app on :3000  (or: pnpm --filter @boardly/desktop dev)
 ```
 

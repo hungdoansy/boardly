@@ -23,6 +23,9 @@ apps/desktop/src-tauri/target/
 .env
 .env.*
 !.env.example
+# No secret (NEXT_PUBLIC_* is baked into the public JS bundle) — committed so
+# `tauri:build` doesn't need a manual NEXT_PUBLIC_API_URL export.
+!.env.production
 
 # Editor / OS
 .DS_Store

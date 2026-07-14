@@ -61,8 +61,10 @@ Keep `PLAN.md`, the plan file, and `DESIGN.md` current when a change invalidates
 ## 4. Dependencies — pin exact versions (required)
 
 - **Every `package.json` pins exact versions — no `^`, no `~`, no ranges.** e.g. `"next": "16.2.6"`, not `"^16.2.6"`.
-- Pin the toolchain: Node **22.17.1** (`.nvmrc` + `engines`), and set `packageManager` to an exact pnpm version.
-- **Using Node 22:** this machine's default node is **v24.15.0** and `nvm use` does not persist across separate shell calls, so prefix every install/build/test/node command with the pinned bin — `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"` (already installed). Never assume the default node is correct.
+- Pin the toolchain: Node **24.15.0** (`.nvmrc` + `engines`), and set `packageManager` to an exact pnpm version.
+  Chosen to match this machine's default node, so no `PATH`/`nvm use` juggling is needed before
+  running install/build/test/node commands. If the default node on a given machine ever drifts from
+  this pin, run `nvm use` (or prefix the pinned bin) rather than assuming the default is correct.
 - Commit `pnpm-lock.yaml`. When adding a dep, pin the exact resolved version and record why in the unit doc.
 - Known fixed versions: Next.js `16.2.6`; React / react-dom `19.2.x` (pin the exact patch that installs); the rest pinned exactly at install time.
 

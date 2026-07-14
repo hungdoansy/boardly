@@ -8,7 +8,7 @@
 # IMPORTANT: NODE_ENV is intentionally NOT set to `production` here. pnpm would
 # then skip devDependencies and drop `tsx` (the runtime). NODE_ENV=production is
 # supplied at *run* time by docker-compose, after `tsx` is already installed.
-FROM node:22.17.1-slim
+FROM node:24.15.0-slim
 
 # pnpm, pinned to match `packageManager` in package.json.
 RUN corepack enable && corepack prepare pnpm@11.1.3 --activate

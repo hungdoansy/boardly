@@ -48,6 +48,8 @@ reuse a number namespace). The plans, newest last:
     Checklist, Labels, Activity).
   - `UNIT-P8` — GitHub repo link recognition (icon + `owner/repo` path + fetched
     description).
+  - `UNIT-P9` — dev/build DX: auto-loaded `.env` for the server and `apps/web/.env.production` for
+    `tauri:build`; Node toolchain pin bumped `22.17.1` → `24.15.0` to match the machine default.
 
 ## Convention
 

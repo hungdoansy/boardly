@@ -994,11 +994,15 @@ sequenceDiagram
 - **Per-unit docs (required):** every unit produces an intensive doc `docs/units/UNIT-<id>-<slug>.md` (template + convention in `docs/units/README.md`) covering what changed, why, how it works, and how to verify. **Docs-first is welcome** — if a design/approach note before coding helps, write it and **commit it before continuing**. The doc must be committed before the unit's checkbox is ticked.
 - **Design (binding):** all UI follows `docs/design/DESIGN.md` — Linear-like, **dark mode first**, built on **shadcn/ui** primitives, using the design tokens (no ad-hoc colors/px). **Transitions are measured** per DESIGN.md §6 (add where they aid comprehension, never gratuitous; respect reduced-motion).
 - **Engineering:** React + frontend best practices per `CLAUDE.md` §3 (derive-don't-sync, scoped `useY` subscriptions, stable keys, a11y/keyboard-first, transforms/opacity for motion, all mutations via the command layer).
-- **Dependencies:** every `package.json` pins **exact versions** (no `^`/`~`); commit `pnpm-lock.yaml`; Node `22.17.1`, Next `16.2.6`.
+- **Dependencies:** every `package.json` pins **exact versions** (no `^`/`~`); commit `pnpm-lock.yaml`; Node `24.15.0`, Next `16.2.6`.
 
 ### Execution environment (apply on every step)
 
-- **Node 22.17.1 must front every pnpm/turbo/node command.** The machine default is **v24.15.0** and `nvm use` does **not** persist across separate shell invocations, so prefix each command with the pinned toolchain, e.g. `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"` (v22.17.1 is already installed). Set `.nvmrc` (22.17.1) + `engines`. (v24 would technically run Next ≥20.9, but the pin is for reproducibility.)
+- **Node 24.15.0** is pinned (`.nvmrc` + `engines`) and matches the machine's default node, so no
+  `PATH`/`nvm use` juggling is needed before pnpm/turbo/node commands. (Bumped 2026-07-14 from the
+  original `22.17.1` pin — see `UNIT-P9` — specifically to remove that juggling; if the default node
+  on a given machine ever drifts from this pin, fix that first rather than assuming the default is
+  correct.)
 - **Docker** required from U3.1 onward (`docker compose up -d db`); server runs `migrate()` at boot against it.
 - **Playwright**: `npx playwright install` once; serve the built web `out/` (not `next start`); for screenshots prefer the cached chrome-headless-shell if the default profile is locked (memory `tools/playwright_screenshot.md`, `tools/playwright_mcp.md`).
 
