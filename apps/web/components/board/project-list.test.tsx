@@ -59,6 +59,10 @@ describe("ProjectList", () => {
   });
 
   it("cancels an inline rename on Escape (name unchanged)", () => {
+    // NOTE: jsdom does not fire blur when the focused input is removed, so this
+    // can't exercise the blur-on-unmount commit race the `finished` guard in
+    // RenameRow defends against — that path is covered by the Playwright spec
+    // apps/e2e/tests/project-rename.spec.ts. This asserts the basic cancel.
     const ctx = setup();
     fireEvent.doubleClick(screen.getByRole("button", { name: "Web" }));
     const input = screen.getByRole("textbox", { name: "Rename Web" });

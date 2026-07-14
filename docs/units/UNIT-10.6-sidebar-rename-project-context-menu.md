@@ -50,3 +50,7 @@ content + Color submenu portal to `<body>`.
 - The Color submenu's open-on-hover and swatch click are manual/e2e-verified (Radix sub open needs
   pointer timing jsdom doesn't drive); the unit tests cover Rename + Hide, which use direct
   item selection.
+- **Escape-cancel blur race (fixed):** `RenameRow` commits on blur; removing the focused input on
+  Escape fires a native blur that would otherwise commit the discarded text (a real-browser-only
+  bug jsdom can't see). Guarded with a fire-once `finished` ref so the trailing blur no-ops, and
+  covered by `apps/e2e/tests/project-rename.spec.ts` (Escape cancels, Enter commits).

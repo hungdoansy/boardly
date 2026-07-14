@@ -14,7 +14,7 @@ import {
   ContextMenuTrigger,
 } from "@boardly/ui";
 import { Box, Boxes, EyeOff, Pencil, Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useSettingsRoute } from "../../lib/use-boards";
 import {
@@ -167,10 +167,17 @@ function RenameRow({
   onDone: () => void;
 }) {
   const [name, setName] = useState(project.name);
-
-  const commit = (): void => {
-    const trimmed = name.trim();
-    if (trimmed && trimmed !== project.name) actions.rename(project.id, trimmed);
+  // Finish exactly once. Escape must cancel even though removing the focused
+  // input fires a native blur (`focusout`) that would otherwise `finish(true)`
+  // and commit the discarded text; the guard makes that trailing blur a no-op.
+  const finished = useRef(false);
+  const finish = (save: boolean): void => {
+    if (finished.current) return;
+    finished.current = true;
+    if (save) {
+      const trimmed = name.trim();
+      if (trimmed && trimmed !== project.name) actions.rename(project.id, trimmed);
+    }
     onDone();
   };
 
@@ -183,10 +190,10 @@ function RenameRow({
         value={name}
         onChange={(e) => setName(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
-        onBlur={commit}
+        onBlur={() => finish(true)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-          else if (e.key === "Escape") onDone();
+          if (e.key === "Enter") finish(true);
+          else if (e.key === "Escape") finish(false);
         }}
         className="h-6 min-w-0 flex-1 rounded-[var(--radius-sm)] border border-line bg-elevated px-1 text-base text-fg outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
       />
