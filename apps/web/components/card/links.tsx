@@ -7,13 +7,14 @@ import {
   isSafeHttpUrl,
   linkLabel,
   linkSubtitle,
+  normalizeUrl,
   parseClaudeResume,
   parseClaudeResumeUrl,
   stripDeepLinkMarker,
 } from "@boardly/domain";
-import { Button, Input, toast } from "@boardly/ui";
+import { Button, cn, Input, toast } from "@boardly/ui";
 import { ArrowUpRight, ChevronDown, ChevronUp, Copy, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { copyText } from "../../lib/clipboard";
 import { openExternal } from "../../lib/open-external";
@@ -21,9 +22,46 @@ import { isTauri } from "../../lib/platform";
 import { useLinkActions } from "../../lib/use-board";
 import { ProviderIcon } from "./provider-icon";
 
+// How long a just-added (or re-pasted duplicate) link stays highlighted before
+// the accent wash fades out (`--dur-slow`, per DESIGN.md §6).
+const HIGHLIGHT_HOLD_MS = 2000;
+
 export function CardLinks({ card }: { card: Card }) {
   const actions = useLinkActions();
   const [url, setUrl] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  // `addLink` de-dupes by normalized URL and is fire-and-forget here, so the
+  // new link's id isn't available to this component synchronously. Instead we
+  // arm `awaitingNewId` before calling it and, once the resulting re-render
+  // shows an id that wasn't there before, that's the one to highlight.
+  const knownIdsRef = useRef<ReadonlySet<string>>(new Set(card.links.map((link) => link.id)));
+  const awaitingNewIdRef = useRef(false);
+
+  useEffect(() => {
+    const ids = new Set(card.links.map((link) => link.id));
+    if (awaitingNewIdRef.current) {
+      const added = card.links.find((link) => !knownIdsRef.current.has(link.id));
+      if (added) {
+        setHighlightId(added.id);
+        awaitingNewIdRef.current = false;
+      }
+    }
+    knownIdsRef.current = ids;
+  }, [card.links]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => setHighlightId(null), HIGHLIGHT_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
+
+  useEffect(() => {
+    if (!highlightId) return;
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-link-id="${CSS.escape(highlightId)}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [highlightId]);
 
   const add = (): void => {
     const trimmed = url.trim();
@@ -31,14 +69,25 @@ export function CardLinks({ card }: { card: Card }) {
     // A pasted `claude --resume <id>` command isn't a URL — canonicalize it to a
     // claude-code:// link so it flows through the normal add pipeline.
     const sessionId = parseClaudeResume(trimmed);
-    void actions.add(card.id, sessionId ? formatClaudeResumeUrl(sessionId) : trimmed);
+    const finalUrl = sessionId ? formatClaudeResumeUrl(sessionId) : trimmed;
+    // Same normalization `addLink` de-dupes with — if it matches an existing
+    // link, that's the one that'll get reused (and highlighted); otherwise a
+    // new one is coming.
+    const target = normalizeUrl(finalUrl);
+    const existing = card.links.find((link) => normalizeUrl(link.url) === target);
+    if (existing) {
+      setHighlightId(existing.id);
+    } else {
+      awaitingNewIdRef.current = true;
+    }
+    void actions.add(card.id, finalUrl);
     setUrl("");
   };
 
   return (
     <div className="flex flex-col gap-2">
       {card.links.length > 0 ? (
-        <ul className="flex flex-col gap-0.5">
+        <ul ref={listRef} className="flex flex-col gap-0.5">
           {card.links.map((link, index) => {
             const { label, isDeepLink: deepLink } = stripDeepLinkMarker(linkLabel(link));
             const subtitle = linkSubtitle(link);
@@ -65,7 +114,11 @@ export function CardLinks({ card }: { card: Card }) {
             return (
               <li
                 key={link.id}
-                className="group flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 hover:bg-hover"
+                data-link-id={link.id}
+                className={cn(
+                  "group flex items-center gap-1.5 rounded-[var(--radius-sm)] border-l-2 border-l-transparent px-1 py-0.5 transition-colors duration-[var(--dur-slow)] hover:bg-hover",
+                  link.id === highlightId && "border-l-[var(--accent)] bg-selected",
+                )}
               >
                 {sessionId ? (
                   <button

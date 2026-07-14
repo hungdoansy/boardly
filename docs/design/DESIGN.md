@@ -93,16 +93,16 @@ WIP). The values, order, categories, and colors are the single source of truth i
 `packages/domain/src/status.ts` (`STATUS_META` / `STATUS_ORDER`); mirror them, never hardcode
 elsewhere.
 
-| Order | Status      | Color     | Category  | Icon                                          |
-| ----- | ----------- | --------- | --------- | --------------------------------------------- |
-| 1     | Backlog     | `#8A8F98` | unstarted | dashed/muted circle                           |
-| 2     | Todo        | `#A0A4AD` | unstarted | empty circle                                  |
-| 3     | In Progress | `#F2C94C` | started   | half-filled circle                            |
+| Order | Status      | Color     | Category  | Icon                                            |
+| ----- | ----------- | --------- | --------- | ----------------------------------------------- |
+| 1     | Backlog     | `#8A8F98` | unstarted | dashed/muted circle                             |
+| 2     | Todo        | `#A0A4AD` | unstarted | empty circle                                    |
+| 3     | In Progress | `#F2C94C` | started   | half-filled circle                              |
 | 4     | Pending     | `#E2B341` | started   | progress pie (amber, distinct from In Progress) |
-| 5     | In Review   | `#4CB782` | started   | near-complete circle                          |
-| 6     | Done        | `#5E6AD2` | completed | filled check (accent); card face dims + strike |
-| 7     | Canceled    | `#6B7080` | canceled  | crossed; card face dims + title strikethrough |
-| 8     | Duplicate   | `#565B66` | canceled  | filled-with-cross (gray); dims + strikethrough |
+| 5     | In Review   | `#4CB782` | started   | near-complete circle                            |
+| 6     | Done        | `#5E6AD2` | completed | filled check (accent); card face dims + strike  |
+| 7     | Canceled    | `#6B7080` | canceled  | crossed; card face dims + title strikethrough   |
+| 8     | Duplicate   | `#565B66` | canceled  | filled-with-cross (gray); dims + strikethrough  |
 
 Cards in a `completed` or `canceled` category (Done, Canceled, Duplicate) render dimmed with a
 struck-through title. Each column header shows the status icon (color swatch) + name + live count;
@@ -275,7 +275,7 @@ The `--focus-saturate` token is per-theme; the toggle transition respects `prefe
 - **App shell:** a user has **one space** (no board list / switcher). Left **sidebar** (~240px, `--bg-surface`) top→bottom: logo → Search → **projects list** (scopes the board; `flex-1`) → **Settings** (the last full-width nav item) → account/theme footer. Main board area is `--bg-base`. Settings opens a full-pane view (routed by `#settings`); the account button and theme toggle stay in the footer.
 - **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). Above the columns, a board-toolbar toggle **shows/hides empty columns** (synced board-meta flag, default show). Dragging a card onto a column applies that status immediately. Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
 - **Card face:** four fixed lines, top to bottom, in a locked order (Unit P3/Unit 5/2026-07-12 card-polish plan — do not reshuffle): **line 1** — ticket id (mono, tertiary, far left) with due chip + checklist meter pushed right; **line 2** — status glyph + title (`text-base`, up to 2 lines); **line 3** — labels (omitted when none); **line 4** — priority icon, then link chips on the left, the project badge pushed to the far right (omitted when all three are empty). Each line wraps independently. No archive affordance on the card face — archive lives in the card detail drawer and the `e` keyboard shortcut. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px).
-- **Card detail:** right `sheet` — title, status/priority/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths.
+- **Card detail:** right `sheet` — title, status/priority/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths. Adding (or re-pasting a de-duped) link briefly highlights that row with the same `--bg-selected` + accent left-border pairing used for a selected card, fading out after ~2s (`--dur-slow`, one-shot, no loop; UNIT-P10).
 - **Command palette:** centered `command` dialog, `--bg-overlay`, subtle border + shadow; grouped results; keyboard nav; instant.
 - **Auth (login/signup):** centered card on `--bg-base`, minimal, Boardly wordmark, single accent button, inline validation.
 

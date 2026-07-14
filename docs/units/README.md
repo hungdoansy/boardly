@@ -50,6 +50,8 @@ reuse a number namespace). The plans, newest last:
     description).
   - `UNIT-P9` — dev/build DX: auto-loaded `.env` for the server and `apps/web/.env.production` for
     `tauri:build`; Node toolchain pin bumped `22.17.1` → `24.15.0` to match the machine default.
+  - `UNIT-P10` — highlight the just-added (or re-pasted duplicate) link in the card's Links list,
+    fading out after a short hold.
 
 ## Convention
 

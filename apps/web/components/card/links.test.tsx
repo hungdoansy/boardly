@@ -181,4 +181,41 @@ describe("CardLinks", () => {
       "group-focus-within:opacity-100",
     );
   });
+
+  it("highlights a newly added link", () => {
+    // Generic links with no fetched title render just the hostname, so each
+    // case below uses a distinct hostname to keep rows distinguishable.
+    setup();
+    fireEvent.change(field(), { target: { value: "https://freshlink.example.com/anything" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    const row = screen.getByText("freshlink.example.com").closest("li");
+    expect(row).toHaveClass("border-l-[var(--accent)]", "bg-selected");
+  });
+
+  it("highlights the existing link when a duplicate is re-pasted", () => {
+    const ctx = setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://duplinked.example.com/x" });
+    });
+    fireEvent.change(field(), { target: { value: "https://duplinked.example.com/x/" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(links(ctx)).toHaveLength(1);
+    const row = screen.getByText("duplinked.example.com").closest("li");
+    expect(row).toHaveClass("border-l-[var(--accent)]", "bg-selected");
+  });
+
+  it("does not highlight an unrelated link when a duplicate is re-pasted", () => {
+    setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://otherlink.example.com/a" });
+      execute(addLink, c, { cardId: "c1", id: "l2", url: "https://targetlink.example.com/b" });
+    });
+    fireEvent.change(field(), { target: { value: "https://targetlink.example.com/b" } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    const other = screen.getByText("otherlink.example.com").closest("li");
+    const target = screen.getByText("targetlink.example.com").closest("li");
+    expect(other).not.toHaveClass("border-l-[var(--accent)]");
+    expect(target).toHaveClass("border-l-[var(--accent)]", "bg-selected");
+  });
 });
