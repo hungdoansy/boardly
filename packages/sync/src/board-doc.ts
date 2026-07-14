@@ -671,6 +671,31 @@ export function moveLink(
 }
 
 /**
+ * Set a link's display title — used to enrich a generic link after an async
+ * unfurl resolves (the link is persisted immediately with no title). A no-op if
+ * the card or link was removed meanwhile, so a late-arriving title can't
+ * resurrect a deleted link.
+ */
+export function setLinkTitle(
+  doc: Y.Doc,
+  cardId: string,
+  linkId: string,
+  title: string,
+  now: number,
+): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      const links = card.get("links");
+      const link = links instanceof Y.Map ? links.get(linkId) : undefined;
+      if (link instanceof Y.Map) link.set("title", title);
+    },
+    now,
+  );
+}
+
+/**
  * Move a card to `toStatus` at the slot between the neighbors. A single
  * `status` + `ord` write — concurrent moves of the same card resolve by Yjs LWW
  * to exactly one status (no duplicate). Because a card's column IS its status,

@@ -4,6 +4,7 @@ import {
   getCard as syncGetCard,
   moveLink as syncMoveLink,
   removeLink as syncRemoveLink,
+  setLinkTitle as syncSetLinkTitle,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -40,6 +41,22 @@ export const removeLink = defineCommand({
   run: (ctx, input) => {
     syncRemoveLink(ctx.getBoardDoc(), input.cardId, input.linkId, ctx.now());
     return { cardId: input.cardId, linkId: input.linkId };
+  },
+});
+
+export const updateLinkTitle = defineCommand({
+  name: "updateLinkTitle",
+  description:
+    "Set a link's display title (e.g. to enrich a generic link after its page title is fetched).",
+  input: z.object({
+    cardId: z.string(),
+    linkId: z.string(),
+    title: z.string().min(1),
+  }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    syncSetLinkTitle(doc, input.cardId, input.linkId, input.title, ctx.now());
+    return { cardId: input.cardId, linkId: input.linkId, card: syncGetCard(doc, input.cardId) };
   },
 });
 

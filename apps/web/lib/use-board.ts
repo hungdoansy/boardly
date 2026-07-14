@@ -48,6 +48,7 @@ import {
   setTicketPrefix,
   toggleChecklistItem,
   unassignLabel,
+  updateLinkTitle,
 } from "@boardly/commands";
 import {
   allLiveCards,
@@ -407,21 +408,25 @@ export function useLinkActions(): LinkActions {
     add: useCallback(
       async (cardId: string, url: string) => {
         if (!isSafeHttpUrl(url)) return; // command also rejects; skip here to avoid a throw
-        // Generic links get a server-fetched title (Unit 3.7); known providers
-        // already render a good short label, so skip the round-trip for them —
-        // except a bare GitHub repo link, which also gets its description
-        // fetched (stored in the same `title` field; rendered as a secondary
-        // line, not a label replacement — see `linkLabel`/`linkSubtitle`).
-        // `isGithubRepoUrl` gates the fetch synchronously so a PR/issue link
-        // (the common case) never hits an `await` before `execute` runs.
-        let title: string | undefined;
         const provider = detectProvider(url);
+        // Persist the link immediately (host label via `shortLabelFor`) so it
+        // appears at once — a slow, failed, or hung unfurl can no longer block or
+        // silently drop it. `execute(addLink)` runs synchronously here, before the
+        // first `await` below (the add previously ran only *after* the unfurl).
+        const { linkId } = execute(addLink, ctx, { cardId, url });
+        // Then enrich the title in the background: generic links get a page-title
+        // unfurl; a bare GitHub repo link gets its description (stored in the same
+        // `title` field — rendered as a secondary line, see `linkLabel`/
+        // `linkSubtitle`). Known providers already render a good short label, so
+        // they skip the round-trip. `updateLinkTitle` no-ops if the link was
+        // removed meanwhile.
+        let title: string | undefined;
         if (provider === LinkProvider.Generic) {
           title = (await unfurl(url))?.title;
         } else if (provider === LinkProvider.GitHub && isGithubRepoUrl(url)) {
           title = await fetchGithubRepoDescription(url);
         }
-        execute(addLink, ctx, { cardId, url, title });
+        if (title) execute(updateLinkTitle, ctx, { cardId, linkId, title });
       },
       [ctx],
     ),

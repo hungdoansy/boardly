@@ -30,7 +30,7 @@ import {
   unassignLabel,
 } from "./commands/label";
 import { exportBoard, importBoard } from "./commands/io";
-import { addLink, moveLink, removeLink } from "./commands/link";
+import { addLink, moveLink, removeLink, updateLinkTitle } from "./commands/link";
 import {
   archiveProject,
   createProject,
@@ -74,6 +74,7 @@ export const commands = [
   addLink,
   removeLink,
   moveLink,
+  updateLinkTitle,
   createProject,
   renameProject,
   recolorProject,
