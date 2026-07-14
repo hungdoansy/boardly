@@ -18,7 +18,8 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useBoardlyContext } from "../../lib/boardly-context";
 import { planMove } from "../../lib/dnd";
@@ -41,6 +42,13 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
   const ctx = useBoardlyContext();
   const doc = ctx.getBoardDoc();
   const [active, setActive] = useState<ActiveItem | null>(null);
+  // The DragOverlay is `position: fixed`; a CSS `filter` on an ancestor (the
+  // Calm/Zen `saturate()` on `<main data-focus-scope>`, see globals.css) would
+  // make that ancestor its containing block, offsetting the overlay from the
+  // cursor. Portal it to <body> so it stays viewport-positioned in every focus
+  // mode. Gated on mount so the static-export prerender (no `document`) is safe.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -105,13 +113,18 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
       onDragCancel={() => setActive(null)}
     >
       {children}
-      <DragOverlay>
-        {active ? (
-          <div className="rounded-[var(--radius-md)] border border-line bg-elevated px-2.5 py-2 text-base text-fg shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-            {active.title}
-          </div>
-        ) : null}
-      </DragOverlay>
+      {mounted
+        ? createPortal(
+            <DragOverlay>
+              {active ? (
+                <div className="rounded-[var(--radius-md)] border border-line bg-elevated px-2.5 py-2 text-base text-fg shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+                  {active.title}
+                </div>
+              ) : null}
+            </DragOverlay>,
+            document.body,
+          )
+        : null}
     </DndContext>
   );
 }

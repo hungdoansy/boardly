@@ -2,6 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // Specs run DOM APIs (document, getComputedStyle, …) inside `page.evaluate`
+    // callbacks, which execute in the browser — so the DOM lib is required here
+    // even though the base config (Node-targeted) omits it.
+    "lib": ["ES2023", "DOM"],
     "types": ["node"]
   },
   "include": ["tests", "playwright.config.ts"]
