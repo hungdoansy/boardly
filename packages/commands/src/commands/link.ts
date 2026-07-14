@@ -1,4 +1,4 @@
-import { isSafeHttpUrl } from "@boardly/domain";
+import { isStorableLinkUrl } from "@boardly/domain";
 import {
   addLink as syncAddLink,
   getCard as syncGetCard,
@@ -16,7 +16,10 @@ export const addLink = defineCommand({
     "Attach a link to a card. The provider (Slack/Linear/Claude/generic) is auto-detected.",
   input: z.object({
     cardId: z.string(),
-    url: z.string().min(1).refine(isSafeHttpUrl, "URL must be http(s)"),
+    url: z
+      .string()
+      .min(1)
+      .refine(isStorableLinkUrl, "URL must be http(s) or a claude-code session link"),
     id: z.string().optional(),
     title: z.string().optional(),
   }),

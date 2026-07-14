@@ -37,6 +37,7 @@ export const LinkProvider = {
   Linear: "linear",
   GitHub: "github",
   Claude: "claude",
+  ClaudeCode: "claude-code",
   Figma: "figma",
   Notion: "notion",
   GoogleDocs: "google_docs",

@@ -7,6 +7,7 @@
 import { LinkProvider as LP } from "../enums";
 import type { LinkProvider } from "../enums";
 import { claude } from "./providers/claude";
+import { claudeCode, isClaudeCodeUrl } from "./providers/claude-code";
 import { confluence } from "./providers/confluence";
 import { figma } from "./providers/figma";
 import { generic } from "./providers/generic";
@@ -46,6 +47,7 @@ export const PROVIDERS: LinkProviderDef[] = [
   githubIssue,
   githubRepo,
   claude,
+  claudeCode,
   figma,
   notion,
   trello,
@@ -151,6 +153,15 @@ export function stripDeepLinkMarker(label: string): { label: string; isDeepLink:
 export function isSafeHttpUrl(url: string): boolean {
   const parsed = safeUrl(url);
   return parsed !== null && (parsed.protocol === "https:" || parsed.protocol === "http:");
+}
+
+/**
+ * URLs the link layer will store: any safe http(s) URL, plus a well-formed
+ * Claude Code session URL (`claude-code://resume/<id>`, rendered as a
+ * copy-to-clipboard chip rather than an href). Still blocks javascript:/data:.
+ */
+export function isStorableLinkUrl(url: string): boolean {
+  return isSafeHttpUrl(url) || isClaudeCodeUrl(url);
 }
 
 /** IPv4 in a non-public range: unspecified / private / loopback / link-local / multicast. */

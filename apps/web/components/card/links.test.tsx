@@ -4,8 +4,9 @@ import "@testing-library/jest-dom/vitest";
 import { addLink, createCard, execute } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { getCard, initBoard } from "@boardly/sync";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { Toaster } from "@boardly/ui";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { useCardById } from "../../lib/use-board";
@@ -82,6 +83,40 @@ describe("CardLinks", () => {
     fireEvent.change(field(), { target: { value: "javascript:alert(1)" } });
     fireEvent.keyDown(field(), { key: "Enter" });
     expect(links(ctx)).toHaveLength(0);
+  });
+
+  it("stores a pasted `claude --resume` command as a Claude session chip", () => {
+    const id = "3d90b1bc-ada0-44c3-9ced-1be176c97044";
+    const ctx = setup();
+    fireEvent.change(field(), { target: { value: `claude --resume ${id}` } });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(links(ctx)[0]?.provider).toBe("claude-code");
+    expect(links(ctx)[0]?.url).toBe(`claude-code://resume/${id}`);
+    // Rendered as a copy button (no page to open), not an external anchor.
+    expect(screen.getByRole("button", { name: /Copy resume command/i })).toBeInTheDocument();
+    expect(screen.getByText("Claude session 3d90b1bc")).toBeInTheDocument();
+  });
+
+  it("copies the resume command and toasts when the chip is clicked", async () => {
+    const id = "3d90b1bc-ada0-44c3-9ced-1be176c97044";
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+    execute(createCard, ctx, { id: "c1", title: "Card" });
+    execute(addLink, ctx, { cardId: "c1", id: "l1", url: `claude-code://resume/${id}` });
+    render(
+      <BoardlyProvider context={ctx}>
+        <Harness cardId="c1" />
+        <Toaster />
+      </BoardlyProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Copy resume command/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(`claude --resume ${id}`));
+    expect(await screen.findByText("Resume command copied")).toBeInTheDocument();
   });
 
   it("removes a link", () => {

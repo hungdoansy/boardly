@@ -36,3 +36,21 @@ describe("updateLinkTitle", () => {
     expect(getCard(ctx.getBoardDoc(), "c1")?.links).toHaveLength(0);
   });
 });
+
+describe("addLink URL validation", () => {
+  const ID = "3d90b1bc-ada0-44c3-9ced-1be176c97044";
+
+  it("accepts a claude-code session URL", () => {
+    const ctx = seed();
+    expect(() =>
+      execute(addLink, ctx, { cardId: "c1", url: `claude-code://resume/${ID}` }),
+    ).not.toThrow();
+    expect(getCard(ctx.getBoardDoc(), "c1")?.links[0]?.provider).toBe("claude-code");
+  });
+
+  it("still rejects unsafe schemes", () => {
+    const ctx = seed();
+    expect(() => execute(addLink, ctx, { cardId: "c1", url: "javascript:alert(1)" })).toThrow();
+    expect(() => execute(addLink, ctx, { cardId: "c1", url: "data:text/html,x" })).toThrow();
+  });
+});

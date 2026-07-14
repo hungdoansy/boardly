@@ -12,7 +12,7 @@ import type {
 import {
   detectProvider,
   isGithubRepoUrl,
-  isSafeHttpUrl,
+  isStorableLinkUrl,
   LinkProvider,
   STATUS_ORDER,
 } from "@boardly/domain";
@@ -407,7 +407,7 @@ export function useLinkActions(): LinkActions {
   return {
     add: useCallback(
       async (cardId: string, url: string) => {
-        if (!isSafeHttpUrl(url)) return; // command also rejects; skip here to avoid a throw
+        if (!isStorableLinkUrl(url)) return; // command also rejects; skip here to avoid a throw
         const provider = detectProvider(url);
         // Persist the link immediately (host label via `shortLabelFor`) so it
         // appears at once — a slow, failed, or hung unfurl can no longer block or

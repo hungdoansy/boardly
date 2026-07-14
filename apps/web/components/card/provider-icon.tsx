@@ -83,6 +83,7 @@ const BRAND: Partial<Record<string, { svg: string; mono?: boolean }>> = {
   slack,
   linear,
   claude,
+  "claude-code": claude,
   figma,
   github: mono(github),
   notion: mono(notion),
