@@ -152,4 +152,33 @@ describe("CardLinks", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move Alpha down" }));
     expect(titleOrder()).toEqual(["Beta", "Alpha", "Gamma"]);
   });
+
+  it("keeps the claude-session copy indicator hidden until row hover/focus", () => {
+    const id = "3d90b1bc-ada0-44c3-9ced-1be176c97044";
+    setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: `claude-code://resume/${id}` });
+    });
+    const copyIcon = screen
+      .getByRole("button", { name: /Copy resume command/i })
+      .querySelector(".lucide-copy");
+    expect(copyIcon).toHaveClass(
+      "opacity-0",
+      "group-hover:opacity-100",
+      "group-focus-within:opacity-100",
+    );
+    // The link's identity (its label) is never hover-gated.
+    expect(screen.getByText("Claude session 3d90b1bc")).toBeInTheDocument();
+  });
+
+  it("keeps the deep-link open indicator hidden until row hover/focus", () => {
+    setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://claude.ai/code/session_abc" });
+    });
+    const arrow = screen.getByRole("link").querySelector(".lucide-arrow-up-right");
+    expect(arrow).toHaveClass(
+      "opacity-0",
+      "group-hover:opacity-100",
+      "group-focus-within:opacity-100",
+    );
+  });
 });

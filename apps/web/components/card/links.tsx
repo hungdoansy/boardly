@@ -76,7 +76,10 @@ export function CardLinks({ card }: { card: Card }) {
                   >
                     <ProviderIcon provider={link.provider} />
                     <span className="min-w-0 flex-1 truncate">{label}</span>
-                    <Copy className="size-3 shrink-0 text-fg-faint" aria-hidden />
+                    <Copy
+                      className="size-3 shrink-0 text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100 group-focus-within:opacity-100"
+                      aria-hidden
+                    />
                   </button>
                 ) : (
                   <a
@@ -103,7 +106,10 @@ export function CardLinks({ card }: { card: Card }) {
                       ) : null}
                     </span>
                     {deepLink ? (
-                      <ArrowUpRight className="size-3 shrink-0 text-fg-faint" aria-hidden />
+                      <ArrowUpRight
+                        className="size-3 shrink-0 text-fg-faint opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100 group-focus-within:opacity-100"
+                        aria-hidden
+                      />
                     ) : null}
                   </a>
                 )}
