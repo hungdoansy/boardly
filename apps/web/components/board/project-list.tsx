@@ -78,11 +78,7 @@ export function ProjectList() {
         {projects.map((project) =>
           editingId === project.id ? (
             <li key={project.id}>
-              <RenameRow
-                project={project}
-                actions={actions}
-                onDone={() => setEditingId(null)}
-              />
+              <RenameRow project={project} actions={actions} onDone={() => setEditingId(null)} />
             </li>
           ) : (
             <li key={project.id}>

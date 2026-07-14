@@ -84,8 +84,7 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
     const fromStatus = aData?.status;
     if (!fromStatus) return;
     const toStatus = (oData?.type === "column" ? oData.status : oData?.status) as
-      | Status
-      | undefined;
+      Status | undefined;
     if (!toStatus) return;
     const sameContainer = fromStatus === toStatus;
     const neighbors = planMove({

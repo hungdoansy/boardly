@@ -132,7 +132,13 @@ const BRAND: Partial<Record<string, { svg: string; mono?: boolean }>> = {
   wikipedia: mono(wikipedia),
 };
 
-export function ProviderIcon({ provider, className }: { provider: LinkProvider, className?: string }) {
+export function ProviderIcon({
+  provider,
+  className,
+}: {
+  provider: LinkProvider;
+  className?: string;
+}) {
   // Some brand SVGs (Figma, Instagram, Reddit, Zoom, ...) reference internal
   // gradient/clip-path ids via url(#x); scope those to this instance so two
   // icons on the same page never resolve each other's ids (see scope-svg-ids).
@@ -146,7 +152,7 @@ export function ProviderIcon({ provider, className }: { provider: LinkProvider, 
           ICON_CLASS,
           "inline-block align-middle [&_svg]:block [&_svg]:size-full",
           brand.mono && "text-fg-muted [&_svg]:fill-current",
-          className
+          className,
         )}
         // `brand` is looked up by `provider`, a fixed LinkProvider enum value
         // (never raw URL/link text), and `brand.svg` is always one of the ~45

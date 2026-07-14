@@ -14,7 +14,13 @@ import { useY } from "@boardly/sync/react";
 import { useCallback, useSyncExternalStore } from "react";
 
 import { useBoardlyContext } from "./boardly-context";
-import { buildBoardHash, currentHashBody, parseRoute, subscribeRoute, writeHashBody } from "./route";
+import {
+  buildBoardHash,
+  currentHashBody,
+  parseRoute,
+  subscribeRoute,
+  writeHashBody,
+} from "./route";
 
 // The selected project scope (null = "All") lives in the URL hash so All and
 // each project are real, linkable nav destinations (see route.ts). The hash is

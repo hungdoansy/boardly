@@ -127,7 +127,9 @@ export function shortLabelFor(url: string): string {
  * {@link linkSubtitle} to read it.
  */
 export function linkLabel(link: { provider: LinkProvider; url: string; title?: string }): string {
-  return link.provider === LP.GitHub ? shortLabelFor(link.url) : (link.title ?? shortLabelFor(link.url));
+  return link.provider === LP.GitHub
+    ? shortLabelFor(link.url)
+    : (link.title ?? shortLabelFor(link.url));
 }
 
 /** Secondary descriptive text under the label, when present (GitHub repo descriptions only, for now). */

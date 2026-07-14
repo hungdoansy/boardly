@@ -41,7 +41,11 @@ export function cardHashBody(ctx: ReturnType<typeof useBoardlyContext>, cardId: 
   const { projectRef } = parseRoute(currentHashBody());
   const card = getCard(doc, cardId);
   if (!card) return buildBoardHash(projectRef);
-  const ref = formatTicketRef(getBoard(doc, ctx.userId ?? "").shortIdPrefix, card.number, card.title);
+  const ref = formatTicketRef(
+    getBoard(doc, ctx.userId ?? "").shortIdPrefix,
+    card.number,
+    card.title,
+  );
   return buildBoardHash(projectRef, ref);
 }
 

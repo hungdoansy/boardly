@@ -2,7 +2,12 @@
 // enumerate this and derive their schemas from each command's zod `input`, so
 // the agent surface is generated from — and cannot drift from — the UI's.
 import type { Command } from "./command";
-import { renameBoard, setBadgeConfig, setShowEmptyColumns, setTicketPrefix } from "./commands/board";
+import {
+  renameBoard,
+  setBadgeConfig,
+  setShowEmptyColumns,
+  setTicketPrefix,
+} from "./commands/board";
 import {
   addChecklistItem,
   addRelatedCard,

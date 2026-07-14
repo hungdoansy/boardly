@@ -49,7 +49,7 @@ card's `projectId` is preserved across the round-trip.
 
 ## Follow-ups / known gaps
 
-- If the *currently-selected* project scope is hidden (only reachable from Settings, where the
+- If the _currently-selected_ project scope is hidden (only reachable from Settings, where the
   board isn't shown), the URL hash still points at it; the board does not crash and the user can
   pick "All" or another project. A scope auto-reset was intentionally not added (it would need an
   effect that mirrors derived state). Minor cosmetic edge, noted for a future pass.

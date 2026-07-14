@@ -399,7 +399,11 @@ export function useChecklistActions(): ChecklistActions {
 export interface LinkActions {
   add(cardId: string, url: string): Promise<void>;
   remove(cardId: string, linkId: string): void;
-  move(cardId: string, linkId: string, neighbors: { afterId?: string | null; beforeId?: string | null }): void;
+  move(
+    cardId: string,
+    linkId: string,
+    neighbors: { afterId?: string | null; beforeId?: string | null },
+  ): void;
 }
 
 export function useLinkActions(): LinkActions {
@@ -449,4 +453,3 @@ export function useLinkActions(): LinkActions {
     ),
   };
 }
-

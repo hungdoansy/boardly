@@ -55,5 +55,5 @@ positioning resolves against the viewport in every focus mode.
 
 ## Follow-ups / known gaps
 
-- The drag *interaction* is Playwright-only by repo convention (dnd-kit's pointer sensor does
+- The drag _interaction_ is Playwright-only by repo convention (dnd-kit's pointer sensor does
   not activate under jsdom), so there is no jsdom unit test for the overlay placement.

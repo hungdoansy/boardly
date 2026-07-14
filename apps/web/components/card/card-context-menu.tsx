@@ -79,7 +79,10 @@ export function CardContextMenu({
 
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <StatusIcon variant={card.status as StatusVariant} color={STATUS_META[card.status].color} />
+              <StatusIcon
+                variant={card.status as StatusVariant}
+                color={STATUS_META[card.status].color}
+              />
               Status
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
@@ -130,9 +133,7 @@ export function CardContextMenu({
             <ContextMenuSubContent>
               <ContextMenuRadioGroup
                 value={card.projectId ?? NO_PROJECT}
-                onValueChange={(v) =>
-                  actions.setProject(card.id, v === NO_PROJECT ? null : v)
-                }
+                onValueChange={(v) => actions.setProject(card.id, v === NO_PROJECT ? null : v)}
               >
                 <ContextMenuRadioItem value={NO_PROJECT}>No project</ContextMenuRadioItem>
                 {projects.map((p) => (
@@ -172,8 +173,8 @@ export function CardContextMenu({
             <DialogTitle>Delete this card?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-fg-muted">
-            This permanently deletes <span className="text-fg">{card.title}</span> and can&rsquo;t be
-            undone. To keep it for later, archive it instead.
+            This permanently deletes <span className="text-fg">{card.title}</span> and can&rsquo;t
+            be undone. To keep it for later, archive it instead.
           </p>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmDelete(false)}>

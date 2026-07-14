@@ -24,7 +24,7 @@
 ## Why
 
 - **The bug was latency, not validation.** `unfurl()` already swallows its errors and returns
-  `null` (it never throws), so the add wasn't being *aborted* — it was being *serialized behind*
+  `null` (it never throws), so the add wasn't being _aborted_ — it was being _serialized behind_
   the unfurl round-trip. A slow or hung `/api/unfurl` (e.g. the pasted Zoho Recruit URL) left the
   link invisible until the fetch settled, which read as "nothing happened."
 - **Decouple persistence from the network.** Writing the link synchronously and enriching later

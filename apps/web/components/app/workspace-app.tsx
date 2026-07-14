@@ -119,11 +119,7 @@ function Shell() {
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
-      {settingsOpen ? (
-        <SettingsView onClose={() => setSettingsOpen(false)} />
-      ) : (
-        <MainArea />
-      )}
+      {settingsOpen ? <SettingsView onClose={() => setSettingsOpen(false)} /> : <MainArea />}
       <CommandPalette />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <SyncBridge />
@@ -181,7 +177,10 @@ export function Sidebar({
           aria-label="Settings"
           aria-pressed={settingsOpen}
           onClick={onOpenSettings}
-          className={cn("w-full justify-start", settingsOpen ? "bg-selected text-fg" : "text-fg-muted")}
+          className={cn(
+            "w-full justify-start",
+            settingsOpen ? "bg-selected text-fg" : "text-fg-muted",
+          )}
         >
           <Settings className="size-4" />
           <span>Settings</span>

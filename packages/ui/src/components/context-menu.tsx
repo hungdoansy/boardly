@@ -101,7 +101,10 @@ export function ContextMenuLabel({
 }: React.ComponentProps<typeof ContextMenuPrimitive.Label>) {
   return (
     <ContextMenuPrimitive.Label
-      className={cn("px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint", className)}
+      className={cn(
+        "px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint",
+        className,
+      )}
       {...props}
     />
   );
@@ -112,6 +115,9 @@ export function ContextMenuSeparator({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Separator>) {
   return (
-    <ContextMenuPrimitive.Separator className={cn("-mx-1 my-1 h-px bg-line", className)} {...props} />
+    <ContextMenuPrimitive.Separator
+      className={cn("-mx-1 my-1 h-px bg-line", className)}
+      {...props}
+    />
   );
 }
