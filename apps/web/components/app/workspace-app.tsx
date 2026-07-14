@@ -2,7 +2,7 @@
 
 import type { Filter, FilterClause } from "@boardly/domain";
 import { emptyFilter, isEmptyFilter } from "@boardly/domain";
-import { Button, cn, Popover, PopoverContent, PopoverTrigger } from "@boardly/ui";
+import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@boardly/ui";
 import { Columns3, Command, LayoutGrid, List, LogOut, Search, Settings, Tag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -127,6 +127,9 @@ function Shell() {
       <CommandPalette />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <SyncBridge />
+      {/* Mounted here (sibling of <main>) so its fixed viewport is clear of the
+          Calm/Zen focus `filter` that would otherwise offset it. */}
+      <Toaster />
     </div>
   );
 }

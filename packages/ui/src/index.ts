@@ -35,4 +35,19 @@ export {
   SheetDescription,
 } from "./components/sheet";
 export { Popover, PopoverTrigger, PopoverAnchor, PopoverContent } from "./components/popover";
+export {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuGroup,
+  ContextMenuRadioGroup,
+  ContextMenuSub,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+} from "./components/context-menu";
+export { Toaster, toast, type ToastItem } from "./components/toast";
 export { StatusIcon, type StatusVariant, type StatusIconProps } from "./components/status-icon";
