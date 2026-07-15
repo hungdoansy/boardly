@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createDb, type DbHandle } from "./client";
 import { runMigrations } from "./migrate";
-import { yjsDocuments } from "./schema";
+import { attachments, schema, yjsDocuments } from "./schema";
 
 // Real-db integration (see docker-compose.yml). Skipped unless DATABASE_URL is
 // set, so the default `pnpm -r test` stays db-free. Run with:
@@ -12,11 +12,36 @@ import { yjsDocuments } from "./schema";
 //     pnpm --filter @boardly/server test
 const DATABASE_URL = process.env.DATABASE_URL;
 
-const EXPECTED_TABLES = ["users", "refresh_tokens", "yjs_documents", "link_metadata_cache"];
+const EXPECTED_TABLES = [
+  "users",
+  "refresh_tokens",
+  "yjs_documents",
+  "link_metadata_cache",
+  "attachments",
+];
 
 // The `boards` ownership table was dropped when the board doc became addressed
 // and authorized by user id; make sure the migration actually removes it.
 const REMOVED_TABLES = ["boards"];
+
+// Pure (db-free) shape checks so the table definition is covered even when the
+// integration suite below is skipped.
+describe("attachments table definition", () => {
+  it("is exported in the schema map", () => {
+    expect(schema.attachments).toBe(attachments);
+  });
+
+  it("has the expected columns", () => {
+    const cols = getTableColumns(attachments);
+    expect(Object.keys(cols).sort()).toEqual(
+      ["createdAt", "id", "mimeType", "originalName", "sizeBytes", "userId"].sort(),
+    );
+    expect(cols.userId.notNull).toBe(true);
+    expect(cols.mimeType.notNull).toBe(true);
+    expect(cols.sizeBytes.notNull).toBe(true);
+    expect(cols.originalName.notNull).toBe(false);
+  });
+});
 
 describe.skipIf(!DATABASE_URL)("migrations + schema (integration, real db)", () => {
   let handle: DbHandle;

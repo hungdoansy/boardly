@@ -1,4 +1,4 @@
-import { customType, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { customType, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Postgres `bytea` mapped to `Uint8Array` in app code (Yjs document state is a
@@ -54,9 +54,32 @@ export const linkMetadataCache = pgTable("link_metadata_cache", {
   fetchedAt: timestamptz("fetched_at").notNull().defaultNow(),
 });
 
+/**
+ * Metadata for images uploaded into card descriptions. Bytes live on disk under
+ * `UPLOADS_DIR` (a Docker volume in prod, a local folder in dev); only this row
+ * lives in Postgres. Owned by a user, not a card — cards live in the Yjs doc, so
+ * the link is expressed purely by the `/attachments/<id>` markdown reference in
+ * the description text. No automatic cleanup this iteration; see the plan.
+ */
+export const attachments = pgTable(
+  "attachments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    originalName: text("original_name"),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("attachments_user_id_idx").on(table.userId)],
+);
+
 export const schema = {
   users,
   refreshTokens,
   yjsDocuments,
   linkMetadataCache,
+  attachments,
 };

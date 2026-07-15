@@ -58,10 +58,18 @@ services:
       # Origins allowed to call the API with credentials. Includes the desktop
       # webview origin: macOS Tauri uses `tauri://localhost`.
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,tauri://localhost,https://tauri.localhost}
+      # Uploaded description images live on the `uploads` volume mounted below.
+      UPLOADS_DIR: /data/uploads
     ports:
       # Host 8788 → container 8787. Different from the dev server (8787) so both
       # can run at once. The desktop app is built to point here.
       - "${BOARDLY_SERVER_PORT:-8788}:8787"
+    volumes:
+      # Dedicated production volume for attachment bytes (→ boardly-prod_uploads).
+      # Same isolation + `down -v` wipe semantics as `pgdata`; back it up the
+      # same way. Metadata rows live in Postgres, the bytes live here.
+      - uploads:/data/uploads
 
 volumes:
   pgdata:
+  uploads:

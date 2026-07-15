@@ -37,6 +37,9 @@ apps/desktop/src-tauri/target/
 # Next.js auto-generated (regenerated on build/dev)
 next-env.d.ts
 
+# Local attachment uploads (dev UPLOADS_DIR default; prod uses a Docker volume)
+data/
+
 # Misc
 *.tsbuildinfo
 
