@@ -34,15 +34,15 @@ with **projects**, not multiple boards, and the columns are the **fixed Linear w
 
 ## Tech stack (locked)
 
-| Layer             | Choice                               | Notes                                                                                              |
-| ----------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Language          | TypeScript                           |                                                                                                    |
-| UI framework      | **Next.js 16.2.6** (React 19)        | App Router; **`output: 'export'` (static)** so the same build runs in the browser and inside Tauri |
-| Desktop shell     | **Tauri** (Rust)                     | Bundles the Next.js static export; small binary, low memory, fast; no exotic native APIs needed    |
-| Sync              | **Yjs** (CRDT) over Hocuspocus       | Local-first; self-hosted `/sync` WebSocket relay                                                   |
-| Local persistence | IndexedDB (web) / SQLite (desktop)   | Offline-first                                                                                       |
-| Backend           | Node (Hono) sync server + Postgres   | Durable Yjs snapshots + auth + REST/MCP command API + link-metadata endpoint                       |
-| Build/monorepo    | pnpm workspaces + Turborepo          |                                                                                                    |
+| Layer             | Choice                             | Notes                                                                                              |
+| ----------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Language          | TypeScript                         |                                                                                                    |
+| UI framework      | **Next.js 16.2.6** (React 19)      | App Router; **`output: 'export'` (static)** so the same build runs in the browser and inside Tauri |
+| Desktop shell     | **Tauri** (Rust)                   | Bundles the Next.js static export; small binary, low memory, fast; no exotic native APIs needed    |
+| Sync              | **Yjs** (CRDT) over Hocuspocus     | Local-first; self-hosted `/sync` WebSocket relay                                                   |
+| Local persistence | IndexedDB (web) / SQLite (desktop) | Offline-first                                                                                      |
+| Backend           | Node (Hono) sync server + Postgres | Durable Yjs snapshots + auth + REST/MCP command API + link-metadata endpoint                       |
+| Build/monorepo    | pnpm workspaces + Turborepo        |                                                                                                    |
 
 > **Next.js + Tauri constraint:** Tauri bundles static assets, so the app builds with
 > `output: 'export'` — a fully client-side app. No runtime SSR, API routes, or server actions in the
@@ -146,6 +146,10 @@ do too.
 - **Card-face link cluster.** Pasted URLs become provider-aware chips; the card _face_ shows a
   compact cluster of provider icons with a `+N` overflow, and the card drawer lists the links with
   **drag-to-reorder** (`docs/units/UNIT-6.4-*`, `UNIT-6.5-*`).
+- **Description image attachments.** Paste or drag an image into the markdown description; it uploads
+  to the server, renders inline, and persists. Bytes live on disk (a Docker volume in prod), metadata
+  in Postgres — never in the Yjs doc; serving is auth-gated per owner (`docs/units/UNIT-12.1-*` …
+  `UNIT-12.6-*`).
 
 ### Highlighted fields (card-face badges)
 
@@ -175,8 +179,9 @@ SVG** per provider — none fetched over the network. Generic URLs fall back to 
 - **Sidebar** (top→bottom): logo → Search → projects list → **Settings** → account/theme footer.
   Settings is the **last full-width nav item**, directly above the account/profile button (it moved
   out of the old footer icon slot). It opens a full-pane settings view routed by the `#settings` hash.
-- **Settings view** — the board-level ticket prefix, card-face badge/display config, and project
-  management (`docs/units/UNIT-6.8-*`).
+- **Settings view** — the board-level ticket prefix, card-face badge/display config, project
+  management (`docs/units/UNIT-6.8-*`), and a **Storage** section showing database + uploaded-files
+  usage against configured caps (`docs/units/UNIT-12.6-*`).
 - **ESC escape ladder.** ESC is a guarded ladder that yields to whoever already owns ESC — open
   Radix dialogs/sheets/command-palette, inline text edits, and active dnd-kit drags. When nothing
   else owns it: if the Settings pane is open → close it (back to the board); else reset the project
