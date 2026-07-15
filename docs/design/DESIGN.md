@@ -307,6 +307,13 @@ preview**, not as a separate gallery. Because the serve endpoint is auth-gated, 
 
 Object URLs are revoked on unmount and when the id changes (no memory leak in a long-open drawer).
 
+**Write-tab affordances (UNIT-12.4).** Paste or drop an image into the description textarea to upload
+it. While a drag with files is over the textarea, its border switches to `--accent` (a 2px ring) as a
+measured drop affordance, cleared on drop/leave (`--dur-fast`, `transition-colors`). Each in-flight
+upload shows a plain-text placeholder `[uploading image <token>]` at the caret, replaced in place by
+`![alt](/attachments/<id>)` on success (or removed on failure, with a `--danger` inline `role="alert"`
+message). Placeholders carry a short unique token so concurrent uploads never clobber each other.
+
 ---
 
 ## 8. Key screens (layout intent)

@@ -402,7 +402,7 @@ plus the `react-markdown` `img` override that uses it.
 **Verification:** component tests green; in the running app, an owned image renders in the preview
 tab; DESIGN.md updated and committed in the same commit as the component.
 
-- [ ] **Unit 4: Editor paste / drag-drop → upload → insert, and wire the renderer into preview**
+- [x] **Unit 4: Editor paste / drag-drop → upload → insert, and wire the renderer into preview**
 
 **Goal:** Make paste and drag-drop in the description actually upload and insert the reference, and
 render owned images in the preview via `AttachmentImage`.
