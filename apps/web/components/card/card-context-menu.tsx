@@ -1,7 +1,14 @@
 "use client";
 
-import type { Card, PriorityValue, Status } from "@boardly/domain";
-import { Priority, PRIORITY_META, STATUS_META, STATUS_ORDER } from "@boardly/domain";
+import type { Card, PriorityValue } from "@boardly/domain";
+import {
+  isDoneStatus,
+  Priority,
+  PRIORITY_META,
+  Status,
+  STATUS_META,
+  STATUS_ORDER,
+} from "@boardly/domain";
 import {
   Button,
   ContextMenu,
@@ -63,6 +70,11 @@ export function CardContextMenu({
   const ctx = useBoardlyContext();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Quick done toggle: Done <-> Todo. Derived from the card's current status so
+  // the label and target flip during render (no synced state).
+  const done = isDoneStatus(card.status);
+  const doneToggleTarget = done ? Status.Todo : Status.Done;
+
   const copyLink = async (): Promise<void> => {
     const ok = await copyText(buildCardHref(ctx, card.id));
     toast(ok ? "Link copied" : "Couldn't copy — copy it manually");
@@ -76,6 +88,13 @@ export function CardContextMenu({
           <ContextMenuItem onSelect={onOpen}>
             <ExternalLink className="size-3.5 text-fg-faint" aria-hidden="true" />
             Open
+          </ContextMenuItem>
+          <ContextMenuItem onSelect={() => actions.setStatus(card.id, doneToggleTarget)}>
+            <StatusIcon
+              variant={doneToggleTarget as StatusVariant}
+              color={STATUS_META[doneToggleTarget].color}
+            />
+            {done ? "Mark not done" : "Mark done"}
           </ContextMenuItem>
 
           <ContextMenuSub>
