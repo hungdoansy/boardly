@@ -19,7 +19,7 @@ export function StatusBadge({
       aria-label={`Status: ${meta.name}`}
     >
       <StatusIcon variant={status as StatusVariant} color={meta.color} className={className} />
-      {label ? <span className="text-[11px] text-fg-muted">{meta.name}</span> : null}
+      {label ? <span className="text-xs text-fg-muted">{meta.name}</span> : null}
     </span>
   );
 }

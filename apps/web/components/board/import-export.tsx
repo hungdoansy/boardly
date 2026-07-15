@@ -100,7 +100,7 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
         <MenuItem icon={<Upload className="size-3.5" />} onClick={() => fileRef.current?.click()}>
           Import board…
         </MenuItem>
-        <p className="px-2 pt-1 text-[11px] text-fg-faint">
+        <p className="px-2 pt-1 text-xs text-fg-faint">
           JSON (full board) or Obsidian-Kanban markdown. Imports into this board.
         </p>
         {error ? (

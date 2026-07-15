@@ -133,15 +133,18 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 ## 3. Typography
 
 - **Font:** `Inter` (variable) with system fallback (`ui-sans-serif, -apple-system, Segoe UI, …`). Monospace `ui-monospace, "SF Mono", …` for short IDs / code.
-- **Base size 13px** (Linear-dense). Scale:
+- **Base size 12px** (Linear-dense; reduced one step from 13px in UNIT-12.1). Scale:
   | Token       | px / line-height | Use                       |
   | ----------- | ---------------- | ------------------------- |
-  | `text-xs`   | 11 / 16          | badges, meta, counts      |
-  | `text-sm`   | 12 / 18          | secondary UI text         |
-  | `text-base` | 13 / 20          | body, card titles, inputs |
-  | `text-md`   | 14 / 20          | section headers           |
-  | `text-lg`   | 16 / 24          | panel titles              |
-  | `text-xl`   | 20 / 28          | page/board title          |
+  | `text-xs`   | 10 / 15          | badges, meta, counts      |
+  | `text-sm`   | 11 / 16          | secondary UI text         |
+  | `text-base` | 12 / 18          | body, card titles, inputs |
+  | `text-md`   | 13 / 18          | section headers           |
+  | `text-lg`   | 15 / 22          | panel titles              |
+  | `text-xl`   | 18 / 26          | page/board title          |
+- The scale lives as **absolute px** tokens in `packages/ui/src/theme.css` (`@theme`), so a
+  size change does **not** cascade from `body` alone — always use the `text-*` token classes
+  (never hardcode `text-[Npx]`) so a future scale change propagates everywhere.
 - **Weights:** 400 body, 500 UI/medium (default for most interactive text), 600 headings. Avoid 700.
 - **Tracking:** headings `-0.01em` to `-0.02em` (tight, Linear-like); body normal.
 - Short IDs (`BRD-142`) in monospace, `text-xs`, `--text-tertiary`.

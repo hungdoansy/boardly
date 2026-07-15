@@ -79,7 +79,7 @@ export function CardRelated({ card }: { card: Card }) {
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex h-[18px] w-fit items-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-line px-1.5 text-[11px] text-fg-faint transition-colors hover:border-line-strong hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-[18px] w-fit items-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-line px-1.5 text-xs text-fg-faint transition-colors hover:border-line-strong hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <Plus className="size-3" />
             Add related
@@ -116,9 +116,7 @@ export function CardRelated({ card }: { card: Card }) {
               {q && matches.length === 0 ? (
                 <p className="px-2 py-1 text-xs text-fg-faint">No matching cards.</p>
               ) : null}
-              {!q ? (
-                <p className="px-2 py-1 text-xs text-fg-faint">Type to search cards.</p>
-              ) : null}
+              {!q ? <p className="px-2 py-1 text-xs text-fg-faint">Type to search cards.</p> : null}
             </div>
           </div>
         </PopoverContent>

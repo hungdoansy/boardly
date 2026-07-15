@@ -258,7 +258,7 @@ export function ViewsMenu({
       </PopoverTrigger>
       <PopoverContent aria-label="Views menu" align="end" className="flex w-96 flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+          <span className="px-1 text-xs font-medium uppercase tracking-wide text-fg-faint">
             Views
           </span>
           <div className="flex flex-wrap gap-1">
