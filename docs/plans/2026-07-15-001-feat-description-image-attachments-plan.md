@@ -244,7 +244,7 @@ flowchart LR
 
 ## Implementation Units
 
-- [ ] **Unit 1: Storage foundation — attachments table, config, Docker/dev volume**
+- [x] **Unit 1: Storage foundation — attachments table, config, Docker/dev volume**
 
 **Goal:** Create the metadata table, the storage-location config, and the disk location in both
 stacks so later units have a place to write and read files.
@@ -296,7 +296,7 @@ on delete cascade`, `mime_type text not null`, `size_bytes integer not null`,
 **Verification:** `drizzle:generate` produces a single additive migration; a fresh boot applies it;
 `config` tests green; prod compose `config` validates and shows the `uploads` volume.
 
-- [ ] **Unit 2: Upload + serve routes (`@fastify/multipart`, validation, ownership)**
+- [x] **Unit 2: Upload + serve routes (`@fastify/multipart`, validation, ownership)**
 
 **Goal:** `POST /api/attachments` to store an image and `GET /attachments/:id` to serve it back,
 both authenticated, with MIME/magic-byte/size validation and per-user ownership.
