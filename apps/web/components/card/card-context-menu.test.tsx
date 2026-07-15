@@ -46,6 +46,20 @@ describe("CardContextMenu", () => {
     expect(screen.getByText("Delete")).toBeVisible();
   });
 
+  it("gives every menu row a leading icon glyph (uniform shape, no color dots)", async () => {
+    setup();
+    openMenu();
+    const priority = await screen.findByText("Priority");
+    const project = screen.getByText("Project");
+    // Each submenu trigger now carries a leading canonical glyph (PriorityIcon /
+    // Boxes) plus the trailing chevron — two SVGs, where the old dot was a span.
+    expect(priority.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
+    expect(project.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2);
+    // No bespoke rounded-full color dots remain in the open menu.
+    const menu = priority.closest("[role='menu']");
+    expect(menu?.querySelectorAll(".rounded-full").length).toBe(0);
+  });
+
   it("fires onOpen from the Open item", async () => {
     const { onOpen } = setup();
     openMenu();

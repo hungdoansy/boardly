@@ -271,6 +271,26 @@ The filter is scoped to the content region (`[data-focus-scope]` on `<main>`), s
 **detail drawer and popovers stay full-color** — quiet board, full context on the one card you open.
 The `--focus-saturate` token is per-theme; the toggle transition respects `prefers-reduced-motion`.
 
+### 7.3 Entity glyphs (binding)
+
+Each domain entity has **one** canonical glyph, reused everywhere it appears (card face, pickers,
+menus, sidebar) — never a bespoke shape in one surface. Color always rides on the glyph via
+`style={{ color }}` from the domain, never a hardcoded value.
+
+- **Status** → the `StatusIcon` component (`@boardly/ui`), tinted with `STATUS_META[status].color`.
+- **Priority** → the `PriorityIcon` component (`apps/web/components/card/priority-badge.tsx`) — the
+  bar glyph (Urgent is the filled alert). **Never a colored dot.**
+- **Project** → lucide **`Box`** tinted with the project's own `color` (`style={{ color: project.color }}`).
+  **Never a bare colored dot.** The **all / multiple-projects** affordance is lucide **`Boxes`**
+  (`text-fg-faint`); the **no-project** state is an untinted/faint `Box`. This mirrors the sidebar
+  project list, the card project chip, and the project picker.
+
+**Menu / list item shape (binding).** Every row in a context menu, command menu, or picker list has a
+**uniform leading-glyph slot** — a `size-3.5` (14px) icon — so text left-edges align down the list.
+Every item carries a leading glyph (submenu triggers and "none"/empty options included — no missing
+slots), a single text size (`text-base` via the shared item class), and `gap-2` spacing. Icons that
+are decorative are `aria-hidden`.
+
 ---
 
 ## 8. Key screens (layout intent)

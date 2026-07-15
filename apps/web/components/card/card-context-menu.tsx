@@ -23,7 +23,7 @@ import {
   type StatusVariant,
   toast,
 } from "@boardly/ui";
-import { Archive, Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Archive, Box, Boxes, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useBoardlyContext } from "../../lib/boardly-context";
@@ -31,6 +31,7 @@ import { copyText } from "../../lib/clipboard";
 import { useCardActions } from "../../lib/use-board";
 import { buildCardHref } from "../../lib/use-boards";
 import { useProjects } from "../../lib/use-projects";
+import { PriorityIcon } from "./priority-badge";
 
 const PRIORITY_ORDER: PriorityValue[] = [
   Priority.Urgent,
@@ -102,11 +103,7 @@ export function CardContextMenu({
 
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: PRIORITY_META[card.priority].color }}
-                aria-hidden="true"
-              />
+              <PriorityIcon level={card.priority} />
               Priority
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
@@ -116,11 +113,7 @@ export function CardContextMenu({
               >
                 {PRIORITY_ORDER.map((p) => (
                   <ContextMenuRadioItem key={p} value={String(p)}>
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: PRIORITY_META[p].color }}
-                      aria-hidden="true"
-                    />
+                    <PriorityIcon level={p} />
                     {PRIORITY_META[p].name}
                   </ContextMenuRadioItem>
                 ))}
@@ -129,20 +122,22 @@ export function CardContextMenu({
           </ContextMenuSub>
 
           <ContextMenuSub>
-            <ContextMenuSubTrigger>Project</ContextMenuSubTrigger>
+            <ContextMenuSubTrigger>
+              <Boxes className="size-3.5 text-fg-faint" aria-hidden="true" />
+              Project
+            </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               <ContextMenuRadioGroup
                 value={card.projectId ?? NO_PROJECT}
                 onValueChange={(v) => actions.setProject(card.id, v === NO_PROJECT ? null : v)}
               >
-                <ContextMenuRadioItem value={NO_PROJECT}>No project</ContextMenuRadioItem>
+                <ContextMenuRadioItem value={NO_PROJECT}>
+                  <Box className="size-3.5 text-fg-faint" aria-hidden="true" />
+                  No project
+                </ContextMenuRadioItem>
                 {projects.map((p) => (
                   <ContextMenuRadioItem key={p.id} value={p.id}>
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: p.color }}
-                      aria-hidden="true"
-                    />
+                    <Box className="size-3.5" style={{ color: p.color }} aria-hidden="true" />
                     {p.name}
                   </ContextMenuRadioItem>
                 ))}
