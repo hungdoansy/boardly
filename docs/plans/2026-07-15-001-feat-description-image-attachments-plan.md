@@ -354,7 +354,7 @@ both authenticated, with MIME/magic-byte/size validation and per-user ownership.
 **Verification:** `pnpm --filter @boardly/server test` green; manual `curl` upload+fetch with a real
 token returns the image; a wrong-user token 404s.
 
-- [ ] **Unit 3: Client attachment module + authenticated image renderer**
+- [x] **Unit 3: Client attachment module + authenticated image renderer**
 
 **Goal:** A small web module to upload a file and to display an owned attachment as an object URL,
 plus the `react-markdown` `img` override that uses it.

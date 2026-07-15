@@ -291,6 +291,22 @@ Every item carries a leading glyph (submenu triggers and "none"/empty options in
 slots), a single text size (`text-base` via the shared item class), and `gap-2` spacing. Icons that
 are decorative are `aria-hidden`.
 
+### 7.4 Description images (attachments)
+
+Images pasted or dropped into a card description (UNIT-12.3/12.4) render **inline in the markdown
+preview**, not as a separate gallery. Because the serve endpoint is auth-gated, an owned image
+(`/attachments/<id>`) is fetched with the Bearer token and shown from an object URL via the
+`AttachmentImage` renderer; external `http(s)` images render as a plain `<img>`. Three states:
+
+- **Loaded** — `max-w-full`, `--radius-md`, a quiet `--border-subtle` hairline, `my-2` vertical
+  rhythm.
+- **Loading** — a token-sized skeleton (`h-40 max-w-sm`, `--bg-elevated`, `animate-pulse`) holds the
+  space so the preview doesn't jump.
+- **Broken** (serve failed / file gone) — a compact chip: the **`ImageOff` lucide SVG** (never a
+  glyph, per §7.1) + "Image unavailable", on `--bg-surface` with the subtle border and faint text.
+
+Object URLs are revoked on unmount and when the id changes (no memory leak in a long-open drawer).
+
 ---
 
 ## 8. Key screens (layout intent)
