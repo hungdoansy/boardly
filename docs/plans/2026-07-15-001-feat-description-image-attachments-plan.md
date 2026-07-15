@@ -455,7 +455,7 @@ motion/`prefers-reduced-motion`; keyboard-first/accessibility rules (drop target
 it upload and render; reopen the card and the image still renders (persisted reference + stored file);
 DESIGN.md updated in the same commit.
 
-- [ ] **Unit 5: Storage usage endpoint**
+- [x] **Unit 5: Storage usage endpoint**
 
 **Goal:** Report current database size and files size against configured caps, for the Settings meter.
 
