@@ -231,6 +231,16 @@ input is empty** — not a bare `<button>` that stays enabled. Any bespoke inter
 still carry `hover` (via `bg-hover`), a `focus-visible` ring, and a disabled treatment. Prefer a
 shared primitive over a one-off so these states stay consistent across the app.
 
+### 7.0 Usage meter (Settings → Storage)
+
+A minimal horizontal meter for a used/limit pair (UNIT-12.6, `storage-settings.tsx`). A row is: an
+icon (lucide SVG — `Database`, `HardDrive`) + label on the left, `<used> of <limit>` (tabular-nums,
+`--text-secondary`) on the right, above a 6px `rounded-full` track (`--bg-elevated`) with a fill bar.
+The fill is `--accent`, switching to `--danger` at **≥90%** of the cap, width clamped to 0–100%, and
+transitions on width (`--dur-base`, `motion-reduce:none`). Bytes render via a base-1024 `formatBytes`
+(`0 B`, `512 B`, `1.5 KB`, `1 GB`). The track is a `role="progressbar"` with `aria-valuenow`. Loading
+shows two pulse skeletons; a failed fetch shows a quiet `role="alert"` line (never a crash).
+
 ### 7.1 Iconography — SVG only, never glyphs (binding)
 
 Every icon, symbol, and directional/status affordance in rendered UI is an **SVG

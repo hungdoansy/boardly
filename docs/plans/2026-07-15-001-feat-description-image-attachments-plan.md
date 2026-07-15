@@ -498,7 +498,7 @@ DESIGN.md updated in the same commit.
 **Verification:** storage tests green; `curl` with a real token returns plausible byte counts and the
 caps.
 
-- [ ] **Unit 6: Settings → Storage section (usage meters)**
+- [x] **Unit 6: Settings → Storage section (usage meters)**
 
 **Goal:** A "Storage" section in Settings showing two meters — Database and Files — each as used vs.
 cap with a percentage, matching Linear-dense, dark-mode-first styling.
