@@ -17,6 +17,15 @@ const schema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   LOGIN_RATE_MAX: z.coerce.number().int().positive().default(5),
   LOGIN_RATE_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  // Attachments (image uploads in card descriptions). `UPLOADS_DIR` points at a
+  // Docker volume in prod (`/data/uploads`) and a local folder in dev
+  // (`./data/uploads`) — one code path, different value. `MAX_UPLOAD_BYTES` is
+  // the per-file cap; the two `*_LIMIT_BYTES` are display caps for the Settings
+  // storage meter.
+  UPLOADS_DIR: z.string().min(1).default("./data/uploads"),
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10_485_760), // 10 MiB
+  DATABASE_LIMIT_BYTES: z.coerce.number().int().positive().default(1_073_741_824), // 1 GiB
+  UPLOADS_LIMIT_BYTES: z.coerce.number().int().positive().default(5_368_709_120), // 5 GiB
 });
 
 export type ServerConfig = z.infer<typeof schema>;

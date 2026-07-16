@@ -8,7 +8,9 @@ import type { AuthService } from "./auth/service";
 import type { TokenKeys } from "./auth/tokens";
 import type { ServerConfig } from "./config";
 import type { Database } from "./db/client";
+import { attachmentRoutes } from "./routes/attachments";
 import { commandRoutes } from "./routes/commands";
+import { storageRoutes } from "./routes/storage";
 import { ticketRoutes } from "./routes/ticket";
 import { unfurlRoutes } from "./routes/unfurl";
 import type { TicketStore } from "./sync/ticket-store";
@@ -97,6 +99,22 @@ export function buildServer({
 
   if (database) {
     void app.register(unfurlRoutes, { db: database });
+  }
+
+  if (database && keys) {
+    void app.register(attachmentRoutes, {
+      db: database,
+      keys,
+      uploadsDir: config.UPLOADS_DIR,
+      maxUploadBytes: config.MAX_UPLOAD_BYTES,
+    });
+    void app.register(storageRoutes, {
+      db: database,
+      keys,
+      uploadsDir: config.UPLOADS_DIR,
+      databaseLimitBytes: config.DATABASE_LIMIT_BYTES,
+      uploadsLimitBytes: config.UPLOADS_LIMIT_BYTES,
+    });
   }
 
   return app;

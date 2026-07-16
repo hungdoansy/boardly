@@ -12,6 +12,12 @@
 # database, volume, and network — so you can USE the app (production) while you
 # DEVELOP against this dev database without either touching the other. See
 # docker-compose.prod.yml and docs/GUIDE-local-production.md.
+#
+# Attachment images: the host dev server writes uploaded bytes to `UPLOADS_DIR`,
+# which defaults to `./data/uploads` (gitignored) — no volume here because the
+# server isn't containerized in dev. In prod the same UPLOADS_DIR points at a
+# Docker volume instead (see docker-compose.prod.yml). Same code path, different
+# value.
 services:
   db:
     # Pinned to 16 to match the existing boardly_pgdata volume (a newer major

@@ -231,6 +231,16 @@ input is empty** — not a bare `<button>` that stays enabled. Any bespoke inter
 still carry `hover` (via `bg-hover`), a `focus-visible` ring, and a disabled treatment. Prefer a
 shared primitive over a one-off so these states stay consistent across the app.
 
+### 7.0 Usage meter (Settings → Storage)
+
+A minimal horizontal meter for a used/limit pair (UNIT-12.6, `storage-settings.tsx`). A row is: an
+icon (lucide SVG — `Database`, `HardDrive`) + label on the left, `<used> of <limit>` (tabular-nums,
+`--text-secondary`) on the right, above a 6px `rounded-full` track (`--bg-elevated`) with a fill bar.
+The fill is `--accent`, switching to `--danger` at **≥90%** of the cap, width clamped to 0–100%, and
+transitions on width (`--dur-base`, `motion-reduce:none`). Bytes render via a base-1024 `formatBytes`
+(`0 B`, `512 B`, `1.5 KB`, `1 GB`). The track is a `role="progressbar"` with `aria-valuenow`. Loading
+shows two pulse skeletons; a failed fetch shows a quiet `role="alert"` line (never a crash).
+
 ### 7.1 Iconography — SVG only, never glyphs (binding)
 
 Every icon, symbol, and directional/status affordance in rendered UI is an **SVG
@@ -290,6 +300,29 @@ menus, sidebar) — never a bespoke shape in one surface. Color always rides on 
 Every item carries a leading glyph (submenu triggers and "none"/empty options included — no missing
 slots), a single text size (`text-base` via the shared item class), and `gap-2` spacing. Icons that
 are decorative are `aria-hidden`.
+
+### 7.4 Description images (attachments)
+
+Images pasted or dropped into a card description (UNIT-12.3/12.4) render **inline in the markdown
+preview**, not as a separate gallery. Because the serve endpoint is auth-gated, an owned image
+(`/attachments/<id>`) is fetched with the Bearer token and shown from an object URL via the
+`AttachmentImage` renderer; external `http(s)` images render as a plain `<img>`. Three states:
+
+- **Loaded** — `max-w-full`, `--radius-md`, a quiet `--border-subtle` hairline, `my-2` vertical
+  rhythm.
+- **Loading** — a token-sized skeleton (`h-40 max-w-sm`, `--bg-elevated`, `animate-pulse`) holds the
+  space so the preview doesn't jump.
+- **Broken** (serve failed / file gone) — a compact chip: the **`ImageOff` lucide SVG** (never a
+  glyph, per §7.1) + "Image unavailable", on `--bg-surface` with the subtle border and faint text.
+
+Object URLs are revoked on unmount and when the id changes (no memory leak in a long-open drawer).
+
+**Write-tab affordances (UNIT-12.4).** Paste or drop an image into the description textarea to upload
+it. While a drag with files is over the textarea, its border switches to `--accent` (a 2px ring) as a
+measured drop affordance, cleared on drop/leave (`--dur-fast`, `transition-colors`). Each in-flight
+upload shows a plain-text placeholder `[uploading image <token>]` at the caret, replaced in place by
+`![alt](/attachments/<id>)` on success (or removed on failure, with a `--danger` inline `role="alert"`
+message). Placeholders carry a short unique token so concurrent uploads never clobber each other.
 
 ---
 

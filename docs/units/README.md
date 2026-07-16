@@ -52,6 +52,15 @@ reuse a number namespace). The plans, newest last:
     `tauri:build`; Node toolchain pin bumped `22.17.1` → `24.15.0` to match the machine default.
   - `UNIT-P10` — highlight the just-added (or re-pasted duplicate) link in the card's Links list,
     fading out after a short hold.
+- `docs/plans/2026-07-15-001-feat-description-image-attachments-plan.md` — paste/drag images into card
+  descriptions, stored on a Docker volume; Settings storage meter (no auto-deletion this iteration):
+  - `UNIT-12.1` — storage foundation: `attachments` table + migration, config
+    (`UPLOADS_DIR`/`MAX_UPLOAD_BYTES`/`*_LIMIT_BYTES`), prod `uploads` Docker volume, dev folder.
+  - `UNIT-12.2` — Fastify upload (`POST /api/attachments`) + auth-gated serve (`GET /attachments/:id`).
+  - `UNIT-12.3` — web attachment module + authenticated blob-fetch image renderer.
+  - `UNIT-12.4` — description editor paste/drag-drop → upload → insert `/attachments/<id>` reference.
+  - `UNIT-12.5` — storage-usage endpoint (`GET /api/storage`): db size + uploads-dir size vs caps.
+  - `UNIT-12.6` — Settings → Storage section: two usage meters.
 
 ## Convention
 

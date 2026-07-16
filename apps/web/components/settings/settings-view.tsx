@@ -7,19 +7,22 @@ import { useState } from "react";
 import { BadgeConfig } from "../board/badge-config";
 import { GeneralSettings } from "./general-settings";
 import { ProjectSettings } from "./project-settings";
+import { StorageSettings } from "./storage-settings";
 
-type SectionKey = "general" | "card-display" | "projects";
+type SectionKey = "general" | "card-display" | "projects" | "storage";
 
 const SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "general", label: "General" },
   { key: "card-display", label: "Card display" },
   { key: "projects", label: "Projects" },
+  { key: "storage", label: "Storage" },
 ];
 
 const TITLES: Record<SectionKey, string> = {
   general: "General",
   "card-display": "Card display",
   projects: "Projects",
+  storage: "Storage",
 };
 
 /**
@@ -79,6 +82,7 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
             </div>
           ) : null}
           {section === "projects" ? <ProjectSettings /> : null}
+          {section === "storage" ? <StorageSettings /> : null}
         </main>
       </div>
     </div>

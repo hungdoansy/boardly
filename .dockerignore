@@ -27,6 +27,10 @@ blob-report
 .env.*
 !.env.example
 
+# Local attachment uploads (dev only; prod bytes live on a Docker volume, never
+# baked into the image)
+data
+
 # Editor / OS
 .DS_Store
 *.log
