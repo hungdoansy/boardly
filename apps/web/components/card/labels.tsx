@@ -53,7 +53,7 @@ export function CardLabels({ card }: { card: Card }) {
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex h-[18px] items-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-line px-1.5 text-[11px] text-fg-faint transition-colors hover:border-line-strong hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="flex h-[18px] items-center gap-1 rounded-[var(--radius-sm)] border border-dashed border-line px-1.5 text-xs text-fg-faint transition-colors hover:border-line-strong hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <Tag className="size-3" />
             {assigned.length === 0 ? "Add label" : "Edit"}

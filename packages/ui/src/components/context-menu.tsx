@@ -18,7 +18,7 @@ const contentClass =
 // Radix highlights items via `data-[highlighted]` (keyboard + pointer). Mirror
 // the Command item look: accent left-rail + selected bg on highlight.
 const itemBase =
-  "relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-sm)] border-l-2 border-l-transparent px-2 py-1.5 text-[13px] outline-none data-[highlighted]:border-l-[var(--accent)] data-[highlighted]:bg-selected data-[highlighted]:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
+  "relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-sm)] border-l-2 border-l-transparent px-2 py-1.5 text-base outline-none data-[highlighted]:border-l-[var(--accent)] data-[highlighted]:bg-selected data-[highlighted]:text-fg data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
 
 export function ContextMenuContent({
   className,
@@ -102,7 +102,7 @@ export function ContextMenuLabel({
   return (
     <ContextMenuPrimitive.Label
       className={cn(
-        "px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint",
+        "px-2 py-1 text-xs font-medium uppercase tracking-wide text-fg-faint",
         className,
       )}
       {...props}

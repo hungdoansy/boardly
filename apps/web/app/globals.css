@@ -16,7 +16,7 @@
     background-color: var(--bg-base);
     color: var(--text-primary);
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: 12px;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -34,10 +34,10 @@
   margin: 0.75em 0 0.35em;
 }
 .prose-boardly h1 {
-  font-size: 16px;
+  font-size: 15px;
 }
 .prose-boardly h2 {
-  font-size: 14px;
+  font-size: 13px;
 }
 .prose-boardly p {
   margin: 0.5em 0;

@@ -31,8 +31,12 @@ export function LabelManager() {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
-        {labels.length === 0 ? "No labels yet" : labels.length === 1 ? "1 label" : `${labels.length} labels`}
+      <p className="px-1 text-xs font-medium uppercase tracking-wide text-fg-faint">
+        {labels.length === 0
+          ? "No labels yet"
+          : labels.length === 1
+            ? "1 label"
+            : `${labels.length} labels`}
       </p>
       <ul className="flex flex-col gap-0.5">
         {labels.map((label) => (
@@ -41,9 +45,7 @@ export function LabelManager() {
       </ul>
 
       <div className="flex flex-col gap-1.5 border-t border-line-subtle pt-2">
-        <p className="px-1 text-[11px] font-medium uppercase tracking-wide text-fg-faint">
-          New label
-        </p>
+        <p className="px-1 text-xs font-medium uppercase tracking-wide text-fg-faint">New label</p>
         <div className="px-1">
           <ColorSwatches value={color} onChange={setColor} />
         </div>
@@ -121,13 +123,7 @@ function LabelRow({ label, actions }: { label: Label; actions: LabelActions }) {
   );
 }
 
-function ColorSwatches({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (color: string) => void;
-}) {
+function ColorSwatches({ value, onChange }: { value: string; onChange: (color: string) => void }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {LABEL_COLORS.map((c) => (

@@ -36,7 +36,7 @@ export function CommandDialog({
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <Command
           shouldFilter={shouldFilter}
-          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-fg-faint [&_[cmdk-input-wrapper]]:h-11"
+          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:text-fg-faint [&_[cmdk-input-wrapper]]:h-11"
         >
           {children}
         </Command>
@@ -54,7 +54,7 @@ export function CommandInput({
       <Search className="size-4 shrink-0 text-fg-faint" />
       <CommandPrimitive.Input
         className={cn(
-          "flex h-10 w-full bg-transparent py-3 text-[13px] outline-none placeholder:text-fg-faint disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-10 w-full bg-transparent py-3 text-base outline-none placeholder:text-fg-faint disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
@@ -102,7 +102,7 @@ export function CommandItem({
   return (
     <CommandPrimitive.Item
       className={cn(
-        "relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-sm)] border-l-2 border-l-transparent px-2 py-1.5 text-[13px] outline-none data-[selected=true]:border-l-[var(--accent)] data-[selected=true]:bg-selected data-[selected=true]:text-fg data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
+        "relative flex cursor-default select-none items-center gap-2 rounded-[var(--radius-sm)] border-l-2 border-l-transparent px-2 py-1.5 text-base outline-none data-[selected=true]:border-l-[var(--accent)] data-[selected=true]:bg-selected data-[selected=true]:text-fg data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
         className,
       )}
       {...props}

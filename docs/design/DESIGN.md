@@ -133,15 +133,18 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 ## 3. Typography
 
 - **Font:** `Inter` (variable) with system fallback (`ui-sans-serif, -apple-system, Segoe UI, …`). Monospace `ui-monospace, "SF Mono", …` for short IDs / code.
-- **Base size 13px** (Linear-dense). Scale:
+- **Base size 12px** (Linear-dense; reduced one step from 13px in UNIT-12.1). Scale:
   | Token       | px / line-height | Use                       |
   | ----------- | ---------------- | ------------------------- |
-  | `text-xs`   | 11 / 16          | badges, meta, counts      |
-  | `text-sm`   | 12 / 18          | secondary UI text         |
-  | `text-base` | 13 / 20          | body, card titles, inputs |
-  | `text-md`   | 14 / 20          | section headers           |
-  | `text-lg`   | 16 / 24          | panel titles              |
-  | `text-xl`   | 20 / 28          | page/board title          |
+  | `text-xs`   | 10 / 15          | badges, meta, counts      |
+  | `text-sm`   | 11 / 16          | secondary UI text         |
+  | `text-base` | 12 / 18          | body, card titles, inputs |
+  | `text-md`   | 13 / 18          | section headers           |
+  | `text-lg`   | 15 / 22          | panel titles              |
+  | `text-xl`   | 18 / 26          | page/board title          |
+- The scale lives as **absolute px** tokens in `packages/ui/src/theme.css` (`@theme`), so a
+  size change does **not** cascade from `body` alone — always use the `text-*` token classes
+  (never hardcode `text-[Npx]`) so a future scale change propagates everywhere.
 - **Weights:** 400 body, 500 UI/medium (default for most interactive text), 600 headings. Avoid 700.
 - **Tracking:** headings `-0.01em` to `-0.02em` (tight, Linear-like); body normal.
 - Short IDs (`BRD-142`) in monospace, `text-xs`, `--text-tertiary`.
@@ -268,13 +271,33 @@ The filter is scoped to the content region (`[data-focus-scope]` on `<main>`), s
 **detail drawer and popovers stay full-color** — quiet board, full context on the one card you open.
 The `--focus-saturate` token is per-theme; the toggle transition respects `prefers-reduced-motion`.
 
+### 7.3 Entity glyphs (binding)
+
+Each domain entity has **one** canonical glyph, reused everywhere it appears (card face, pickers,
+menus, sidebar) — never a bespoke shape in one surface. Color always rides on the glyph via
+`style={{ color }}` from the domain, never a hardcoded value.
+
+- **Status** → the `StatusIcon` component (`@boardly/ui`), tinted with `STATUS_META[status].color`.
+- **Priority** → the `PriorityIcon` component (`apps/web/components/card/priority-badge.tsx`) — the
+  bar glyph (Urgent is the filled alert). **Never a colored dot.**
+- **Project** → lucide **`Box`** tinted with the project's own `color` (`style={{ color: project.color }}`).
+  **Never a bare colored dot.** The **all / multiple-projects** affordance is lucide **`Boxes`**
+  (`text-fg-faint`); the **no-project** state is an untinted/faint `Box`. This mirrors the sidebar
+  project list, the card project chip, and the project picker.
+
+**Menu / list item shape (binding).** Every row in a context menu, command menu, or picker list has a
+**uniform leading-glyph slot** — a `size-3.5` (14px) icon — so text left-edges align down the list.
+Every item carries a leading glyph (submenu triggers and "none"/empty options included — no missing
+slots), a single text size (`text-base` via the shared item class), and `gap-2` spacing. Icons that
+are decorative are `aria-hidden`.
+
 ---
 
 ## 8. Key screens (layout intent)
 
 - **App shell:** a user has **one space** (no board list / switcher). Left **sidebar** (~240px, `--bg-surface`) top→bottom: logo → Search → **projects list** (scopes the board; `flex-1`) → **Settings** (the last full-width nav item) → account/theme footer. Main board area is `--bg-base`. Settings opens a full-pane view (routed by `#settings`); the account button and theme toggle stay in the footer.
 - **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). Above the columns, a board-toolbar toggle **shows/hides empty columns** (synced board-meta flag, default show). Dragging a card onto a column applies that status immediately. Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
-- **Card face:** four fixed lines, top to bottom, in a locked order (Unit P3/Unit 5/2026-07-12 card-polish plan — do not reshuffle): **line 1** — ticket id (mono, tertiary, far left) with due chip + checklist meter pushed right; **line 2** — status glyph + title (`text-base`, up to 2 lines); **line 3** — labels (omitted when none); **line 4** — priority icon, then link chips on the left, the project badge pushed to the far right (omitted when all three are empty). Each line wraps independently. No archive affordance on the card face — archive lives in the card detail drawer and the `e` keyboard shortcut. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px).
+- **Card face:** four fixed lines, top to bottom, in a locked order (Unit P3/Unit 5/2026-07-12 card-polish plan — do not reshuffle): **line 1** — ticket id (mono, tertiary, far left) with due chip + checklist meter pushed right; **line 2** — status glyph + title (`text-base`, up to 2 lines); **line 3** — labels (omitted when none); **line 4** — priority icon, then link chips on the left, the project badge pushed to the far right (omitted when all three are empty). Each line wraps independently. No archive affordance on the card face — archive lives in the card detail drawer and the `e` keyboard shortcut. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px). Right-clicking a card opens the context menu, whose first action is a one-click **Mark done / Mark not done** toggle (Done ⇄ Todo), above the Status/Priority/Project pickers and Copy-link/Archive/Delete.
 - **Card detail:** right `sheet` — title, status/priority/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths. Adding (or re-pasting a de-duped) link briefly highlights that row with the same `--bg-selected` + accent left-border pairing used for a selected card, fading out after ~2s (`--dur-slow`, one-shot, no loop; UNIT-P10).
 - **Command palette:** centered `command` dialog, `--bg-overlay`, subtle border + shadow; grouped results; keyboard nav; instant.
 - **Auth (login/signup):** centered card on `--bg-base`, minimal, Boardly wordmark, single accent button, inline validation.
