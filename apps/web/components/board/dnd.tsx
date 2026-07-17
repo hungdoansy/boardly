@@ -26,6 +26,7 @@ import { planMove } from "../../lib/dnd";
 import { CardFace } from "../card/card";
 import { CardContextMenu } from "../card/card-context-menu";
 import { BoardColumn } from "./column";
+import { ColumnComposerContext } from "./column-composer-context";
 
 interface ActiveItem {
   id: string;
@@ -183,13 +184,24 @@ export function StatusColumn({
   count: number;
   children?: ReactNode;
 }) {
+  // The composer's open-state lives here (the one place that renders both the
+  // header, via BoardColumn, and the footer composer, via `children`) so the
+  // header "+" and the footer add-card control share a single composer.
+  const [composerOpen, setComposerOpen] = useState(false);
   const { setNodeRef } = useDroppable({
     id: status,
     data: { type: "column", status } satisfies DragData,
   });
   return (
-    <BoardColumn status={status} count={count} dndRef={setNodeRef}>
-      {children}
-    </BoardColumn>
+    <ColumnComposerContext.Provider value={{ open: composerOpen, setOpen: setComposerOpen }}>
+      <BoardColumn
+        status={status}
+        count={count}
+        dndRef={setNodeRef}
+        onAddCard={() => setComposerOpen(true)}
+      >
+        {children}
+      </BoardColumn>
+    </ColumnComposerContext.Provider>
   );
 }

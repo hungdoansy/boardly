@@ -5,7 +5,7 @@ import { createCard, execute, setCardStatus } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
 import { cardsInStatus, getBoard, initBoard } from "@boardly/sync";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
@@ -94,5 +94,41 @@ describe("BoardView fixed status columns", () => {
     expect(visible[0]!.getAttribute("aria-label")).toBe(
       `Column: ${STATUS_META[Status.InProgress].name}`,
     );
+  });
+});
+
+describe("BoardColumn header", () => {
+  function todoColumn(): HTMLElement {
+    return screen.getByRole("region", { name: `Column: ${STATUS_META[Status.Todo].name}` });
+  }
+
+  it("renders the live count immediately after the column name", () => {
+    setup((ctx) => {
+      execute(createCard, ctx, { status: Status.Todo, title: "One" });
+      execute(createCard, ctx, { status: Status.Todo, title: "Two" });
+    });
+    // Name and count share the header group; scope to <header> so card ticket
+    // ids in the body can't be mistaken for the count.
+    const header = todoColumn().querySelector("header")!;
+    expect(header).toHaveTextContent(STATUS_META[Status.Todo].name);
+    expect(header).toHaveTextContent("2");
+  });
+
+  it("opens the column's inline composer from the header add-card button", () => {
+    setup();
+    const col = todoColumn();
+    // Header "+" is the first "Add card" button in the column (footer has one too).
+    const addButtons = within(col).getAllByRole("button", { name: "Add card" });
+    fireEvent.click(addButtons[0]!);
+    expect(within(col).getByRole("textbox", { name: /new card title/i })).toBeInTheDocument();
+  });
+
+  it("still opens the composer with the 'c' shortcut after the header rework", () => {
+    setup();
+    const col = todoColumn();
+    const navTarget = col.querySelector<HTMLElement>('[data-nav="column"]')!;
+    navTarget.focus();
+    fireEvent.keyDown(navTarget, { code: "KeyC", key: "c" });
+    expect(within(col).getByRole("textbox", { name: /new card title/i })).toBeInTheDocument();
   });
 });

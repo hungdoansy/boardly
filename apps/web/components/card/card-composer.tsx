@@ -12,6 +12,8 @@ import {
 import { PanelRight, Plus } from "lucide-react";
 import { useState } from "react";
 
+import { useColumnComposer } from "../board/column-composer-context";
+
 interface CardComposerProps {
   onAdd: (title: string) => void;
   /** Create a card (with the given title) and open its detail drawer, once confirmed. */
@@ -19,7 +21,13 @@ interface CardComposerProps {
 }
 
 export function CardComposer({ onAdd, onCreateDetailed }: CardComposerProps) {
-  const [adding, setAdding] = useState(false);
+  // The open-state is owned by the per-column context when present (so the
+  // column header "+" and the keyboard `c` shortcut open this same composer),
+  // and falls back to local state so the component stays usable standalone.
+  const composer = useColumnComposer();
+  const [internalAdding, setInternalAdding] = useState(false);
+  const adding = composer ? composer.open : internalAdding;
+  const setAdding = composer ? composer.setOpen : setInternalAdding;
   const [draft, setDraft] = useState("");
   const [detailedOpen, setDetailedOpen] = useState(false);
   const [detailedDraft, setDetailedDraft] = useState("");
