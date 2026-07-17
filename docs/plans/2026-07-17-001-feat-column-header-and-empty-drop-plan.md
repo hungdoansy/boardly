@@ -221,7 +221,7 @@ name][count]</div>` then `{onAddCard && <button class="…icon…" aria-label="A
 - `pnpm --filter @boardly/web test` green; header visually matches `icon name count … +` in dark mode;
   keyboard `c` and footer add still work.
 
-- [ ] **Unit 2: Empty-column drop target — highlight the hovered column and expand its body into a drop zone**
+- [x] **Unit 2: Empty-column drop target — highlight the hovered column and expand its body into a drop zone**
 
 **Goal:** When a card drag is over a column, highlight it; when that column is empty, expand its body
 into a clear accent-tinted "drop here" zone so the card can be dropped under the highlighted column.

@@ -8,6 +8,7 @@ import {
   DragOverlay,
   KeyboardCode,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
   type DragEndEvent,
   type DragStartEvent,
@@ -109,6 +110,11 @@ export function BoardDndProvider({ children }: { children: ReactNode }) {
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      // Re-measure droppables continuously so a hovered empty column that
+      // expands into a drop zone stays fully hit-testable — the default
+      // (measure once at drag start) would freeze the collapsed rect and the
+      // cursor moving into the grown zone would lose `isOver` and flicker.
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => setActive(null)}
@@ -188,7 +194,7 @@ export function StatusColumn({
   // header, via BoardColumn, and the footer composer, via `children`) so the
   // header "+" and the footer add-card control share a single composer.
   const [composerOpen, setComposerOpen] = useState(false);
-  const { setNodeRef } = useDroppable({
+  const { setNodeRef, isOver } = useDroppable({
     id: status,
     data: { type: "column", status } satisfies DragData,
   });
@@ -198,6 +204,7 @@ export function StatusColumn({
         status={status}
         count={count}
         dndRef={setNodeRef}
+        isOver={isOver}
         onAddCard={() => setComposerOpen(true)}
       >
         {children}

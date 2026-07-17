@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { BoardView } from "./board-view";
+import { BoardColumn } from "./column";
 
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
@@ -130,5 +131,25 @@ describe("BoardColumn header", () => {
     navTarget.focus();
     fireEvent.keyDown(navTarget, { code: "KeyC", key: "c" });
     expect(within(col).getByRole("textbox", { name: /new card title/i })).toBeInTheDocument();
+  });
+});
+
+describe("BoardColumn drop feedback", () => {
+  afterEach(() => cleanup());
+
+  it("expands an accent drop zone only while hovered AND empty", () => {
+    const { container, rerender } = render(<BoardColumn status={Status.Todo} count={0} isOver />);
+    expect(container.querySelector("[data-drop-zone]")).toBeInTheDocument();
+    expect(container.querySelector("section[data-over]")).toBeInTheDocument();
+
+    // Not hovered → no zone, no over marker.
+    rerender(<BoardColumn status={Status.Todo} count={0} />);
+    expect(container.querySelector("[data-drop-zone]")).not.toBeInTheDocument();
+    expect(container.querySelector("section[data-over]")).not.toBeInTheDocument();
+
+    // Hovered but populated → over marker (ring) but no expanded zone.
+    rerender(<BoardColumn status={Status.Todo} count={3} isOver />);
+    expect(container.querySelector("section[data-over]")).toBeInTheDocument();
+    expect(container.querySelector("[data-drop-zone]")).not.toBeInTheDocument();
   });
 });

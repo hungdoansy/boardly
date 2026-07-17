@@ -11,6 +11,8 @@ interface BoardColumnProps {
   children?: ReactNode;
   dndRef?: (el: HTMLElement | null) => void;
   dndStyle?: CSSProperties;
+  /** True while a card drag is hovering this column (dnd-kit `isOver`). */
+  isOver?: boolean;
   /** Opens the column's inline add-card composer; renders the header "+". */
   onAddCard?: () => void;
 }
@@ -21,6 +23,10 @@ interface BoardColumnProps {
  * header is a read-only status name + color swatch, the live count beside it,
  * and an add-card "+" pushed to the right. The header stays a focusable
  * `data-nav="column"` target so keyboard navigation still lands on columns.
+ *
+ * While a card drag hovers the column (`isOver`), it gains an accent ring; when
+ * it is also empty, its body expands into a clear accent-tinted drop zone so a
+ * collapsed column becomes an easy, visible drop target.
  */
 export function BoardColumn({
   status,
@@ -28,16 +34,21 @@ export function BoardColumn({
   children,
   dndRef,
   dndStyle,
+  isOver,
   onAddCard,
 }: BoardColumnProps) {
   const meta = STATUS_META[status];
+  const empty = count === 0;
   return (
     <section
       ref={dndRef}
       style={dndStyle}
       data-nav-column={status}
+      data-over={isOver ? "" : undefined}
       aria-label={`Column: ${meta.name}`}
-      className="flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border border-line-subtle bg-surface"
+      className={`flex max-h-full w-[300px] shrink-0 flex-col rounded-[var(--radius-md)] border bg-surface ${
+        isOver ? "border-transparent ring-2 ring-[var(--accent)]" : "border-line-subtle"
+      }`}
     >
       <header className="flex h-9 shrink-0 items-center gap-1.5 px-2">
         <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -65,7 +76,16 @@ export function BoardColumn({
         ) : null}
       </header>
 
-      <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto p-2">{children}</div>
+      <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto p-2">
+        {isOver && empty ? (
+          <div
+            data-drop-zone
+            aria-hidden
+            className="min-h-[76px] rounded-[var(--radius-md)] border border-dashed border-[var(--accent)] bg-[var(--bg-selected)]"
+          />
+        ) : null}
+        {children}
+      </div>
     </section>
   );
 }
