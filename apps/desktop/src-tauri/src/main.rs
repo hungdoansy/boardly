@@ -1,48 +1,102 @@
 // Boardly desktop shell (Tauri v2). Wraps the Next.js static export
 // (`apps/web/out`) and wires the native capabilities the web bundle switches to
 // when it detects Tauri (Unit 5.2): CORS-free HTTP (unfurl), notifications
-// (due-date reminders), `boardly://` deep links, and OS-keychain storage for
-// the refresh token. (The auto-updater was removed for the laptop-only build —
-// see docs/units/UNIT-8.1-local-production-packaging.md.)
+// (due-date reminders), `boardly://` deep links, and refresh-token storage.
+// (The auto-updater was removed for the laptop-only build — see
+// docs/units/UNIT-8.1-local-production-packaging.md.)
+//
+// Refresh-token storage was originally the OS keychain (`keyring`). On an
+// unsigned / ad-hoc-signed laptop build macOS re-prompts for Keychain access on
+// every rebuild — the "always allow" ACL is bound to the code signature, which
+// changes each build — so it never stops asking. For this personal,
+// single-user, self-hosted app we drop the keychain and persist the token in a
+// 0600 file under the app data dir instead: no prompt, ever. Trade-off: the
+// token is no longer OS-encrypted (readable by any process running as the
+// user). See docs/units/UNIT-P11-desktop-token-file-store.md.
 //
 // Prevent an extra console window on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use keyring::Entry;
+use std::collections::BTreeMap;
+use std::fs;
+use std::io::ErrorKind;
+use std::path::PathBuf;
+
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri::Emitter;
+use tauri::{AppHandle, Emitter, Manager};
 
-/// Keychain service name (namespaced to the app identifier).
-const KEYRING_SERVICE: &str = "vn.moonbase.boardly";
+/// Account → secret map persisted as the token store's JSON body.
+type SecretMap = BTreeMap<String, String>;
 
-/// Store a secret (the refresh token) in the OS keychain.
-#[tauri::command]
-fn keyring_set(account: String, secret: String) -> Result<(), String> {
-    Entry::new(KEYRING_SERVICE, &account)
-        .map_err(|e| e.to_string())?
-        .set_password(&secret)
-        .map_err(|e| e.to_string())
+/// Path to the on-disk token store (`<app-data-dir>/auth-store.json`).
+fn store_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(dir.join("auth-store.json"))
 }
 
-/// Read a secret from the OS keychain; `None` when there is no entry.
-#[tauri::command]
-fn keyring_get(account: String) -> Result<Option<String>, String> {
-    let entry = Entry::new(KEYRING_SERVICE, &account).map_err(|e| e.to_string())?;
-    match entry.get_password() {
-        Ok(secret) => Ok(Some(secret)),
-        Err(keyring::Error::NoEntry) => Ok(None),
+/// Load the token store; an absent file is an empty map (not an error).
+fn read_store(app: &AppHandle) -> Result<SecretMap, String> {
+    match fs::read(store_path(app)?) {
+        Ok(bytes) => serde_json::from_slice(&bytes).map_err(|e| e.to_string()),
+        Err(e) if e.kind() == ErrorKind::NotFound => Ok(SecretMap::new()),
         Err(e) => Err(e.to_string()),
     }
 }
 
-/// Delete a secret from the OS keychain (idempotent — missing is success).
-#[tauri::command]
-fn keyring_delete(account: String) -> Result<(), String> {
-    let entry = Entry::new(KEYRING_SERVICE, &account).map_err(|e| e.to_string())?;
-    match entry.delete_credential() {
-        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-        Err(e) => Err(e.to_string()),
+/// Persist the token store, creating the data dir and restricting the file to
+/// the owner (0600) on unix.
+fn write_store(app: &AppHandle, map: &SecretMap) -> Result<(), String> {
+    let path = store_path(app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
+    let json = serde_json::to_vec_pretty(map).map_err(|e| e.to_string())?;
+
+    // Create the file owner-only (0600) *at creation* on unix, so there is no
+    // window where the token is written to a group/world-readable file (the
+    // TOCTOU gap a write-then-chmod leaves). Windows keeps the default per-user
+    // profile ACL — tightening it further needs the Win32 security API, out of
+    // scope for this laptop build.
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(&path)
+            .map_err(|e| e.to_string())?;
+        f.write_all(&json).map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(unix))]
+    {
+        fs::write(&path, &json).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Store a secret (the refresh token) in the on-disk token store.
+#[tauri::command]
+fn token_set(app: AppHandle, account: String, secret: String) -> Result<(), String> {
+    let mut map = read_store(&app)?;
+    map.insert(account, secret);
+    write_store(&app, &map)
+}
+
+/// Read a secret from the token store; `None` when there is no entry.
+#[tauri::command]
+fn token_get(app: AppHandle, account: String) -> Result<Option<String>, String> {
+    Ok(read_store(&app)?.get(&account).cloned())
+}
+
+/// Delete a secret from the token store (idempotent — missing is success).
+#[tauri::command]
+fn token_delete(app: AppHandle, account: String) -> Result<(), String> {
+    let mut map = read_store(&app)?;
+    map.remove(&account);
+    write_store(&app, &map)
 }
 
 fn main() {
@@ -114,11 +168,7 @@ fn main() {
                 let _ = app.emit("menu-close-view", ());
             }
         })
-        .invoke_handler(tauri::generate_handler![
-            keyring_set,
-            keyring_get,
-            keyring_delete
-        ])
+        .invoke_handler(tauri::generate_handler![token_set, token_get, token_delete])
         .run(tauri::generate_context!())
         .expect("error while running the Boardly desktop app");
 }

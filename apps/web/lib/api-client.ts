@@ -22,7 +22,7 @@ export interface ApiClientOptions {
   baseUrl?: string;
   fetch?: FetchLike;
   store?: AuthStore;
-  /** Where the refresh token persists (web: no-op cookie; desktop: keychain). */
+  /** Where the refresh token persists (web: no-op cookie; desktop: token file). */
   refreshStore?: RefreshTokenStore;
 }
 
@@ -76,14 +76,14 @@ export function createApiClient(options: ApiClientOptions = {}) {
       if (!data.accessToken) return { ok: false, error: GENERIC_ERROR };
       store.setAccessToken(data.accessToken);
       // Desktop: the server returns the refresh token in the body (no cookie
-      // across the native origin) → stash it in the OS keychain. Web: absent.
+      // across the native origin) → stash it in the token file. Web: absent.
       if (data.refreshToken) await refreshTokens.save(data.refreshToken);
       return { ok: true };
     },
 
     /**
      * Silent refresh. Web sends the httpOnly cookie (credentials: include);
-     * desktop loads the refresh token from the keychain and sends it in the
+     * desktop loads the refresh token from the token file and sends it in the
      * body. Returns whether a token was obtained.
      */
     async refresh(): Promise<boolean> {
@@ -113,7 +113,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         await post("/auth/logout");
       } finally {
         store.clear();
-        await refreshTokens.clear(); // desktop: drop the keychain entry
+        await refreshTokens.clear(); // desktop: drop the token-file entry
       }
     },
 

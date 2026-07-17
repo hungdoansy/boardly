@@ -96,3 +96,13 @@ first and backfill docs later, and never bury product code in a `docs(...)`-type
 The per-unit Definition of Done lives in the plan (Operational / Overnight-Loop Notes) and includes:
 tests + typecheck/lint/build green; e2e + dark-mode screenshot for user-facing flows; **the unit doc
 written and committed**; exact-version deps; design + engineering rules above satisfied.
+
+## 7. Deferred decisions (revisit when the trigger is met)
+
+- **Desktop refresh-token storage → revert to the OS keychain once the app is code-signed.**
+  Today the desktop refresh token lives in a `0600` file (`<app-data-dir>/auth-store.json`) via the
+  `token_set/get/delete` commands — see `docs/units/UNIT-P11-desktop-token-file-store.md`. This was a
+  workaround: an unsigned build re-prompts for macOS Keychain access on every rebuild because the
+  "Always Allow" ACL is bound to the code signature. **When an Apple Developer License is purchased**
+  (~$99/yr), set a stable `signingIdentity` in `apps/desktop/src-tauri/tauri.conf.json` and switch
+  the store back to the `keyring` crate so the token is OS-encrypted again and "Always Allow" sticks.

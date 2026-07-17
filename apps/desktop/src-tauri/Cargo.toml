@@ -28,9 +28,9 @@ tauri-plugin-deep-link = "2"
 # hand a `target="_blank"` navigation to the browser on its own.
 tauri-plugin-opener = "2"
 
-# Refresh-token storage in the OS keychain (Keychain / Credential Manager /
-# libsecret) — not Stronghold. `keyring` v3 with the platform-native backends.
-keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+# Refresh-token storage is a 0600 file under the app data dir (serde_json above),
+# not the OS keychain — an unsigned laptop build otherwise re-prompts for
+# Keychain access on every rebuild. See UNIT-P11-desktop-token-file-store.md.
 
 # Single-instance (desktop only) so `boardly://` deep links reach the running
 # app rather than spawning a second instance.

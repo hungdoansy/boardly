@@ -92,6 +92,11 @@ Node: `export PATH="$HOME/.nvm/versions/node/v22.17.1/bin:$PATH"`. Rust: `export
 
 ## Follow-ups / known gaps
 
+- **Superseded — refresh-token storage is no longer the OS keychain.** The `keyring`-backed
+  `keyring_set/get/delete` commands documented here were replaced by a `0600` JSON file under the app
+  data dir (`token_set/get/delete`), because an unsigned laptop build re-prompts for macOS Keychain
+  access on every rebuild. See `UNIT-P11-desktop-token-file-store.md`. The "verify `keyring` linux +
+  windows backends" item below is void (crate removed).
 - **Desktop auth server shape:** the server must return the refresh token in the `/auth/login` +
   `/auth/refresh` body (and accept it in the refresh body) for desktop; the client is wired but the
   server change is deferred (touches Unit 3.4 auth).

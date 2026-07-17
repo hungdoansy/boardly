@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const invoke = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
 
-import { createRefreshTokenStore, KEYRING_ACCOUNT } from "./refresh-token-store";
+import { createRefreshTokenStore, TOKEN_ACCOUNT } from "./refresh-token-store";
 
 afterEach(() => {
   delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
@@ -20,27 +20,27 @@ describe("refresh token store (platform switch)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("desktop: save/load/clear go through the keychain via invoke", async () => {
+  it("desktop: save/load/clear go through the token file via invoke", async () => {
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
     const store = createRefreshTokenStore();
 
     invoke.mockResolvedValueOnce(undefined);
     await store.save("tok");
-    expect(invoke).toHaveBeenCalledWith("keyring_set", {
-      account: KEYRING_ACCOUNT,
+    expect(invoke).toHaveBeenCalledWith("token_set", {
+      account: TOKEN_ACCOUNT,
       secret: "tok",
     });
 
     invoke.mockResolvedValueOnce("stored-tok");
     expect(await store.load()).toBe("stored-tok");
-    expect(invoke).toHaveBeenLastCalledWith("keyring_get", { account: KEYRING_ACCOUNT });
+    expect(invoke).toHaveBeenLastCalledWith("token_get", { account: TOKEN_ACCOUNT });
 
     invoke.mockResolvedValueOnce(undefined);
     await store.clear();
-    expect(invoke).toHaveBeenLastCalledWith("keyring_delete", { account: KEYRING_ACCOUNT });
+    expect(invoke).toHaveBeenLastCalledWith("token_delete", { account: TOKEN_ACCOUNT });
   });
 
-  it("desktop: load() returns null (not throws) when the keychain has no entry", async () => {
+  it("desktop: load() returns null (not throws) when the token store has no entry", async () => {
     (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ = {};
     const store = createRefreshTokenStore();
     invoke.mockRejectedValueOnce(new Error("no entry"));

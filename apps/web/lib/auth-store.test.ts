@@ -120,7 +120,7 @@ describe("api client session logic", () => {
   });
 });
 
-describe("desktop refresh-token wiring (injected keychain store)", () => {
+describe("desktop refresh-token wiring (injected token-file store)", () => {
   const memStore = () => {
     let v: string | null = null;
     return {
@@ -162,7 +162,7 @@ describe("desktop refresh-token wiring (injected keychain store)", () => {
     expect(refreshStore.save).toHaveBeenLastCalledWith("R2"); // rotation persisted
   });
 
-  it("logout clears the keychain entry", async () => {
+  it("logout clears the token-file entry", async () => {
     const refreshStore = memStore();
     const client = createApiClient({
       baseUrl: "http://api.test",
