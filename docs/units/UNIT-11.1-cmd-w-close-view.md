@@ -50,6 +50,31 @@
   - Cmd+Q quits.
   - Cmd+C / Cmd+V / Cmd+A / Cmd+Z work in a text field (Edit menu re-added).
 
+## Amendment — window close button keeps the app running (macOS)
+
+The Cmd+W work above deliberately left the window's **close button** (the red
+traffic light) alone, and it had the same root problem the menu did: closing the
+only window destroys it and, with no window left, macOS terminates the app — so
+the red X quit Boardly like Cmd+Q. Fixed in `apps/desktop/src-tauri/src/main.rs`:
+
+- **`.on_window_event`** intercepts `WindowEvent::CloseRequested`, calls
+  `window.hide()` then `api.prevent_close()` — the window disappears but the
+  process keeps running in the dock.
+- The builder now `.build(generate_context!())?.run(|app, event| …)` (instead of
+  `.run(generate_context!())`) so it can handle **`RunEvent::Reopen`** (macOS
+  only, `#[cfg(target_os = "macos")]`): clicking the dock icon re-`show()`s and
+  focuses the hidden `main` window. Without this the app would be stuck alive
+  with no way back to a window.
+- The **single-instance** callback (previously a no-op) now also `show()`s +
+  focuses the `main` window, so a `boardly://` deep link surfaces the window when
+  it was hidden by the close button.
+- **Quitting stays deliberate:** Cmd+Q and the app menu's Quit item still exit;
+  only the window-close path changed.
+
+Verify (manual, `pnpm --filter desktop tauri dev`): red X hides the window and
+the app stays in the dock; clicking the dock icon brings the window back with
+state intact; Cmd+Q still quits.
+
 ## Follow-ups / known gaps
 
 - Manual desktop verification above is the remaining gate (the code compiles and the web bridge is unit-tested; behavior against the real macOS menu is not automatable here).

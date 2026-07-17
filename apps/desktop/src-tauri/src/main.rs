@@ -103,10 +103,16 @@ fn main() {
     let mut builder = tauri::Builder::default();
 
     // Single-instance must be the FIRST plugin registered (desktop only) so a
-    // second launch (e.g. via a `boardly://` link) focuses the running window.
+    // second launch (e.g. via a `boardly://` link) focuses the running window —
+    // showing it first in case the close button had hidden it (see below).
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}));
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }));
     }
 
     builder
@@ -168,7 +174,34 @@ fn main() {
                 let _ = app.emit("menu-close-view", ());
             }
         })
+        .on_window_event(|window, event| {
+            // The red traffic-light close button (and any other window-close
+            // request) would destroy our single window and, with no other window
+            // left, terminate the app — so the close button quit like Cmd+Q.
+            // Intercept it: hide the window and keep the app alive in the dock,
+            // the standard macOS behavior. It is re-shown on a dock reopen (see
+            // the run handler below) or a second launch (single-instance, above).
+            // Quitting stays deliberate: Cmd+Q or the app menu's Quit item.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                api.prevent_close();
+            }
+        })
         .invoke_handler(tauri::generate_handler![token_set, token_get, token_delete])
-        .run(tauri::generate_context!())
-        .expect("error while running the Boardly desktop app");
+        .build(tauri::generate_context!())
+        .expect("error while building the Boardly desktop app")
+        .run(|app, event| {
+            // macOS: clicking the dock icon (a "reopen") after the close button
+            // hid the window re-shows and focuses it, since there is no other
+            // window for the OS to restore on its own.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }
