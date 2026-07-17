@@ -1,9 +1,16 @@
-# UNIT 11.1: Cmd+W closes the current view (desktop menu + web bridge)
+# UNIT 11.1: Cmd+W and the close button hide the window (desktop)
 
 - **Plan unit:** Unit 1 (`docs/plans/2026-07-14-002-feat-ui-docs-improvements-batch-plan.md`)
 - **Status:** done (pending manual desktop verification — see below)
 - **Requirements:** R1
 - **Commit(s):** _this commit_
+
+> **Superseded — read [Amendment 2](#amendment-2--cmdw-hides-the-window-like-the-close-button)
+> first.** The "Cmd+W = synthetic Escape / ESC ladder" design described in
+> _What changed_ / _Why_ / _How it works_ below was **removed** on user request:
+> Cmd+W now hides the window exactly like the red close button. The web bridge
+> (`apps/web/lib/desktop-menu.ts` + its test) is deleted. The sections below are
+> kept for history; Amendment 2 is the current behavior.
 
 ## What changed
 
@@ -75,8 +82,39 @@ Verify (manual, `pnpm --filter desktop tauri dev`): red X hides the window and
 the app stays in the dock; clicking the dock icon brings the window back with
 state intact; Cmd+Q still quits.
 
+## Amendment 2 — Cmd+W hides the window (like the close button)
+
+The synthetic-Escape / ESC-ladder design above was **removed** on user request.
+It made Cmd+W a no-op whenever nothing was open (no ticket/dialog/Settings/scope),
+which read as "Cmd+W doesn't work" against normal macOS muscle memory. The user
+wants Cmd+W to behave exactly like the red close button: hide the window, keep
+the app in the dock.
+
+Changes in `apps/desktop/src-tauri/src/main.rs`:
+
+- The **Window** submenu's close item is now the **predefined `close_window()`**
+  (`SubmenuBuilder::close_window()`), which keeps the standard Cmd+W accelerator
+  and fires `WindowEvent::CloseRequested` — the same event the red traffic light
+  raises. The `.on_window_event` handler from Amendment 1 already intercepts it
+  (`api.prevent_close()` + `window.hide()`), so **Cmd+W and the close button now
+  do the identical thing**: hide, never quit.
+- The custom `close-view` `MenuItemBuilder`, the `.on_menu_event` handler, and the
+  `menu-close-view` app event are **deleted** (with them the `Emitter` +
+  `MenuItemBuilder` imports).
+
+Web side — deleted as fully dead code:
+
+- `apps/web/lib/desktop-menu.ts` and `apps/web/lib/desktop-menu.test.ts`.
+- The `setupDesktopMenu()` import + effect in `apps/web/components/app/workspace-app.tsx`.
+
+The in-app ESC ladder (`useGlobalKeyboard`) is untouched — Escape still closes the
+open ticket/dialog/Settings/scope; it's just no longer reachable via Cmd+W.
+
+Verify (manual, `pnpm --filter desktop tauri dev`): Cmd+W hides the window and the
+app stays in the dock (identical to the red X); the dock icon brings it back with
+state intact; Cmd+Q still quits; Cmd+C/V/X/A/Z still work in a text field.
+
 ## Follow-ups / known gaps
 
-- Manual desktop verification above is the remaining gate (the code compiles and the web bridge is unit-tested; behavior against the real macOS menu is not automatable here).
-- If a synthetic Escape ever fails to drive a specific Radix layer, the fallback is an imperative close routine that clears `openCardId`/palette/search state directly (not needed given Radix's document-level escape listener).
-- Windows/Linux use the same `CmdOrCtrl+W` accelerator; only macOS is a shipping target today.
+- Manual desktop verification (Amendment 2) is the remaining gate; the native menu / window behavior isn't automatable here (`cargo check` + web `typecheck` are green).
+- Windows/Linux inherit the predefined Close Window accelerator; only macOS is a shipping target today.

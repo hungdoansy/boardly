@@ -22,8 +22,8 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::menu::{MenuBuilder, SubmenuBuilder};
+use tauri::{AppHandle, Manager};
 
 /// Account → secret map persisted as the token store's JSON body.
 type SecretMap = BTreeMap<String, String>;
@@ -121,15 +121,18 @@ fn main() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // Tauri auto-generates a default macOS menu whose Window→Close binds
-            // Cmd+W to `close_window` — with our single window that terminates the
-            // app, so Cmd+W quits like Cmd+Q. Install a fully custom menu instead:
-            // keep Quit on Cmd+Q, and rebind Cmd+W to a custom "Close View" item
-            // that the web layer turns into an Escape (close the open ticket /
-            // dialog / settings / project scope), never closing the window.
+            // Tauri's default macOS menu bound Cmd+W to the native `close_window`,
+            // which — with our single window — destroyed it and quit the app. We
+            // install a full custom menu whose Window→Close is the *predefined*
+            // Close Window item: it keeps the standard Cmd+W accelerator and fires
+            // the same `WindowEvent::CloseRequested` the red traffic light does,
+            // which `.on_window_event` (below) intercepts to *hide* the window and
+            // keep the app alive. So Cmd+W and the close button behave identically;
+            // Quit stays deliberate on Cmd+Q.
             //
-            // Replacing the default menu drops the standard App + Edit submenus, so
-            // re-add them or macOS text-editing shortcuts (Cmd+C/V/X/A/Z) break.
+            // Building a custom menu (rather than tweaking the default) also lets us
+            // keep the App + Edit submenus — without them the webview loses the
+            // macOS text-editing shortcuts (Cmd+C/V/X/A/Z).
             let handle = app.handle();
             let app_menu = SubmenuBuilder::new(handle, "Boardly")
                 .about(None)
@@ -151,12 +154,9 @@ fn main() {
                 .paste()
                 .select_all()
                 .build()?;
-            let close_view = MenuItemBuilder::with_id("close-view", "Close View")
-                .accelerator("CmdOrCtrl+W")
-                .build(handle)?;
             let window_menu = SubmenuBuilder::new(handle, "Window")
                 .minimize()
-                .item(&close_view)
+                .close_window()
                 .build()?;
             let menu = MenuBuilder::new(handle)
                 .item(&app_menu)
@@ -165,14 +165,6 @@ fn main() {
                 .build()?;
             app.set_menu(menu)?;
             Ok(())
-        })
-        .on_menu_event(|app, event| {
-            if event.id().as_ref() == "close-view" {
-                // Route to the web layer (see apps/web/lib/desktop-menu.ts), which
-                // dispatches a synthetic Escape so the existing ESC ladder closes
-                // the current view without touching the window.
-                let _ = app.emit("menu-close-view", ());
-            }
         })
         .on_window_event(|window, event| {
             // The red traffic-light close button (and any other window-close

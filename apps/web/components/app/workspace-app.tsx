@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
-import { setupDesktopMenu } from "../../lib/desktop-menu";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useBoardTitle } from "../../lib/use-board";
 import { useSettingsRoute } from "../../lib/use-boards";
@@ -111,22 +110,6 @@ function Shell() {
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const exitSettings = useCallback(() => setSettingsOpen(false), [setSettingsOpen]);
   useGlobalKeyboard({ onOpenSearch: openSearch, settingsOpen, onExitSettings: exitSettings });
-
-  // Desktop only: route the native "Close View" (Cmd+W) menu item through the
-  // ESC ladder. No-op on web. Guard against the async setup resolving after the
-  // component unmounts.
-  useEffect(() => {
-    let active = true;
-    let unlisten: (() => void) | undefined;
-    void setupDesktopMenu().then((fn) => {
-      if (active) unlisten = fn;
-      else fn();
-    });
-    return () => {
-      active = false;
-      unlisten?.();
-    };
-  }, []);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
