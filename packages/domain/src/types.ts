@@ -103,6 +103,11 @@ export interface Board {
    * hidden. Synced board meta; defaults to `true` when absent.
    */
   showEmptyColumns: boolean;
+  /**
+   * Whole-app zoom factor (UNIT-15): 1 = 100%. Synced board meta, clamped to
+   * `[ZOOM_MIN, ZOOM_MAX]`; defaults to `DEFAULT_ZOOM` (1) when absent.
+   */
+  zoom: number;
   createdAt: number;
   updatedAt: number;
 }

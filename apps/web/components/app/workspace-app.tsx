@@ -10,7 +10,9 @@ import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
-import { useBoardTitle } from "../../lib/use-board";
+import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
+import { applyZoom, cacheZoom } from "../../lib/zoom";
+import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
 import { useSettingsRoute } from "../../lib/use-boards";
 import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
@@ -110,6 +112,19 @@ function Shell() {
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const exitSettings = useCallback(() => setSettingsOpen(false), [setSettingsOpen]);
   useGlobalKeyboard({ onOpenSearch: openSearch, settingsOpen, onExitSettings: exitSettings });
+
+  // Whole-app zoom (UNIT-15): the synced board-meta factor is the source of
+  // truth. Apply it to <html> and refresh the device cache whenever it changes
+  // (the pre-paint script in layout.tsx handles the very first paint from that
+  // cache; this reconciles to the synced value once the doc hydrates). The
+  // ⌘/Ctrl +/−/0 shortcuts write the next factor through the command.
+  const zoom = useZoom();
+  const setZoom = useSetZoom();
+  useEffect(() => {
+    applyZoom(zoom);
+    cacheZoom(zoom);
+  }, [zoom]);
+  useZoomHotkeys(zoom, setZoom);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">

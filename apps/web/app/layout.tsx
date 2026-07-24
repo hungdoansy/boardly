@@ -25,6 +25,12 @@ const THEME_INIT = `(function(){try{var k='boardly-theme';var t=localStorage.get
 // doesn't flash full-color then mute. Keep in sync with `lib/focus-mode.ts`.
 const FOCUS_INIT = `(function(){try{var f=localStorage.getItem('boardly-focus');if(f==='calm'||f==='zen'){document.documentElement.setAttribute('data-focus',f);}}catch(_){}})();`;
 
+// Apply the device-cached whole-app zoom before first paint so the UI doesn't
+// flash 100% then jump to the persisted level. The synced board-meta value
+// re-applies after hydration (see `lib/zoom.ts` + workspace-app). Clamped to
+// [0.5, 2]. Keep in sync with `lib/zoom.ts`.
+const ZOOM_INIT = `(function(){try{var z=parseFloat(localStorage.getItem('boardly-zoom'));if(isFinite(z)){z=Math.min(2,Math.max(0.5,z));document.documentElement.style.setProperty('--app-zoom',String(z));}}catch(_){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   // `.dark` is the SSR default (dark is the priority theme). The inline script
   // corrects to light before paint when the user/OS prefers it (Unit 5.3).
@@ -33,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <script dangerouslySetInnerHTML={{ __html: FOCUS_INIT }} />
+        <script dangerouslySetInnerHTML={{ __html: ZOOM_INIT }} />
         {children}
       </body>
     </html>

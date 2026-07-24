@@ -59,3 +59,38 @@ describe("GeneralSettings — ticket prefix", () => {
     expect(prefixOf(ctx)).toBe("");
   });
 });
+
+const zoomOf = (ctx: ReturnType<typeof createMemoryContext>) =>
+  getBoard(ctx.getBoardDoc(), "").zoom;
+
+describe("GeneralSettings — zoom", () => {
+  it("starts at 100% with Reset disabled", () => {
+    setup();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
+  });
+
+  it("zooms in one step and reflects the new level", () => {
+    const ctx = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(zoomOf(ctx)).toBe(1.1);
+    expect(screen.getByText("110%")).toBeInTheDocument();
+  });
+
+  it("zooms out one step", () => {
+    const ctx = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(zoomOf(ctx)).toBe(0.9);
+    expect(screen.getByText("90%")).toBeInTheDocument();
+  });
+
+  it("Reset returns to 100% once zoomed away from default", () => {
+    const ctx = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    const reset = screen.getByRole("button", { name: "Reset" });
+    expect(reset).toBeEnabled();
+    fireEvent.click(reset);
+    expect(zoomOf(ctx)).toBe(1);
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
+});

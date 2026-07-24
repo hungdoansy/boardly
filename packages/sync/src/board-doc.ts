@@ -19,6 +19,7 @@ import {
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
   Priority,
+  clampZoom,
   SNAPSHOT_VERSION,
   byOrd,
   compareOrd,
@@ -151,6 +152,19 @@ export function setShowEmptyColumns(doc: Y.Doc, show: boolean, now: number): voi
   doc.transact(() => {
     const meta = boardMeta(doc);
     meta.set("showEmptyColumns", show);
+    meta.set("updatedAt", now);
+  });
+}
+
+/**
+ * Set the whole-app zoom factor (UNIT-15; board meta, synced per-user). The
+ * value is clamped to `[ZOOM_MIN, ZOOM_MAX]` at write time so nothing invalid is
+ * ever persisted (the read path in `boardToPlain` clamps again defensively).
+ */
+export function setZoom(doc: Y.Doc, factor: number, now: number): void {
+  doc.transact(() => {
+    const meta = boardMeta(doc);
+    meta.set("zoom", clampZoom(factor));
     meta.set("updatedAt", now);
   });
 }

@@ -18,6 +18,8 @@ import {
   type Status,
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
+  DEFAULT_ZOOM,
+  clampZoom,
   formatTicketId,
 } from "@boardly/domain";
 import * as Y from "yjs";
@@ -161,6 +163,9 @@ export function boardToPlain(doc: Y.Doc, userId: string): Board {
     badgeConfig: Array.isArray(badgeRaw) ? (badgeRaw as string[]) : [...DEFAULT_BADGE_CONFIG],
     // Board toolbar preference (Unit 7); defaults to true when absent from meta.
     showEmptyColumns: getBool(meta, "showEmptyColumns", true),
+    // Whole-app zoom (UNIT-15); default 100%, clamped so a stale/out-of-range
+    // persisted value can never render an unusable UI.
+    zoom: clampZoom(getNumber(meta, "zoom", DEFAULT_ZOOM)),
     createdAt: getNumber(meta, "createdAt"),
     updatedAt: getNumber(meta, "updatedAt"),
   };

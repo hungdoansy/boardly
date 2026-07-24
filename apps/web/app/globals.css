@@ -12,6 +12,17 @@
     height: 100%;
   }
 
+  /* Whole-app zoom (UNIT-15). A single lever scales the entire UI — board,
+     cards, chrome, and body-portaled overlays (dialogs, popovers, command
+     palette, card-detail drawer). `zoom` reflows (more cards fit) and scales
+     the absolute-px type scale; `transform: scale` would not. The value comes
+     from `--app-zoom` (board meta via the zoom apply path + a no-FOUC inline
+     script). NEVER transition `zoom`: it is reflow-heavy — animating it fights
+     the DESIGN rule against animating expensive layout. */
+  html {
+    zoom: var(--app-zoom, 1);
+  }
+
   body {
     background-color: var(--bg-base);
     color: var(--text-primary);

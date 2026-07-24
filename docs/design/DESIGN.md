@@ -149,6 +149,23 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 - **Tracking:** headings `-0.01em` to `-0.02em` (tight, Linear-like); body normal.
 - Short IDs (`BRD-142`) in monospace, `text-xs`, `--text-tertiary`.
 
+### 3.1 Whole-app zoom (UNIT-15)
+
+- **Zoom = one CSS lever:** `html { zoom: var(--app-zoom, 1) }`. Because the type scale is
+  absolute px (above), page `zoom` is how the UI scales — it reflows (more cards fit) and scales
+  px tokens, which a base-font-size change cannot. Never use `transform: scale` for this (it
+  overflows, breaks `position: fixed`, and doesn't reflow).
+- **Applied on `<html>`** so body-portaled overlays (dialogs, popovers, command palette,
+  card-detail drawer) scale with everything else — zoom is truly whole-app, not board-only.
+- **Shortcuts:** `⌘/Ctrl +` in, `⌘/Ctrl −` out, `⌘/Ctrl 0` reset — same in web and desktop.
+  Steps through a fixed ladder (`0.5 … 1 … 2`); `⌘0` snaps back to exactly 100%.
+- **Persistence:** the factor is a synced per-user board preference (`Board.zoom`), mirrored to
+  `localStorage` (`boardly-zoom`) and restored pre-paint by a no-FOUC inline script (like theme/focus).
+- **Never transition `zoom`** — it is reflow-heavy; animating it violates the "don't animate
+  expensive layout" rule (§ Motion). Zoom changes apply instantly.
+- Discoverable without the keyboard: command-palette actions (Zoom in / out / Reset) and a Zoom
+  control in Settings that shows the live percentage.
+
 ---
 
 ## 4. Spacing, sizing, radii

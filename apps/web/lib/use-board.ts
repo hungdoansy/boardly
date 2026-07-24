@@ -46,6 +46,7 @@ import {
   setChecklistItemText,
   setShowEmptyColumns,
   setTicketPrefix,
+  setZoom,
   toggleChecklistItem,
   unassignLabel,
   updateLinkTitle,
@@ -117,6 +118,26 @@ export function useSetShowEmptyColumns(): (show: boolean) => void {
   return useCallback(
     (show: boolean) => {
       execute(setShowEmptyColumns, ctx, { show });
+    },
+    [ctx],
+  );
+}
+
+/**
+ * Live whole-app zoom factor (UNIT-15; 1 = 100%). Board meta, so it persists
+ * per-user and syncs across devices; defaults to `DEFAULT_ZOOM` when absent.
+ */
+export function useZoom(): number {
+  const ctx = useBoardlyContext();
+  const doc = ctx.getBoardDoc();
+  return useY(boardMeta(doc), () => getBoard(doc, ctx.userId ?? "").zoom);
+}
+
+export function useSetZoom(): (factor: number) => void {
+  const ctx = useBoardlyContext();
+  return useCallback(
+    (factor: number) => {
+      execute(setZoom, ctx, { factor });
     },
     [ctx],
   );
