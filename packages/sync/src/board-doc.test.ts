@@ -10,12 +10,14 @@ import {
   archiveCard,
   boardToSnapshot,
   buildBoardFromSnapshot,
+  cardActivity,
   cardsInStatus,
   deleteCard,
   getBoard,
   getCard,
   initBoard,
   listActivity,
+  listArchivedCards,
   moveCard,
   moveLink,
   removeRelation,
@@ -24,6 +26,7 @@ import {
   setCardStatus,
   setShowEmptyColumns,
   setZoom,
+  unarchiveCard,
 } from "./board-doc";
 import { boardCards, boardMeta } from "./schema";
 
@@ -457,6 +460,90 @@ describe("allLiveCards", () => {
       .map((c) => c.id)
       .sort();
     expect(ids).toEqual([a, b].sort());
+  });
+});
+
+describe("listArchivedCards", () => {
+  it("returns only archived cards, most-recently-archived first", () => {
+    const { doc } = setup();
+    const live = addCard(doc, { status: TODO, title: "Live", now: NOW, clientId: "1" });
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    const b = addCard(doc, { status: DOING, title: "B", now: NOW, clientId: "1" });
+    archiveCard(doc, a, NOW + 1);
+    archiveCard(doc, b, NOW + 2); // archived later -> should sort first
+
+    expect(listArchivedCards(doc).map((c) => c.id)).toEqual([b, a]);
+    // The live card is absent here and present in the live selector.
+    expect(listArchivedCards(doc).some((c) => c.id === live)).toBe(false);
+    expect(allLiveCards(doc).map((c) => c.id)).toEqual([live]);
+  });
+
+  it("is empty when nothing is archived", () => {
+    const { doc } = setup();
+    addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    expect(listArchivedCards(doc)).toEqual([]);
+  });
+});
+
+describe("unarchiveCard (restore)", () => {
+  it("returns an archived card to its status column and clears the archived flag", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: DOING, title: "A", now: NOW, clientId: "1" });
+    archiveCard(doc, a, NOW + 1);
+    expect(cardsInStatus(doc, DOING)).toEqual([]);
+
+    unarchiveCard(doc, a, NOW + 2, "actor-1");
+
+    const restored = getCard(doc, a);
+    expect(restored?.archived).toBe(false);
+    expect(restored?.deletedAt).toBeUndefined();
+    expect(listArchivedCards(doc)).toEqual([]);
+    expect(allLiveCards(doc).map((c) => c.id)).toEqual([a]);
+    expect(cardsInStatus(doc, DOING).map((c) => c.id)).toEqual([a]);
+  });
+
+  it("logs an 'unarchived' activity entry with the actor", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    archiveCard(doc, a, NOW + 1, "actor-1");
+    unarchiveCard(doc, a, NOW + 2, "actor-1");
+
+    // Newest-first: unarchived, then archived, then created.
+    expect(cardActivity(doc, a).map((e) => e.type)).toEqual(["unarchived", "archived", "created"]);
+    expect(cardActivity(doc, a)[0]).toMatchObject({
+      type: "unarchived",
+      cardId: a,
+      actor: "actor-1",
+    });
+  });
+
+  it("no-ops on a live card and on an unknown id (no spurious activity)", () => {
+    const { doc } = setup();
+    const a = addCard(doc, { status: TODO, title: "A", now: NOW, clientId: "1" });
+    unarchiveCard(doc, a, NOW + 1); // already live
+    unarchiveCard(doc, "missing", NOW + 1); // unknown id
+    expect(getCard(doc, a)?.archived).toBe(false);
+    expect(listActivity(doc).some((e) => e.type === "unarchived")).toBe(false);
+  });
+
+  it("round-trips: archive then restore preserves the card's fields", () => {
+    const { doc } = setup();
+    const a = addCard(doc, {
+      status: DOING,
+      title: "Keep me",
+      priority: Priority.High,
+      now: NOW,
+      clientId: "1",
+    });
+    const before = getCard(doc, a);
+    archiveCard(doc, a, NOW + 1);
+    unarchiveCard(doc, a, NOW + 2);
+    const after = getCard(doc, a);
+
+    expect(after?.title).toBe(before?.title);
+    expect(after?.status).toBe(before?.status);
+    expect(after?.priority).toBe(before?.priority);
+    expect(after?.archived).toBe(false);
   });
 });
 

@@ -57,6 +57,11 @@ export interface ArchivedActivity extends ActivityBase {
   type: "archived";
 }
 
+/** A card was restored from the archive (inverse of {@link ArchivedActivity}). */
+export interface UnarchivedActivity extends ActivityBase {
+  type: "unarchived";
+}
+
 /** Union of activity entries. Widen this as later units add event kinds. */
 export type ActivityEntry =
   | CreatedActivity
@@ -65,6 +70,7 @@ export type ActivityEntry =
   | StatusChangeActivity
   | PriorityChangeActivity
   | DueChangeActivity
-  | ArchivedActivity;
+  | ArchivedActivity
+  | UnarchivedActivity;
 
 export type ActivityType = ActivityEntry["type"];
