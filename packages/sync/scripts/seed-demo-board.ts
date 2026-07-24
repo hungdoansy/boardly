@@ -51,6 +51,7 @@ import {
   addLabel,
   addProject,
   allLiveCards,
+  archiveCard,
   boardActivity,
   boardCards,
   boardLabels,
@@ -208,6 +209,21 @@ function projectForCard(spec: CardSpec): string {
   if (l.includes("docs")) return "docs";
   return "web";
 }
+
+// Cards created then archived, to populate the Archive view (Unit 14). Kept
+// separate from CARDS so the live board's showcase is unaffected. Listed
+// oldest→newest; the seed archives them in this order, so the Archive view (sorted
+// by `deletedAt` desc) shows the last one first.
+const ARCHIVED_CARDS: CardSpec[] = [
+  { status: Status.Done, title: "Spike: evaluate a graph database", labels: ["backend"] },
+  { status: Status.Canceled, title: "Old marketing site redesign", labels: ["design"] },
+  {
+    status: Status.InProgress,
+    title: "Duplicate: fix login redirect loop",
+    labels: ["frontend", "bug"],
+    priority: Priority.High,
+  },
+];
 
 // Cards spread across ALL EIGHT fixed statuses (Backlog…Duplicate), so the
 // seeded board exercises every status column and the show/hide-empty toggle.
@@ -478,6 +494,24 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
       });
       if (item.done) toggleChecklistItem(boardDoc, id, itemId, tick());
     }
+  }
+
+  // Archived cards — dedicated fixtures (kept separate from the live showcase so
+  // the board stays intact) so the Archive view (Unit 14) is populated. Created
+  // then archived with staggered `deletedAt` (via `tick()`), so they list
+  // most-recently-archived first, exactly as the Archive view renders them.
+  for (const spec of ARCHIVED_CARDS) {
+    const id = addCard(boardDoc, {
+      status: spec.status,
+      title: spec.title,
+      projectId: projectId[projectForCard(spec)]!,
+      priority: spec.priority,
+      now: tick(),
+      clientId: CLIENT_ID,
+      createdBy: userId,
+    });
+    for (const key of spec.labels ?? []) assignLabel(boardDoc, id, labelId[key]!, tick());
+    archiveCard(boardDoc, id, tick(), userId);
   }
 
   // Saved views — exercise both lenses, grouping, sorting, and filters.
