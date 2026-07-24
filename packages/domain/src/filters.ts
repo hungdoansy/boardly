@@ -6,13 +6,7 @@ import { STATUS_META, Status, STATUS_ORDER } from "./status";
 import type { Card } from "./types";
 
 export type FilterField =
-  | "status"
-  | "priority"
-  | "label"
-  | "dueDate"
-  | "assignee"
-  | "title"
-  | "project";
+  "status" | "priority" | "label" | "dueDate" | "assignee" | "title" | "project";
 
 export type FilterCondition =
   | "is" // scalar equals one of `values`
@@ -182,6 +176,29 @@ export function countByStatus(
     counts[card.status] = (counts[card.status] ?? 0) + 1;
   }
   return counts;
+}
+
+/**
+ * The ids of the cards each status column would show under `filter`, grouped by
+ * status. Mirrors {@link countByStatus} exactly (same empty-filter short-circuit
+ * and `evaluateFilter`), so the per-column id list and the header count agree by
+ * construction — the board uses this to bulk-archive a column's *visible* cards.
+ */
+export function visibleCardIdsByStatus(
+  cards: Card[],
+  filter: Filter | undefined,
+  ctx: FilterContext = { now: 0 },
+): Record<Status, string[]> {
+  const ids = Object.fromEntries(STATUS_ORDER.map((s) => [s, [] as string[]])) as Record<
+    Status,
+    string[]
+  >;
+  const active = filter && !isEmptyFilter(filter) ? filter : null;
+  for (const card of cards) {
+    if (active && !evaluateFilter(card, active, ctx)) continue;
+    (ids[card.status] ??= []).push(card.id);
+  }
+  return ids;
 }
 
 /** Evaluate a (nestable) filter against a card. Empty group → match. */

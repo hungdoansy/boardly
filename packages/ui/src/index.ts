@@ -49,5 +49,19 @@ export {
   ContextMenuLabel,
   ContextMenuSeparator,
 } from "./components/context-menu";
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuRadioGroup,
+  DropdownMenuSub,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "./components/dropdown-menu";
 export { Toaster, toast, type ToastItem } from "./components/toast";
 export { StatusIcon, type StatusVariant, type StatusIconProps } from "./components/status-icon";

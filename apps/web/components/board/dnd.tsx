@@ -28,6 +28,7 @@ import { CardFace } from "../card/card";
 import { CardContextMenu } from "../card/card-context-menu";
 import { BoardColumn } from "./column";
 import { ColumnComposerContext } from "./column-composer-context";
+import { ColumnMenu } from "./column-menu";
 
 interface ActiveItem {
   id: string;
@@ -184,10 +185,13 @@ export function SortableCard({
 export function StatusColumn({
   status,
   count,
+  visibleCardIds,
   children,
 }: {
   status: Status;
   count: number;
+  /** Ids of the cards this column shows under the active filter (for bulk archive). */
+  visibleCardIds: string[];
   children?: ReactNode;
 }) {
   // The composer's open-state lives here (the one place that renders both the
@@ -206,6 +210,7 @@ export function StatusColumn({
         dndRef={setNodeRef}
         isOver={isOver}
         onAddCard={() => setComposerOpen(true)}
+        menu={<ColumnMenu status={status} visibleCardIds={visibleCardIds} />}
       >
         {children}
       </BoardColumn>

@@ -7,6 +7,7 @@ import {
   Priority,
   STATUS_ORDER,
   countByStatus,
+  visibleCardIdsByStatus,
 } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { Eye, EyeOff } from "lucide-react";
@@ -29,13 +30,7 @@ import { Swimlanes } from "./swimlanes";
 
 const PRIORITY_CYCLE = Object.values(Priority).sort((a, b) => a - b);
 
-export function BoardView({
-  filter,
-  groupBy,
-}: {
-  filter?: Filter;
-  groupBy?: GroupByField | null;
-}) {
+export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: GroupByField | null }) {
   const allCards = useAllCards();
   const cardActions = useCardActions();
   const showEmptyColumns = useShowEmptyColumns();
@@ -51,6 +46,14 @@ export function BoardView({
   // counts and the hide-empty toggle agree with what each column renders.
   const counts = useMemo(
     () => countByStatus(allCards, filter, filterCtx),
+    [allCards, filter, filterCtx],
+  );
+
+  // The ids each column shows under the active filter, grouped by status — same
+  // filter path as the counts above, so a column's "Archive all" targets exactly
+  // its visible cards (Unit 14).
+  const visibleIds = useMemo(
+    () => visibleCardIdsByStatus(allCards, filter, filterCtx),
     [allCards, filter, filterCtx],
   );
 
@@ -115,17 +118,18 @@ export function BoardView({
             onClick={() => setShowEmptyColumns(!showEmptyColumns)}
             className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            {showEmptyColumns ? (
-              <EyeOff className="size-3.5" />
-            ) : (
-              <Eye className="size-3.5" />
-            )}
+            {showEmptyColumns ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
             {showEmptyColumns ? "Hide empty columns" : "Show empty columns"}
           </button>
         </div>
         <div ref={boardRef} className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
           {visibleStatuses.map((status) => (
-            <StatusColumn key={status} status={status} count={counts[status] ?? 0}>
+            <StatusColumn
+              key={status}
+              status={status}
+              count={counts[status] ?? 0}
+              visibleCardIds={visibleIds[status] ?? []}
+            >
               <ColumnCards
                 status={status}
                 onOpenCard={setOpenCardId}

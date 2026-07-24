@@ -4,7 +4,15 @@ import { ZodError } from "zod";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { addRelatedCard, createCard, deleteCard, moveCard, removeRelatedCard } from "./card";
+import {
+  addRelatedCard,
+  archiveCard,
+  archiveCards,
+  createCard,
+  deleteCard,
+  moveCard,
+  removeRelatedCard,
+} from "./card";
 
 function seed() {
   const ctx = createMemoryContext({ clientId: "c1", now: () => 100 });
@@ -25,9 +33,9 @@ describe("createCard", () => {
 
   it("rejects a status outside the eight via zod before mutating", () => {
     const ctx = seed();
-    expect(() =>
-      execute(createCard, ctx, { title: "Bad", status: "nope" as never }),
-    ).toThrow(ZodError);
+    expect(() => execute(createCard, ctx, { title: "Bad", status: "nope" as never })).toThrow(
+      ZodError,
+    );
   });
 });
 
@@ -47,11 +55,7 @@ describe("moveCard", () => {
     });
 
     expect(moved?.status).toBe("in_review");
-    expect(cardsInStatus(ctx.getBoardDoc(), "in_review").map((c) => c.id)).toEqual([
-      "a",
-      "c",
-      "b",
-    ]);
+    expect(cardsInStatus(ctx.getBoardDoc(), "in_review").map((c) => c.id)).toEqual(["a", "c", "b"]);
     // Card left its old status column.
     expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toHaveLength(0);
   });
@@ -69,9 +73,9 @@ describe("moveCard", () => {
   it("rejects a status outside the eight via zod before mutating", () => {
     const ctx = seed();
     execute(createCard, ctx, { id: "a", title: "A" });
-    expect(() =>
-      execute(moveCard, ctx, { cardId: "a", toStatus: "sideways" as never }),
-    ).toThrow(ZodError);
+    expect(() => execute(moveCard, ctx, { cardId: "a", toStatus: "sideways" as never })).toThrow(
+      ZodError,
+    );
     // Untouched: still in Todo.
     expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["a"]);
   });
@@ -85,7 +89,9 @@ describe("related cards", () => {
 
     const a = execute(addRelatedCard, ctx, { cardId: "a", relatedId: "b" });
     expect(a?.relatedIds).toEqual(["b"]);
-    expect(execute(addRelatedCard, ctx, { cardId: "b", relatedId: "a" })?.relatedIds).toEqual(["a"]);
+    expect(execute(addRelatedCard, ctx, { cardId: "b", relatedId: "a" })?.relatedIds).toEqual([
+      "a",
+    ]);
 
     const unrelated = execute(removeRelatedCard, ctx, { cardId: "a", relatedId: "b" });
     expect(unrelated?.relatedIds).toEqual([]);
@@ -98,6 +104,40 @@ describe("deleteCard", () => {
     execute(createCard, ctx, { id: "a", title: "A" });
     const res = execute(deleteCard, ctx, { cardId: "a" });
     expect(res).toEqual({ id: "a", deleted: true });
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toHaveLength(0);
+  });
+});
+
+describe("archiveCards", () => {
+  it("archives every supplied live card so the column empties, and reports them", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A", status: "done" });
+    execute(createCard, ctx, { id: "b", title: "B", status: "done" });
+    execute(createCard, ctx, { id: "c", title: "C", status: "todo" });
+
+    const res = execute(archiveCards, ctx, { cardIds: ["a", "b"] });
+    expect(res).toEqual({ archivedIds: ["a", "b"], count: 2 });
+    // Both left the (live) Done column; the untouched card stays.
+    expect(cardsInStatus(ctx.getBoardDoc(), "done")).toHaveLength(0);
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["c"]);
+  });
+
+  it("is a no-op for an empty id list", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A" });
+    const res = execute(archiveCards, ctx, { cardIds: [] });
+    expect(res).toEqual({ archivedIds: [], count: 0 });
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["a"]);
+  });
+
+  it("ignores unknown and already-archived ids, archiving only the valid ones", () => {
+    const ctx = seed();
+    execute(createCard, ctx, { id: "a", title: "A" });
+    execute(createCard, ctx, { id: "b", title: "B" });
+    execute(archiveCard, ctx, { cardId: "b" }); // already archived
+
+    const res = execute(archiveCards, ctx, { cardIds: ["a", "b", "missing"] });
+    expect(res).toEqual({ archivedIds: ["a"], count: 1 });
     expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toHaveLength(0);
   });
 });
