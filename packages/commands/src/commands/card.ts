@@ -16,6 +16,7 @@ import {
   setCardTitle,
   setChecklistItemText as syncSetChecklistItemText,
   toggleChecklistItem as syncToggleChecklistItem,
+  unarchiveCard as syncUnarchiveCard,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -100,7 +101,14 @@ export const setCardPriority = defineCommand({
   }),
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc();
-    syncSetPriority(doc, input.cardId, input.priority, ctx.now(), ctx.clientId, ctx.userId ?? ctx.clientId);
+    syncSetPriority(
+      doc,
+      input.cardId,
+      input.priority,
+      ctx.now(),
+      ctx.clientId,
+      ctx.userId ?? ctx.clientId,
+    );
     return syncGetCard(doc, input.cardId);
   },
 });
@@ -216,13 +224,18 @@ export const archiveCard = defineCommand({
   description: "Archive a card.",
   input: z.object({ cardId: z.string() }),
   run: (ctx, input) => {
-    syncArchiveCard(
-      ctx.getBoardDoc(),
-      input.cardId,
-      ctx.now(),
-      ctx.userId ?? ctx.clientId,
-    );
+    syncArchiveCard(ctx.getBoardDoc(), input.cardId, ctx.now(), ctx.userId ?? ctx.clientId);
     return { id: input.cardId, archived: true };
+  },
+});
+
+export const unarchiveCard = defineCommand({
+  name: "unarchiveCard",
+  description: "Restore an archived card to the board (inverse of archiveCard).",
+  input: z.object({ cardId: z.string() }),
+  run: (ctx, input) => {
+    syncUnarchiveCard(ctx.getBoardDoc(), input.cardId, ctx.now(), ctx.userId ?? ctx.clientId);
+    return { id: input.cardId, archived: false };
   },
 });
 
@@ -250,7 +263,8 @@ export const removeRelatedCard = defineCommand({
 
 export const deleteCard = defineCommand({
   name: "deleteCard",
-  description: "Permanently delete a card from the board (hard delete — not reversible; unlike archive).",
+  description:
+    "Permanently delete a card from the board (hard delete — not reversible; unlike archive).",
   input: z.object({ cardId: z.string() }),
   run: (ctx, input) => {
     syncDeleteCard(ctx.getBoardDoc(), input.cardId, ctx.now());

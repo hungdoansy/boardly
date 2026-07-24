@@ -26,6 +26,7 @@ import {
   setCardPriority,
   setChecklistItemText,
   toggleChecklistItem,
+  unarchiveCard,
 } from "./commands/card";
 import {
   assignLabel,
@@ -63,6 +64,7 @@ export const commands = [
   setCardDueDate,
   setCardPriority,
   archiveCard,
+  unarchiveCard,
   deleteCard,
   getCard,
   addChecklistItem,

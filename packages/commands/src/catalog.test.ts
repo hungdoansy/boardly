@@ -1,11 +1,11 @@
-import { cardsInStatus, getBoard, initBoard } from "@boardly/sync";
+import { cardsInStatus, getBoard, initBoard, listArchivedCards } from "@boardly/sync";
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
 import { catalog, commands, getCommand, listCommandNames } from "./catalog";
 import { execute } from "./command";
 import { addLink } from "./commands/link";
-import { archiveCard, createCard, moveCard } from "./commands/card";
+import { archiveCard, createCard, moveCard, unarchiveCard } from "./commands/card";
 import { exportBoard, importBoard } from "./commands/io";
 import { setCardStatus } from "./commands/status";
 import { type CommandContext, createMemoryContext } from "./context";
@@ -49,6 +49,11 @@ describe("catalog", () => {
     expect(getCommand("deleteCard")).toBeDefined();
     expect(getCommand("archiveCard")).toBeDefined();
   });
+
+  it("registers unarchiveCard (restore) so the agent surface has archive parity", () => {
+    expect(getCommand("unarchiveCard")).toBeDefined();
+    expect(listCommandNames()).toContain("unarchiveCard");
+  });
 });
 
 describe("commands (single per-user doc)", () => {
@@ -83,6 +88,26 @@ describe("commands (single per-user doc)", () => {
     expect(() => execute(createCard, ctx, { title: "" })).toThrow(ZodError);
     const after = cardsInStatus(ctx.getBoardDoc(), "todo").length;
     expect(after).toBe(before);
+  });
+
+  it("archiveCard then unarchiveCard round-trips a card off and back onto the board", () => {
+    const ctx = createMemoryContext({ clientId: "c1", now: () => 100 });
+    initBoard(ctx.getBoardDoc(), { title: "Board", now: 100 });
+    execute(createCard, ctx, { id: "c1", title: "Card 1" });
+
+    execute(archiveCard, ctx, { cardId: "c1" });
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo")).toEqual([]);
+    expect(listArchivedCards(ctx.getBoardDoc()).map((c) => c.id)).toEqual(["c1"]);
+
+    const restored = execute(unarchiveCard, ctx, { cardId: "c1" });
+    expect(restored).toEqual({ id: "c1", archived: false });
+    expect(listArchivedCards(ctx.getBoardDoc())).toEqual([]);
+    expect(cardsInStatus(ctx.getBoardDoc(), "todo").map((c) => c.id)).toEqual(["c1"]);
+  });
+
+  it("rejects unarchiveCard with missing cardId via zod", () => {
+    const ctx = createMemoryContext();
+    expect(() => execute(unarchiveCard, ctx, {} as never)).toThrow(ZodError);
   });
 });
 
