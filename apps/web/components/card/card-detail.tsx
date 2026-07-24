@@ -13,7 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@boardly/ui";
-import { Archive, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useCardById } from "../../lib/use-board";
@@ -134,19 +134,35 @@ function CardDetailBody({
       </div>
 
       <div className="flex items-center gap-1 border-t border-line-subtle p-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            actions.archive(card.id);
-            onClose();
-          }}
-          className="text-fg-muted"
-        >
-          <Archive className="size-3.5" />
-          Archive
-        </Button>
+        {card.archived ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              actions.unarchive(card.id);
+              onClose();
+            }}
+            className="text-fg-muted"
+          >
+            <ArchiveRestore className="size-3.5" />
+            Restore
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              actions.archive(card.id);
+              onClose();
+            }}
+            className="text-fg-muted"
+          >
+            <Archive className="size-3.5" />
+            Archive
+          </Button>
+        )}
         <Button
           type="button"
           variant="ghost"

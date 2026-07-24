@@ -170,7 +170,7 @@ their own view because archived cards are primary content and can be numerous.
 Units are dependency-ordered: sync selector/mutation → command → web hooks/route → view/shell →
 seed. Docs batch id: **UNIT-14** (`UNIT-14.1` … `UNIT-14.5`).
 
-- [ ] **Unit 1 (UNIT-14.1): Sync — `listArchivedCards` selector, `unarchiveCard` mutation, `"unarchived"` activity**
+- [x] **Unit 1 (UNIT-14.1): Sync — `listArchivedCards` selector, `unarchiveCard` mutation, `"unarchived"` activity**
 
 **Goal:** Give the sync layer a way to list archived cards and to restore one, and record restore
 in the activity log.
@@ -218,7 +218,7 @@ union change type-checks every `switch` over `ActivityEntry`).
 
 ---
 
-- [ ] **Unit 2 (UNIT-14.2): Command — `unarchiveCard` + catalog registration**
+- [x] **Unit 2 (UNIT-14.2): Command — `unarchiveCard` + catalog registration**
 
 **Goal:** Expose restore as a catalog command so UI and agents (REST/MCP) share one path.
 
@@ -256,7 +256,7 @@ wiring); command tests green.
 
 ---
 
-- [ ] **Unit 3 (UNIT-14.3): Web — `#archive` route, `useArchiveRoute`, `useArchivedCards`, restore action**
+- [x] **Unit 3 (UNIT-14.3): Web — `#archive` route, `useArchiveRoute`, `useArchivedCards`, restore action**
 
 **Goal:** Add the routing + reactive hooks the Archive view and shell need.
 
@@ -303,7 +303,7 @@ ticketNumber: null }`; `parseRoute("#settings")` and board/ticket routes all hav
 
 ---
 
-- [ ] **Unit 4 (UNIT-14.4): Web — Archive view component + sidebar nav + shell/ESC wiring + DESIGN.md**
+- [x] **Unit 4 (UNIT-14.4): Web — Archive view component + sidebar nav + shell/ESC wiring + DESIGN.md**
 
 **Goal:** Render the Archive view, make it reachable, and document the UI.
 
@@ -382,7 +382,7 @@ behaves (archive → board → All projects); sidebar toggles the route.
 
 ---
 
-- [ ] **Unit 5 (UNIT-14.5): Seed — archived fixtures in the demo board**
+- [x] **Unit 5 (UNIT-14.5): Seed — archived fixtures in the demo board**
 
 **Goal:** Populate the demo account so the Archive view isn't empty on first look.
 
