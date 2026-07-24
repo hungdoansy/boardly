@@ -18,7 +18,7 @@ function renderPalette(seedBoard = true) {
   }
   render(
     <BoardlyProvider context={ctx}>
-      <CommandPalette />
+      <CommandPalette onGoToProject={() => {}} onShowShortcuts={() => {}} />
     </BoardlyProvider>,
   );
   return ctx;

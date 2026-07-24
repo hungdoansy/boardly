@@ -1,10 +1,10 @@
 "use client";
 
 import type { Filter, FilterClause } from "@boardly/domain";
-import { emptyFilter, isEmptyFilter } from "@boardly/domain";
+import { emptyFilter, isEmptyFilter, Status } from "@boardly/domain";
 import { BoardlyMark } from "@boardly/logo";
 import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@boardly/ui";
-import { Columns3, Command, List, LogOut, Search, Settings, Tag } from "lucide-react";
+import { Columns3, Command, Keyboard, List, LogOut, Search, Settings, Tag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getBoardDoc } from "@boardly/sync/client";
@@ -13,9 +13,11 @@ import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
+import { useLeaderHotkeys } from "../../lib/hotkeys";
+import { isEditableTarget } from "../../lib/is-editable-target";
 import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
-import { applyZoom, cacheZoom } from "../../lib/zoom";
 import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
+import { applyZoom, cacheZoom } from "../../lib/zoom";
 import { useSettingsRoute } from "../../lib/use-boards";
 import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
@@ -26,16 +28,12 @@ import { ListView } from "../board/list-view";
 import { LabelManager } from "../board/label-manager";
 import { type ActiveView, GroupMenu, SortMenu, ViewsMenu } from "../board/views";
 import { CommandPalette } from "../command-palette/palette";
+import { ProjectSwitcher } from "../command-palette/project-switcher";
+import { ShortcutsOverlay } from "../command-palette/shortcuts-overlay";
 import { SearchDialog } from "../search/search";
 import { SyncBridge } from "../sync/sync-bridge";
 import { FocusToggle } from "./focus-toggle";
 import { ThemeToggle } from "./theme-toggle";
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
-}
 
 /**
  * Whether something already owns the ESC keypress and the global escape ladder
@@ -53,23 +51,61 @@ function escIsOwnedElsewhere(event: KeyboardEvent): boolean {
 }
 
 /**
+ * Open the inline card composer for a new task. Prefers the Todo column (new
+ * cards default to Todo and inherit the active project scope via
+ * `useCardActions().create`), falling back to the first visible column's
+ * composer when Todo isn't rendered (empty + "hide empty columns"). No-op when
+ * no board composer exists (e.g. the Settings view is open). Clicking the "+"
+ * opens the composer input (which autofocuses); focusing an already-open input
+ * is idempotent.
+ */
+function openNewTaskComposer(): void {
+  if (typeof document === "undefined") return;
+  const target =
+    document.querySelector<HTMLElement>(`[data-nav-column="${Status.Todo}"] [data-nav-composer]`) ??
+    document.querySelector<HTMLElement>("[data-nav-composer]");
+  if (!target) return;
+  if (target instanceof HTMLInputElement) target.focus();
+  else target.click();
+}
+
+/**
  * The app-wide keyboard shortcuts installed on `document`: `/` opens search,
- * Shift+F cycles focus mode, and ESC runs a guarded escape ladder that
- * ultimately falls back to the all-projects view (R13). All bail on modifier
- * chords and editable targets so field-level and ⌘-shortcuts pass through.
+ * `?` opens the shortcuts overlay, `c` opens the new-task composer, Shift+F
+ * cycles focus mode, and ESC runs a guarded escape ladder that ultimately falls
+ * back to the all-projects view (R13). All bail on modifier chords and editable
+ * targets so field-level and ⌘-shortcuts pass through. (`g`-prefixed navigation
+ * is handled separately by the capture-phase leader mechanism, `useLeaderHotkeys`.)
  */
 export function useGlobalKeyboard(opts: {
   onOpenSearch: () => void;
+  onOpenHelp: () => void;
   settingsOpen: boolean;
   onExitSettings: () => void;
 }): void {
-  const { onOpenSearch, settingsOpen, onExitSettings } = opts;
+  const { onOpenSearch, onOpenHelp, settingsOpen, onExitSettings } = opts;
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.metaKey || e.ctrlKey || e.altKey || isEditableTarget(e.target)) return;
       if (e.key === "/") {
         e.preventDefault();
         onOpenSearch();
+        return;
+      }
+      // `?` is Shift+`/` — `e.key` is "?", so it never collides with the `/` case.
+      if (e.key === "?") {
+        e.preventDefault();
+        onOpenHelp();
+        return;
+      }
+      // New task: open the Todo column composer. Board `c` (a focused column's
+      // composer) wins — it preventDefaults when it acts, so we bail on
+      // defaultPrevented; and we yield while an overlay owns the keyboard.
+      if (e.code === "KeyC") {
+        if (e.defaultPrevented) return;
+        if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+        e.preventDefault();
+        openNewTaskComposer();
         return;
       }
       if (e.shiftKey && e.code === "KeyF") {
@@ -93,8 +129,11 @@ export function useGlobalKeyboard(opts: {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onOpenSearch, settingsOpen, onExitSettings]);
+  }, [onOpenSearch, onOpenHelp, settingsOpen, onExitSettings]);
 }
+
+/** The leader-key ("g" then …) bindings: `g` `p` opens the Project Switcher. */
+const LEADER_REGISTRY = { KeyP: "project-switcher" } as const;
 
 export function WorkspaceApp() {
   return (
@@ -106,6 +145,8 @@ export function WorkspaceApp() {
 
 function Shell() {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   // Single per-user board: an empty doc is a valid board that renders the eight
   // fixed status columns. No client-side meta seeding — board-meta defaults
   // (title fallback, default badge face, empty prefix) are supplied at read time
@@ -113,8 +154,16 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = useSettingsRoute();
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
+  const openSwitcher = useCallback(() => setSwitcherOpen(true), []);
+  const openHelp = useCallback(() => setHelpOpen(true), []);
   const exitSettings = useCallback(() => setSettingsOpen(false), [setSettingsOpen]);
-  useGlobalKeyboard({ onOpenSearch: openSearch, settingsOpen, onExitSettings: exitSettings });
+  useGlobalKeyboard({
+    onOpenSearch: openSearch,
+    onOpenHelp: openHelp,
+    settingsOpen,
+    onExitSettings: exitSettings,
+  });
+  useLeaderHotkeys(LEADER_REGISTRY, { "project-switcher": openSwitcher });
 
   // Whole-app zoom (UNIT-15): the synced board-meta factor is the source of
   // truth. The ⌘/Ctrl +/−/0 shortcuts write the next factor through the command.
@@ -149,12 +198,15 @@ function Shell() {
     <div className="flex h-screen w-full overflow-hidden">
       <Sidebar
         onOpenSearch={openSearch}
+        onOpenHelp={openHelp}
         settingsOpen={settingsOpen}
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {settingsOpen ? <SettingsView onClose={() => setSettingsOpen(false)} /> : <MainArea />}
-      <CommandPalette />
+      <CommandPalette onGoToProject={openSwitcher} onShowShortcuts={openHelp} />
+      <ProjectSwitcher open={switcherOpen} onOpenChange={setSwitcherOpen} />
+      <ShortcutsOverlay open={helpOpen} onOpenChange={setHelpOpen} />
       <SearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
       <SyncBridge />
       {/* Mounted here (sibling of <main>) so its fixed viewport is clear of the
@@ -172,10 +224,12 @@ function Shell() {
  */
 export function Sidebar({
   onOpenSearch,
+  onOpenHelp,
   settingsOpen,
   onOpenSettings,
 }: {
   onOpenSearch: () => void;
+  onOpenHelp: () => void;
   settingsOpen: boolean;
   onOpenSettings: () => void;
 }) {
@@ -244,6 +298,15 @@ export function Sidebar({
               </button>
             </PopoverContent>
           </Popover>
+          <button
+            type="button"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+            onClick={onOpenHelp}
+            className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-muted transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Keyboard className="size-3.5" />
+          </button>
           <ThemeToggle />
         </div>
       </div>

@@ -9,14 +9,22 @@ import {
   CommandList,
 } from "@boardly/ui";
 import { DEFAULT_ZOOM, zoomIn, zoomOut } from "@boardly/domain";
-import { FileText, Maximize, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { Boxes, FileText, Keyboard, Maximize, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useCardActions, useSetZoom, useZoom } from "../../lib/use-board";
 import { useOpenCardNav } from "../../lib/use-boards";
 import { useSearchDocs } from "../search/use-search";
 
-export function CommandPalette() {
+export function CommandPalette({
+  onGoToProject,
+  onShowShortcuts,
+}: {
+  /** Open the Project Switcher (same target as the `g` `p` shortcut). */
+  onGoToProject: () => void;
+  /** Open the shortcuts overlay (same target as the `?` shortcut). */
+  onShowShortcuts: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const searchDocs = useSearchDocs();
@@ -45,6 +53,14 @@ export function CommandPalette() {
     setOpenState(false);
   };
 
+  // Opening another dialog (switcher / shortcuts) from the palette: close the
+  // palette first, then open the target on the next frame so focus hands off
+  // cleanly instead of two Radix dialogs briefly fighting over it.
+  const runThenOpen = (openTarget: () => void): void => {
+    setOpenState(false);
+    requestAnimationFrame(openTarget);
+  };
+
   return (
     <CommandDialog open={open} onOpenChange={setOpenState}>
       <CommandInput
@@ -57,6 +73,20 @@ export function CommandPalette() {
 
         <CommandGroup heading="Actions">
           <NewCardItem onRun={() => setOpen(false)} />
+          <CommandItem
+            value="go to project switch navigate"
+            onSelect={() => runThenOpen(onGoToProject)}
+          >
+            <Boxes className="size-4" />
+            Go to project…
+          </CommandItem>
+          <CommandItem
+            value="keyboard shortcuts help"
+            onSelect={() => runThenOpen(onShowShortcuts)}
+          >
+            <Keyboard className="size-4" />
+            Keyboard shortcuts
+          </CommandItem>
           <ZoomItems onRun={() => setOpen(false)} />
         </CommandGroup>
 
