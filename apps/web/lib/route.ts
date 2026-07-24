@@ -10,14 +10,18 @@ import { parseProjectRef, parseTicketRef } from "@boardly/domain";
  *   "<ticketRef>"              → All projects, a card open   (e.g. `BRD-42-slug`)
  *   "p/<projectRef>/<ticketRef>" → a project scope + a card open
  *   "settings"                  → the Settings view (global; no project, no card)
+ *   "archive"                   → the Archive view (global; no project, no card)
  *
  * `<projectRef>` is `<id>-<slug>` (see `formatProjectRef`). A ticket ref never
  * contains `/` (slugs collapse non-alphanumerics to hyphens), so `/` is a safe
  * segment separator, and `p` is a reserved first segment (real ticket refs are
- * `PREFIX-N-slug`, never the bare token `p`).
+ * `PREFIX-N-slug`, never the bare token `p`). `settings` and `archive` are
+ * likewise reserved single-token routes.
  */
 export interface Route {
   settings: boolean;
+  /** Whether the Archive view is open (`#archive`). Mutually exclusive with settings/card. */
+  archive: boolean;
   /** The raw `<id>-<slug>` project segment as it appears in the URL, for rebuilding. */
   projectRef: string | null;
   /** The resolved project id (from `projectRef`), for lookup. */
@@ -29,7 +33,22 @@ export interface Route {
 export function parseRoute(hash: string): Route {
   const raw = hash.replace(/^#/, "");
   if (raw === "settings") {
-    return { settings: true, projectRef: null, projectId: null, ticketNumber: null };
+    return {
+      settings: true,
+      archive: false,
+      projectRef: null,
+      projectId: null,
+      ticketNumber: null,
+    };
+  }
+  if (raw === "archive") {
+    return {
+      settings: false,
+      archive: true,
+      projectRef: null,
+      projectId: null,
+      ticketNumber: null,
+    };
   }
 
   const parts = raw.split("/").filter(Boolean);
@@ -44,6 +63,7 @@ export function parseRoute(hash: string): Route {
   const refSeg = parts[idx];
   return {
     settings: false,
+    archive: false,
     projectRef,
     projectId,
     ticketNumber: refSeg ? parseTicketRef(refSeg) : null,

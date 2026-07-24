@@ -48,6 +48,7 @@ import {
   setTicketPrefix,
   setZoom,
   toggleChecklistItem,
+  unarchiveCard,
   unassignLabel,
   updateLinkTitle,
 } from "@boardly/commands";
@@ -60,6 +61,7 @@ import {
   cardsInStatus,
   getBoard,
   getCard,
+  listArchivedCards,
   listLabels,
 } from "@boardly/sync";
 import { useY, useYDoc } from "@boardly/sync/react";
@@ -234,6 +236,12 @@ export function useAllCards(): Card[] {
   return useY(boardCards(doc), () => allLiveCards(doc), { deep: true });
 }
 
+/** All archived cards, most-recently-archived first — data for the Archive view (Unit 14). */
+export function useArchivedCards(): Card[] {
+  const doc = useBoardlyContext().getBoardDoc();
+  return useY(boardCards(doc), () => listArchivedCards(doc), { deep: true });
+}
+
 /** A single live card by id (or null). Doc-level subscription (description is a nested Y.Text). */
 export function useCardById(cardId: string | null): Card | null {
   const doc = useBoardlyContext().getBoardDoc();
@@ -260,6 +268,8 @@ export interface CardActions {
   setDueDate(cardId: string, dueDate: DueDate | null): void;
   setProject(cardId: string, projectId: string | null): void;
   archive(cardId: string): void;
+  /** Restore an archived card to the board (inverse of archive). */
+  unarchive(cardId: string): void;
   /** Permanently delete a card (hard delete; distinct from archive). */
   delete(cardId: string): void;
   addRelated(cardId: string, relatedId: string): void;
@@ -327,6 +337,12 @@ export function useCardActions(): CardActions {
     },
     [ctx],
   );
+  const unarchive = useCallback(
+    (cardId: string) => {
+      execute(unarchiveCard, ctx, { cardId });
+    },
+    [ctx],
+  );
   const del = useCallback(
     (cardId: string) => {
       execute(deleteCard, ctx, { cardId });
@@ -354,6 +370,7 @@ export function useCardActions(): CardActions {
     setDueDate,
     setProject,
     archive,
+    unarchive,
     delete: del,
     addRelated,
     removeRelated,
