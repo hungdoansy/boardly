@@ -52,6 +52,11 @@ unchanged hash, so no spurious history entry).
 - Manual: `g` `p` opens the switcher from the board, the sidebar, and with a card
   focused (priority must NOT cycle — proves the capture fix).
 
+## Review follow-ups (ce:review)
+
+- **Icon sizing (project-standards, P2).** The `Box`/`Boxes` row glyphs use `size-3.5`
+  (14px) per DESIGN.md §7.1's binding menu/list-item rule (fixed from `size-4`).
+
 ## Follow-ups / known gaps
 
 - Discoverability entry ("Go to project…") in the command palette lands in

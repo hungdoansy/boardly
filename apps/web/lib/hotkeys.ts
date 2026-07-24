@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { isEditableTarget } from "./is-editable-target";
+import { keyboardOwnedElsewhere } from "./keyboard-ownership";
 
 /**
  * Leader-key ("g" then …) hotkey mechanism, Linear-style.
@@ -45,7 +46,7 @@ export interface LeaderInput {
   isTimeout: boolean;
 }
 
-export type LeaderResult =
+export type LeaderResult<Id extends string = string> =
   /** Do nothing; the event is not the leader's concern (don't consume it). */
   | { next: LeaderState; action: "none" }
   /** `g` armed a sequence; consume the event. */
@@ -53,22 +54,30 @@ export type LeaderResult =
   /** Sequence cancelled (bad key / Escape / timeout); do NOT consume the event. */
   | { next: LeaderState; action: "cancel" }
   /** Sequence resolved to a binding; consume the event and run `id`. */
-  | { next: LeaderState; action: "run"; id: string };
+  | { next: LeaderState; action: "run"; id: Id };
 
 /**
  * Pure leader-key transition. `registry` maps a follow-up key `code` to an
  * action id. See {@link LeaderResult} for which results consume the event.
  */
-export function resolveLeader(
+export function resolveLeader<Id extends string>(
   state: LeaderState,
-  registry: Readonly<Record<string, string>>,
+  registry: Readonly<Record<string, Id>>,
   input: LeaderInput,
-): LeaderResult {
+): LeaderResult<Id> {
   if (input.isTimeout) {
     return { next: "idle", action: state === "pending" ? "cancel" : "none" };
   }
 
   if (state === "pending") {
+    // Re-check the arm-time guards on the *resolving* key too: a modifier chord,
+    // a keystroke typed into a field, or an overlay/drag that grabbed the
+    // keyboard during the arm window must cancel the sequence and pass the key
+    // through — never be hijacked into running a binding (e.g. `g`, then click
+    // into an input and type "p", or press ⌘P).
+    if (input.hasModifier || input.editable || input.owned) {
+      return { next: "idle", action: "cancel" };
+    }
     if (input.isEscape) return { next: "idle", action: "cancel" };
     const id = registry[input.code];
     if (id) return { next: "idle", action: "run", id };
@@ -85,27 +94,15 @@ export function resolveLeader(
 }
 
 /**
- * Whether an open dialog/palette or an active dnd keyboard drag currently owns
- * the keyboard, so the leader should not arm. Mirrors `escIsOwnedElsewhere` in
- * `workspace-app.tsx`: the drag guard targets `[data-nav="card"][aria-pressed]`
- * specifically — a bare `aria-pressed` check would false-positive on sidebar
- * toggles (selected project row, Settings).
- */
-function leaderOwnedElsewhere(): boolean {
-  if (typeof document === "undefined") return false;
-  if (document.querySelector('[data-nav="card"][aria-pressed="true"]')) return true;
-  if (document.querySelector('[role="dialog"][data-state="open"]')) return true;
-  return false;
-}
-
-/**
  * Install the leader-key mechanism. `registry` maps a follow-up key `code` to an
- * action id; `handlers` maps each id to its callback. Both are read from refs so
- * the document listener is installed once and never churns.
+ * action id; `handlers` maps each id to its callback. The `Id` type ties the two
+ * together at compile time — a registry value with no matching handler key (or a
+ * typo in either) is a type error, not a silent runtime no-op. Both are read
+ * from refs so the document listener is installed once and never churns.
  */
-export function useLeaderHotkeys(
-  registry: Readonly<Record<string, string>>,
-  handlers: Readonly<Record<string, () => void>>,
+export function useLeaderHotkeys<Id extends string>(
+  registry: Readonly<Record<string, Id>>,
+  handlers: Readonly<Record<Id, () => void>>,
 ): void {
   const registryRef = useRef(registry);
   const handlersRef = useRef(handlers);
@@ -129,7 +126,7 @@ export function useLeaderHotkeys(
         code: e.code,
         hasModifier: e.metaKey || e.ctrlKey || e.altKey,
         editable: isEditableTarget(e.target),
-        owned: leaderOwnedElsewhere(),
+        owned: keyboardOwnedElsewhere(),
         isEscape: e.key === "Escape",
         isTimeout: false,
       });
@@ -156,6 +153,11 @@ export function useLeaderHotkeys(
           return;
         case "none":
           return;
+        default: {
+          // Exhaustiveness guard: a new LeaderResult variant becomes a type error.
+          const _exhaustive: never = result;
+          return _exhaustive;
+        }
       }
     };
 

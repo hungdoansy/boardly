@@ -15,6 +15,7 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useLeaderHotkeys } from "../../lib/hotkeys";
 import { isEditableTarget } from "../../lib/is-editable-target";
+import { isOverlayOpen, keyboardOwnedElsewhere } from "../../lib/keyboard-ownership";
 import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
 import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
 import { applyZoom, cacheZoom } from "../../lib/zoom";
@@ -37,33 +38,33 @@ import { ThemeToggle } from "./theme-toggle";
 
 /**
  * Whether something already owns the ESC keypress and the global escape ladder
- * must yield: an active dnd-kit keyboard drag (the picked-up card reports
- * `aria-pressed="true"`, same signal keyboard-nav uses) or an open Radix
- * dialog/sheet/command-palette (`data-state="open"` on a `role="dialog"`), which
- * close themselves on ESC. Editable targets and modifier chords are filtered out
- * earlier by the shared guard, so they are not re-checked here.
+ * must yield: an active dnd-kit keyboard drag or an open Radix
+ * dialog/sheet/command-palette (both close/cancel themselves on ESC), or an
+ * upstream handler that already consumed the event. Editable targets and modifier
+ * chords are filtered out earlier by the shared guard, so they are not re-checked
+ * here.
  */
 function escIsOwnedElsewhere(event: KeyboardEvent): boolean {
-  if (event.defaultPrevented) return true;
-  if (document.querySelector('[data-nav="card"][aria-pressed="true"]')) return true;
-  if (document.querySelector('[role="dialog"][data-state="open"]')) return true;
-  return false;
+  return event.defaultPrevented || keyboardOwnedElsewhere();
 }
 
 /**
- * Open the inline card composer for a new task. Prefers the Todo column (new
- * cards default to Todo and inherit the active project scope via
- * `useCardActions().create`), falling back to the first visible column's
- * composer when Todo isn't rendered (empty + "hide empty columns"). No-op when
- * no board composer exists (e.g. the Settings view is open). Clicking the "+"
- * opens the composer input (which autofocuses); focusing an already-open input
- * is idempotent.
+ * Open the inline card composer for a new task, targeting the **Todo** column
+ * specifically (new cards default to Todo and inherit the active project scope
+ * via `useCardActions().create`). Clicking the "+" opens the composer input
+ * (which autofocuses); focusing an already-open input is idempotent.
+ *
+ * Deliberately does NOT fall back to another column's composer: the first
+ * `[data-nav-composer]` in DOM order belongs to Backlog (it precedes Todo in
+ * STATUS_ORDER), so a fallback would silently create the card in the wrong
+ * status. When the Todo composer isn't in the DOM — Todo is empty with
+ * "hide empty columns" on, or the List layout is active — `c` is a no-op.
  */
 function openNewTaskComposer(): void {
   if (typeof document === "undefined") return;
-  const target =
-    document.querySelector<HTMLElement>(`[data-nav-column="${Status.Todo}"] [data-nav-composer]`) ??
-    document.querySelector<HTMLElement>("[data-nav-composer]");
+  const target = document.querySelector<HTMLElement>(
+    `[data-nav-column="${Status.Todo}"] [data-nav-composer]`,
+  );
   if (!target) return;
   if (target instanceof HTMLInputElement) target.focus();
   else target.click();
@@ -103,7 +104,7 @@ export function useGlobalKeyboard(opts: {
       // defaultPrevented; and we yield while an overlay owns the keyboard.
       if (e.code === "KeyC") {
         if (e.defaultPrevented) return;
-        if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+        if (isOverlayOpen()) return;
         e.preventDefault();
         openNewTaskComposer();
         return;

@@ -41,7 +41,7 @@ export function ProjectSwitcher({
         <CommandEmpty>No projects.</CommandEmpty>
         <CommandGroup heading="Projects">
           <CommandItem value="all projects" onSelect={() => go(null)}>
-            <Boxes className="size-4 shrink-0 text-fg-faint" aria-hidden="true" />
+            <Boxes className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
             All
           </CommandItem>
           {projects.map((project) => (
@@ -51,7 +51,7 @@ export function ProjectSwitcher({
               onSelect={() => go(formatProjectRef(project.id, project.name))}
             >
               <Box
-                className="size-4 shrink-0"
+                className="size-3.5 shrink-0"
                 style={{ color: project.color }}
                 aria-hidden="true"
               />

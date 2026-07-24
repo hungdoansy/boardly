@@ -77,6 +77,24 @@ root never sees the `g` or the resolving key.
   pass against the shared guard (behavior-preserving extraction).
 - Run: `pnpm --filter @boardly/web test` (or `pnpm test`), `pnpm typecheck`, `pnpm lint`.
 
+## Review follow-ups (ce:review)
+
+- **Pending-branch guards (correctness/adversarial/frontend-races, P1).**
+  `resolveLeader`'s `pending` branch now re-checks `hasModifier`/`editable`/`owned`
+  and cancels (without consuming) — so after `g`, a keystroke typed into a field, a
+  ⌘-chord, or an overlay/drag that opened during the 1.5s window is no longer
+  hijacked into running a binding. Covered by new reducer + hook tests.
+- **Shared keyboard-ownership helper (maintainability, P2).** The
+  `[data-nav="card"][aria-pressed="true"]` / `[role="dialog"][data-state="open"]`
+  selectors moved to `apps/web/lib/keyboard-ownership.ts` (`isCardDragActive`,
+  `isOverlayOpen`, `keyboardOwnedElsewhere`), now used by the leader, the ESC ladder,
+  and the global `c` guard instead of three copy-pasted queries.
+- **Generic `Id` typing (kieran-typescript, P2).** `useLeaderHotkeys<Id extends string>`
+  ties registry values to handler keys — a value with no matching handler is now a
+  type error, not a silent runtime no-op.
+- **Exhaustiveness guard (kieran-typescript, P3).** The `LeaderResult` switch has a
+  `never`-typed default so a future variant is a compile error.
+
 ## Follow-ups / known gaps
 
 - The registry is wired to a real binding (`g p`) in **UNIT 14.2**; until then the

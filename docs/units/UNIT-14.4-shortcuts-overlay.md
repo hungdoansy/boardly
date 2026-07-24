@@ -28,8 +28,10 @@
   exception). The command (⌘) key is the lucide `Command` icon — never the glyph —
   and **arrow keys use lucide arrow icons**, because arrow glyphs are banned even
   inside keycaps. Letters/`Esc`/`Shift`/`/`/`?`/`Enter` are text keycaps.
-- **Single source of shortcut truth** — the `GROUPS` array; adding a shortcut
-  updates one place.
+- **Hand-maintained display list** — the `GROUPS` array is the one place the
+  overlay's rows are defined, but it is _not_ derived from the real bindings
+  (`LEADER_REGISTRY`, `useGlobalKeyboard`, `useBoardKeyboardNav`). Keep it in sync
+  by hand when adding/changing a shortcut; the two can otherwise silently drift.
 
 ## How it works
 

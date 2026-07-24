@@ -10,7 +10,7 @@ import {
 } from "@boardly/ui";
 import { DEFAULT_ZOOM, zoomIn, zoomOut } from "@boardly/domain";
 import { Boxes, FileText, Keyboard, Maximize, Plus, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useCardActions, useSetZoom, useZoom } from "../../lib/use-board";
 import { useOpenCardNav } from "../../lib/use-boards";
@@ -29,6 +29,9 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const searchDocs = useSearchDocs();
   const openCard = useOpenCardNav();
+  // Set while handing off to another dialog so the palette's own close-focus
+  // restore is suppressed (see `onCloseAutoFocus` below).
+  const chainingRef = useRef(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -54,15 +57,27 @@ export function CommandPalette({
   };
 
   // Opening another dialog (switcher / shortcuts) from the palette: close the
-  // palette first, then open the target on the next frame so focus hands off
-  // cleanly instead of two Radix dialogs briefly fighting over it.
+  // palette and open the target in the same tick. `chainingRef` makes the
+  // palette's `onCloseAutoFocus` a no-op so Radix doesn't restore focus to the
+  // (unmounting) palette ~220ms later and steal it back from the new dialog —
+  // Radix keeps the closing FocusScope mounted for the full exit animation.
   const runThenOpen = (openTarget: () => void): void => {
+    chainingRef.current = true;
     setOpenState(false);
-    requestAnimationFrame(openTarget);
+    openTarget();
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpenState}>
+    <CommandDialog
+      open={open}
+      onOpenChange={setOpenState}
+      onCloseAutoFocus={(e) => {
+        if (chainingRef.current) {
+          e.preventDefault();
+          chainingRef.current = false;
+        }
+      }}
+    >
       <CommandInput
         placeholder="Type a command or search…"
         value={query}
@@ -77,14 +92,14 @@ export function CommandPalette({
             value="go to project switch navigate"
             onSelect={() => runThenOpen(onGoToProject)}
           >
-            <Boxes className="size-4" />
+            <Boxes className="size-3.5" />
             Go to project…
           </CommandItem>
           <CommandItem
             value="keyboard shortcuts help"
             onSelect={() => runThenOpen(onShowShortcuts)}
           >
-            <Keyboard className="size-4" />
+            <Keyboard className="size-3.5" />
             Keyboard shortcuts
           </CommandItem>
           <ZoomItems onRun={() => setOpen(false)} />
@@ -98,7 +113,7 @@ export function CommandPalette({
                 value={`card ${doc.title} ${doc.shortId} ${doc.labels.join(" ")} ${doc.boardTitle}`}
                 onSelect={() => run(() => openCard(doc.cardId))}
               >
-                <FileText className="size-4" />
+                <FileText className="size-3.5" />
                 <span className="min-w-0 flex-1 truncate">{doc.title}</span>
                 <span className="ml-2 shrink-0 font-mono text-xs text-fg-faint">{doc.shortId}</span>
               </CommandItem>
@@ -121,7 +136,7 @@ function NewCardItem({ onRun }: { onRun: () => void }) {
         onRun();
       }}
     >
-      <Plus className="size-4" />
+      <Plus className="size-3.5" />
       New card
     </CommandItem>
   );

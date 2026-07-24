@@ -2,7 +2,13 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { isEditableTarget } from "./is-editable-target";
-import { type LeaderInput, type LeaderState, resolveLeader, useLeaderHotkeys } from "./hotkeys";
+import {
+  LEADER_TIMEOUT_MS,
+  type LeaderInput,
+  type LeaderState,
+  resolveLeader,
+  useLeaderHotkeys,
+} from "./hotkeys";
 
 const REGISTRY = { KeyP: "project-switcher" } as const;
 
@@ -80,6 +86,30 @@ describe("resolveLeader — resolving", () => {
 
   it("timeout while idle is a no-op", () => {
     expect(resolve("idle", { isTimeout: true })).toEqual({ next: "idle", action: "none" });
+  });
+
+  // The resolving key must honor the same guards as the arming key: a stale `g`
+  // must never hijack a keystroke typed into a field, under a modifier, or while
+  // an overlay/drag grabbed the keyboard during the arm window.
+  it("cancels (never runs) when the resolving key is under a modifier", () => {
+    expect(resolve("pending", { code: "KeyP", hasModifier: true })).toEqual({
+      next: "idle",
+      action: "cancel",
+    });
+  });
+
+  it("cancels when the resolving key targets an editable field", () => {
+    expect(resolve("pending", { code: "KeyP", editable: true })).toEqual({
+      next: "idle",
+      action: "cancel",
+    });
+  });
+
+  it("cancels when an overlay/drag owns the keyboard at resolve time", () => {
+    expect(resolve("pending", { code: "KeyP", owned: true })).toEqual({
+      next: "idle",
+      action: "cancel",
+    });
   });
 });
 
@@ -167,5 +197,44 @@ describe("useLeaderHotkeys (hook)", () => {
     press("KeyZ", child);
     expect(bubbleSpy).toHaveBeenCalledTimes(1);
     child.remove();
+  });
+
+  it("does not resolve when the second key is typed into a field (no keystroke hijack)", () => {
+    const { run } = setup();
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    const typed = vi.fn();
+    input.addEventListener("keydown", typed);
+
+    press("KeyG"); // arm on the document
+    press("KeyP", input); // then type into a field within the window
+    expect(run).not.toHaveBeenCalled(); // sequence cancelled, not hijacked
+    expect(typed).toHaveBeenCalledTimes(1); // the keystroke passed through to the field
+    input.remove();
+  });
+
+  it("cancels a pending sequence once the timeout elapses", () => {
+    vi.useFakeTimers();
+    try {
+      const { run } = setup();
+      press("KeyG");
+      act(() => {
+        vi.advanceTimersByTime(LEADER_TIMEOUT_MS + 1);
+      });
+      press("KeyP");
+      expect(run).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels a pending sequence on window blur", () => {
+    const { run } = setup();
+    press("KeyG");
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+    });
+    press("KeyP");
+    expect(run).not.toHaveBeenCalled();
   });
 });

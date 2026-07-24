@@ -8,9 +8,9 @@
 ## What changed
 
 - **Modify `apps/web/components/app/workspace-app.tsx`**:
-  - Add `openNewTaskComposer()` — a module-level DOM helper that opens the Todo
-    column's inline composer (`[data-nav-column="todo"] [data-nav-composer]`),
-    falling back to the first visible composer, else no-op.
+  - Add `openNewTaskComposer()` — a module-level DOM helper that opens the **Todo**
+    column's inline composer (`[data-nav-column="todo"] [data-nav-composer]`) and no
+    other. No-op when that composer isn't in the DOM.
   - Add a `c` (`e.code === "KeyC"`) branch to `useGlobalKeyboard` that opens it.
 - Tests in `apps/web/components/app/workspace-app.test.tsx`.
 
@@ -23,12 +23,15 @@
   composer) calls `preventDefault()` when it acts; the document handler bails on
   `e.defaultPrevented`, so a focused-column `c` is untouched and only a
   board-empty-space / sidebar `c` opens the Todo composer. No double composer.
-- **Yield while an overlay owns the keyboard** — bail when a
-  `[role="dialog"][data-state="open"]` is present (palette/switcher/search/dialog),
-  mirroring the ESC ladder's ownership check. Editable targets are already filtered
-  by the shared top-of-handler guard.
+- **Yield while an overlay owns the keyboard** — bail via the shared `isOverlayOpen()`
+  (`apps/web/lib/keyboard-ownership.ts`), mirroring the ESC ladder's ownership check.
+  Editable targets are already filtered by the shared top-of-handler guard.
 - **DOM query over new context plumbing** — matches `keyboard-nav.tsx`'s existing
   `openComposer`, keeping the "focus lives in the DOM" philosophy.
+- **Todo-only, no wrong-status fallback** (revised after ce:review): the handler
+  targets the Todo composer _only_. It does **not** fall back to the first
+  `[data-nav-composer]` in DOM order — that belongs to Backlog (which precedes Todo in
+  `STATUS_ORDER`), so a fallback would silently create the card in the wrong status.
 
 ## How it works
 
@@ -48,7 +51,9 @@ current scope.
 
 ## Follow-ups / known gaps
 
-- **Empty + hidden Todo column:** when "hide empty columns" is on and Todo is empty,
-  the Todo composer isn't rendered; the helper falls back to the first visible
-  column's composer (whose status differs from Todo) or no-ops. Acceptable for now;
-  a cleaner path (a transient Todo composer intent) is a possible follow-up.
+- **`c` is a no-op when the Todo composer isn't in the DOM** — i.e. Todo is empty with
+  "hide empty columns" on, or the **List** layout is active (list view renders no
+  `[data-nav-composer]`). This is deliberate (see the no-fallback decision above):
+  a no-op is safer than creating a card in the wrong status/column. A future
+  enhancement could make `c` create a Todo card via the command layer directly (like
+  the palette's "New card") so it works in every layout.

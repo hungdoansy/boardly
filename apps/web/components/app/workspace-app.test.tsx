@@ -222,4 +222,36 @@ describe("Global shortcuts (search / help / new task)", () => {
     input.remove();
     cleanupCol();
   });
+
+  it("`c` yields when the board already consumed it (defaultPrevented)", () => {
+    const { clickSpy, cleanup: cleanupCol } = mountTodoComposer();
+    mountGlobal();
+    // Simulate the board's focused-column `c` handler consuming the event first
+    // (capture-phase runs before useGlobalKeyboard's bubble-phase listener).
+    const consume = (e: KeyboardEvent): void => e.preventDefault();
+    document.addEventListener("keydown", consume, true);
+    press({ code: "KeyC" });
+    document.removeEventListener("keydown", consume, true);
+    expect(clickSpy).not.toHaveBeenCalled();
+    cleanupCol();
+  });
+
+  it("`c` does NOT fall back to a non-Todo column composer (no wrong-status create)", () => {
+    // Only a Backlog composer exists (Todo hidden+empty). `c` must not open it —
+    // Backlog precedes Todo in STATUS_ORDER, so a DOM-order fallback would create
+    // the card in the wrong status.
+    const col = document.createElement("div");
+    col.setAttribute("data-nav-column", "backlog");
+    const composer = document.createElement("button");
+    composer.setAttribute("data-nav-composer", "");
+    const clickSpy = vi.fn();
+    composer.addEventListener("click", clickSpy);
+    col.appendChild(composer);
+    document.body.appendChild(col);
+
+    mountGlobal();
+    press({ code: "KeyC" });
+    expect(clickSpy).not.toHaveBeenCalled();
+    col.remove();
+  });
 });

@@ -52,6 +52,20 @@ gone. The sidebar `?` button calls `onOpenHelp` directly.
   overlay; the sidebar `?` button opens the overlay; the palette closes cleanly
   before each.
 
+## Review follow-ups (ce:review)
+
+- **Focus hand-off, not a rAF race (frontend-races/adversarial, P1).** The original
+  `runThenOpen` used `requestAnimationFrame` to open the target after closing the
+  palette, but Radix keeps the closing palette's FocusScope mounted for the full
+  ~220ms exit animation and would restore focus to it _after_ the new dialog grabbed
+  it. Now the palette closes and the target opens in the same tick, and a
+  `chainingRef` makes the palette's `onCloseAutoFocus` a no-op so Radix does not steal
+  focus back. `CommandDialog` gained an `onCloseAutoFocus` pass-through
+  (`packages/ui/src/components/command.tsx`).
+- **Icon sizing (project-standards, P2).** The command-menu rows now use `size-3.5`
+  (14px) per DESIGN.md §7.1's binding "menu / list item shape" rule — this also
+  brought the pre-existing palette icons (New card, card results) into compliance.
+
 ## Follow-ups / known gaps
 
 - None. Additional `g`-prefixed destinations (e.g. `g s` Settings) remain a future
