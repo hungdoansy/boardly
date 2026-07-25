@@ -50,6 +50,11 @@ across devices, and restored flash-free on load.
 
 ## Why
 
+> **Superseded in part (2026-07-25).** The "Zero Rust / one JS+CSS path" rationale
+> below was the original design; it was later split by platform — see
+> [Fix: native webview zoom on desktop](#fix-native-webview-zoom-on-desktop-css-zoom-is-web-only-2026-07-25).
+> Desktop now drives the native webview zoom; the CSS-var lever is the web fallback.
+
 - **`zoom`, not `transform: scale`.** The type scale is absolute px (`body` 12px;
   `--text-*` all px, no rem — UNIT-12.1), so a base-font-size change does not
   cascade. CSS `zoom` scales px tokens **and reflows** (more cards fit), which is
@@ -71,6 +76,10 @@ across devices, and restored flash-free on load.
   the web app, so `⌘ +` steps one app level instead of double-zooming.
 
 ## How it works
+
+> Steps 3–4 below describe the **web** apply path. On desktop the apply step
+> calls the native webview zoom instead (see the Fix section); the command/sync
+> steps (1–2) are identical on both platforms.
 
 1. `⌘/Ctrl +/−/0` (or a palette/Settings action, or an agent) calls the `setZoom`
    command with the next factor from `zoomIn`/`zoomOut`/`DEFAULT_ZOOM`.
