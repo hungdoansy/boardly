@@ -111,7 +111,61 @@ across devices, and restored flash-free on load.
 - Desktop (Tauri) build: same shortcuts zoom; level persists across restart.
 - Dark-mode screenshots at 75% / 100% / 150%.
 
+## Fix: native webview zoom on desktop; CSS zoom is web-only (2026-07-25)
+
+**Symptom (desktop):** zooming out shrank the app into part of the window (empty
+gutter); after several steps the layout broke — content overflowed and cut off
+Settings/Account (zoom-out), or collapsed into the top-left with a large empty
+area (zoom-in).
+
+**Root cause:** element-level CSS `zoom` cannot reliably fill the window. `zoom`
+paints a box at `size × zoom`, but the containing block resolved for `100%`/`vh`
+does **not** track the factor — and Chromium and WebKit (the Tauri webview)
+resolve this **oppositely**, and even **asymmetrically between zoom-in and
+zoom-out within one engine**. So every "size the container to `100% / zoom`"
+compensation that fills one engine/direction breaks another. There is no single
+static CSS formula that fills both engines. (This was verified the hard way —
+multiple compensation attempts each fixed one case and broke another.)
+
+**Fix — split the apply layer by platform (chosen after weighing options with
+the maintainer):**
+
+- **Desktop (Tauri) → native webview zoom.** `apps/web/lib/zoom.ts` `applyZoom`
+  now branches on `isTauri()`: on desktop it calls
+  `getCurrentWebview().setZoom(factor)` (dynamic `import("@tauri-apps/api/webview")`)
+  and pins `--app-zoom` to `1` so the CSS lever is inert. The webview's _native_
+  zoom rescales the layout viewport itself, so it reflows and fills the window
+  exactly — the thing CSS `zoom` can't do. Requires the
+  `core:webview:allow-set-webview-zoom` capability
+  (`apps/desktop/src-tauri/capabilities/default.json`).
+- **Web (Chromium/Firefox) → CSS `zoom` on `<html>`** (unchanged lever), kept as
+  a pragmatic fallback. Standard content-zoom: it scales + reflows the whole UI
+  (incl. body-portaled overlays) but can leave a gutter on zoom-out / scroll on
+  zoom-in. Acceptable for the web build; desktop is the fully-correct path.
+- `apps/web/app/layout.tsx` — the no-FOUC `ZOOM_INIT` script now **skips on
+  desktop** (`__TAURI_INTERNALS__`/`__TAURI__` present) so it doesn't briefly
+  double-zoom (CSS + native) before hydration.
+
+The command/sync/persist layer, the `⌘/Ctrl +/−/0` hotkeys, and the palette /
+Settings controls are unchanged — they all still drive the synced `setZoom`
+value; only the _apply_ step differs by platform.
+
+Rule of thumb: **never rely on element CSS `zoom` to fill the window** — for a
+desktop webview use the engine's native zoom; on the web accept standard
+content-zoom.
+
 ## Follow-ups / known gaps
+
+- **Web fill is imperfect** — the web fallback uses element CSS `zoom`, so
+  zoom-out can leave a gutter and zoom-in can scroll. If web fidelity matters
+  later, consider letting the browser's own zoom handle ⌘+/− on web (perfect
+  fill, but not scriptable → no palette/Settings control, no persist) or a
+  transform-based content-zoom with portals routed into the zoom layer.
+- **Desktop zoom re-applies after load (brief 100% flash)** — native webview
+  zoom is not persisted by the webview across reloads; the Shell effect
+  re-applies the synced factor on mount, so there can be a brief 100% flash
+  before it snaps to the saved level. If it's noticeable, set the initial zoom
+  Rust-side on window creation.
 
 - **`⌘/Ctrl + mouse-wheel` / pinch zoom** — intentionally deferred. A per-event
   wheel handler over-steps (pinch emits many `ctrl+wheel` events), so v1 is

@@ -15,12 +15,40 @@
 
 import { clampZoom, DEFAULT_ZOOM } from "@boardly/domain";
 
+import { isTauri } from "./platform";
+
 export const ZOOM_STORAGE_KEY = "boardly-zoom";
 
-/** Stamp the factor onto <html> as the `--app-zoom` CSS var (client-only). */
+/**
+ * Apply a zoom factor to the running app.
+ *
+ * Two engines, two levers (UNIT-15):
+ * - **Desktop (Tauri):** drive the *native* webview zoom (`webview.setZoom`).
+ *   The engine rescales the layout viewport itself, so it reflows and fills the
+ *   window with no CSS gutter/overflow — the thing CSS `zoom` can't do
+ *   cross-engine. We keep `--app-zoom` pinned to 1 so the web CSS rules stay
+ *   inert. `setZoom` is async and requires the `core:webview:allow-set-webview-zoom`
+ *   capability; the dynamic import keeps the Tauri API out of the web bundle path.
+ * - **Web (Chromium/Firefox):** stamp `--app-zoom` on <html>; `globals.css`
+ *   turns it into `html { zoom }` + a `100% / zoom` body compensation so the
+ *   shell still fills the window.
+ */
 export function applyZoom(factor: number): void {
   if (typeof document === "undefined") return;
-  document.documentElement.style.setProperty("--app-zoom", String(clampZoom(factor)));
+  const z = clampZoom(factor);
+  if (isTauri()) {
+    // Keep the CSS lever off; the native webview zoom does the scaling.
+    document.documentElement.style.setProperty("--app-zoom", "1");
+    void import("@tauri-apps/api/webview")
+      .then(({ getCurrentWebview }) => getCurrentWebview().setZoom(z))
+      .catch(() => {
+        // If the native call is unavailable, fall back to the CSS lever so zoom
+        // still does *something* rather than silently no-op.
+        document.documentElement.style.setProperty("--app-zoom", String(z));
+      });
+    return;
+  }
+  document.documentElement.style.setProperty("--app-zoom", String(z));
 }
 
 /** Coerce a persisted string to a valid factor (unknown/absent/garbage → default). */

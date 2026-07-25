@@ -12,13 +12,22 @@
     height: 100%;
   }
 
-  /* Whole-app zoom (UNIT-15). A single lever scales the entire UI — board,
-     cards, chrome, and body-portaled overlays (dialogs, popovers, command
-     palette, card-detail drawer). `zoom` reflows (more cards fit) and scales
-     the absolute-px type scale; `transform: scale` would not. The value comes
-     from `--app-zoom` (board meta via the zoom apply path + a no-FOUC inline
-     script). NEVER transition `zoom`: it is reflow-heavy — animating it fights
-     the DESIGN rule against animating expensive layout. */
+  /* Whole-app zoom (UNIT-15) — WEB fallback only (Chromium / Firefox).
+     The DESKTOP app uses the NATIVE webview zoom instead (see `lib/zoom.ts`):
+     it pins `--app-zoom` to 1 (so this rule is inert) and calls
+     `webview.setZoom`, which rescales the layout viewport itself — reflowing and
+     filling the window exactly. We split the two because element-level CSS `zoom`
+     cannot reliably fill the window: it paints a box at `size × zoom` while the
+     containing block does not track the factor, and Chromium/WebKit resolve that
+     oppositely (and even asymmetrically between zoom-in and zoom-out), so no
+     single CSS formula fills both. Native zoom sidesteps the whole problem.
+
+     On the web this is the pragmatic lever: `zoom` on <html> scales the whole UI
+     (incl. body-portaled overlays) and reflows; `transform: scale` would not. It
+     is standard content-zoom (zoom-out can leave a gutter, zoom-in can scroll) —
+     acceptable for the web build; the desktop path is the fully-correct one.
+     NEVER transition `zoom`: it is reflow-heavy — animating it fights the DESIGN
+     rule against animating expensive layout. */
   html {
     zoom: var(--app-zoom, 1);
   }

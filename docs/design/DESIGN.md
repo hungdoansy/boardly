@@ -155,8 +155,18 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
   absolute px (above), page `zoom` is how the UI scales — it reflows (more cards fit) and scales
   px tokens, which a base-font-size change cannot. Never use `transform: scale` for this (it
   overflows, breaks `position: fixed`, and doesn't reflow).
-- **Applied on `<html>`** so body-portaled overlays (dialogs, popovers, command palette,
-  card-detail drawer) scale with everything else — zoom is truly whole-app, not board-only.
+- **Two levers by platform (fill correctly).** Element-level CSS `zoom` can't reliably fill the
+  window — it paints at `size × zoom` while the containing block doesn't track the factor, and
+  Chromium vs WebKit (and zoom-in vs zoom-out) resolve it differently, so no single CSS formula
+  fills both. Therefore:
+  - **Desktop (Tauri): native webview zoom** — `applyZoom` calls `webview.setZoom(factor)` and pins
+    `--app-zoom` to 1. The engine rescales the layout viewport, so it reflows and fills the window
+    exactly. This is the correct path.
+  - **Web (Chromium/Firefox): CSS `zoom` on `<html>`** as a pragmatic fallback — scales the whole UI
+    (incl. body-portaled overlays: dialogs, popovers, command palette, card-detail drawer) and
+    reflows, but is standard content-zoom (may gutter on zoom-out / scroll on zoom-in).
+  - Rule: **never rely on element CSS `zoom` to fill the window** — use the webview's native zoom on
+    desktop; accept content-zoom on web.
 - **Shortcuts:** `⌘/Ctrl +` in, `⌘/Ctrl −` out, `⌘/Ctrl 0` reset — same in web and desktop.
   Steps through a fixed ladder (`0.5 … 1 … 2`); `⌘0` snaps back to exactly 100%.
 - **Persistence:** the factor is a synced per-user board preference (`Board.zoom`), mirrored to
