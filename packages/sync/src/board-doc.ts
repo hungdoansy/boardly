@@ -383,6 +383,8 @@ function rowToActivity(row: Y.Map<unknown>): ActivityEntry | null {
       return withActor({ ...base, type: "created" });
     case "archived":
       return withActor({ ...base, type: "archived" });
+    case "unarchived":
+      return withActor({ ...base, type: "unarchived" });
     case "moved":
       return withActor({
         ...base,
@@ -813,6 +815,26 @@ export function archiveCard(doc: Y.Doc, cardId: string, now: number, actor?: str
 }
 
 /**
+ * Restore an archived card (inverse of {@link archiveCard}): clears `archived`
+ * and drops `deletedAt` so the card reappears in every selector in the status
+ * column it still holds (archiving never touched `status`). No-op if the card is
+ * not archived. Logs an `unarchived` activity entry.
+ */
+export function unarchiveCard(doc: Y.Doc, cardId: string, now: number, actor?: string): void {
+  withCard(
+    doc,
+    cardId,
+    (card) => {
+      if (!getBool(card, "archived")) return;
+      card.set("archived", false);
+      card.delete("deletedAt");
+      appendActivity(doc, { type: "unarchived", cardId, at: now, actor });
+    },
+    now,
+  );
+}
+
+/**
  * Hard-delete a card: remove it from the doc entirely (unlike {@link archiveCard},
  * which keeps it for a future archive view). First strips the id from every
  * other card's `related` set so no dangling relation survives (mirrors
@@ -1086,6 +1108,19 @@ export function allLiveCards(doc: Y.Doc): Card[] {
   return [...boardCards(doc).values()]
     .filter((c) => c instanceof Y.Map && !getBool(c, "archived"))
     .map((c) => toPlain(c, prefix, overrides));
+}
+
+/**
+ * Every archived card, most-recently-archived first (by `deletedAt` desc) —
+ * the data behind the Archive view. Complement of {@link allLiveCards}.
+ */
+export function listArchivedCards(doc: Y.Doc): Card[] {
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
+  return [...boardCards(doc).values()]
+    .filter((c): c is YCard => c instanceof Y.Map && getBool(c, "archived"))
+    .map((c) => toPlain(c, prefix, overrides))
+    .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 }
 
 // ----- import / export (Unit 4.4) -----

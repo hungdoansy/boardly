@@ -7,7 +7,15 @@ import {
   PRIORITY_META,
   STATUS_META,
 } from "@boardly/domain";
-import { ArrowRight, CheckCircle2, CircleDot, Flag, Plus, Type as TypeIcon } from "lucide-react";
+import {
+  ArchiveRestore,
+  ArrowRight,
+  CheckCircle2,
+  CircleDot,
+  Flag,
+  Plus,
+  Type as TypeIcon,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { useCardActivity } from "../../lib/use-board";
@@ -82,6 +90,8 @@ function describe(entry: ActivityEntry): { icon: ReactNode; text: ReactNode } {
       return { icon: <Plus className={cls} />, text: <>Created</> };
     case "archived":
       return { icon: <CheckCircle2 className={cls} />, text: <>Archived</> };
+    case "unarchived":
+      return { icon: <ArchiveRestore className={cls} />, text: <>Restored</> };
     case "renamed":
       return {
         icon: <TypeIcon className={cls} />,

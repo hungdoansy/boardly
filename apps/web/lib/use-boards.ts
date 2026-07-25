@@ -105,6 +105,22 @@ export function useSettingsRoute(): [boolean, (open: boolean) => void] {
   return [open, set];
 }
 
+/**
+ * Whether the Archive view is open (hash `#archive`) + a setter. Like Settings,
+ * a distinct global route from an open ticket; opening it clears any open card.
+ */
+export function useArchiveRoute(): [boolean, (open: boolean) => void] {
+  const open = useSyncExternalStore(
+    subscribeRoute,
+    () => parseRoute(currentHashBody()).archive,
+    () => false,
+  );
+  const set = useCallback((next: boolean) => {
+    writeHashBody(next ? "archive" : "");
+  }, []);
+  return [open, set];
+}
+
 /** Open a specific card by id (used by search/palette) on the per-user board. */
 export function useOpenCardNav(): (cardId: string) => void {
   const ctx = useBoardlyContext();

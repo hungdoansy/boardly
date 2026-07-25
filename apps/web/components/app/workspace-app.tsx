@@ -4,7 +4,17 @@ import type { Filter, FilterClause } from "@boardly/domain";
 import { emptyFilter, isEmptyFilter, Status } from "@boardly/domain";
 import { BoardlyMark } from "@boardly/logo";
 import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@boardly/ui";
-import { Columns3, Command, Keyboard, List, LogOut, Search, Settings, Tag } from "lucide-react";
+import {
+  Archive,
+  Columns3,
+  Command,
+  Keyboard,
+  List,
+  LogOut,
+  Search,
+  Settings,
+  Tag,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getBoardDoc } from "@boardly/sync/client";
@@ -20,8 +30,9 @@ import { isOverlayOpen, keyboardOwnedElsewhere } from "../../lib/keyboard-owners
 import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
 import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
 import { applyZoom, cacheZoom } from "../../lib/zoom";
-import { useSettingsRoute } from "../../lib/use-boards";
+import { useArchiveRoute, useSettingsRoute } from "../../lib/use-boards";
 import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
+import { ArchiveView } from "../archive/archive-view";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
 import { BoardView } from "../board/board-view";
@@ -84,8 +95,11 @@ export function useGlobalKeyboard(opts: {
   onOpenHelp: () => void;
   settingsOpen: boolean;
   onExitSettings: () => void;
+  archiveOpen: boolean;
+  onExitArchive: () => void;
 }): void {
-  const { onOpenSearch, onOpenHelp, settingsOpen, onExitSettings } = opts;
+  const { onOpenSearch, onOpenHelp, settingsOpen, onExitSettings, archiveOpen, onExitArchive } =
+    opts;
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.metaKey || e.ctrlKey || e.altKey || isEditableTarget(e.target)) return;
@@ -119,10 +133,14 @@ export function useGlobalKeyboard(opts: {
         // Yield to whatever already owns ESC (open dialog/sheet/palette, active
         // drag); those close/cancel themselves and must not also step the ladder.
         if (escIsOwnedElsewhere(e)) return;
-        // Ladder: exit the Settings pane first, else reset scope to All projects.
+        // Ladder: exit a full-area pane (Settings, then Archive) first, else
+        // reset scope to All projects.
         if (settingsOpen) {
           e.preventDefault();
           onExitSettings();
+        } else if (archiveOpen) {
+          e.preventDefault();
+          onExitArchive();
         } else {
           e.preventDefault();
           setSelectedProject(null);
@@ -131,7 +149,7 @@ export function useGlobalKeyboard(opts: {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onOpenSearch, onOpenHelp, settingsOpen, onExitSettings]);
+  }, [onOpenSearch, onOpenHelp, settingsOpen, onExitSettings, archiveOpen, onExitArchive]);
 }
 
 /** The leader-key ("g" then …) bindings: `g` `p` opens the Project Switcher. */
@@ -154,16 +172,20 @@ function Shell() {
   // (title fallback, default badge face, empty prefix) are supplied at read time
   // so a fresh device never clobbers a synced board's real config.
   const [settingsOpen, setSettingsOpen] = useSettingsRoute();
+  const [archiveOpen, setArchiveOpen] = useArchiveRoute();
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const openSwitcher = useCallback(() => setSwitcherOpen(true), []);
   const openHelp = useCallback(() => setHelpOpen(true), []);
   const exitSettings = useCallback(() => setSettingsOpen(false), [setSettingsOpen]);
+  const exitArchive = useCallback(() => setArchiveOpen(false), [setArchiveOpen]);
   useGlobalKeyboard({
     onOpenSearch: openSearch,
     onOpenHelp: openHelp,
     settingsOpen,
     onExitSettings: exitSettings,
+    archiveOpen,
+    onExitArchive: exitArchive,
   });
   useLeaderHotkeys(LEADER_REGISTRY, { "project-switcher": openSwitcher });
   // ⌘/Ctrl + 1…5 jump to the first five sidebar projects; ⌘/Ctrl + 6 opens the
@@ -206,9 +228,18 @@ function Shell() {
         onOpenHelp={openHelp}
         settingsOpen={settingsOpen}
         onOpenSettings={() => setSettingsOpen(true)}
+        archiveOpen={archiveOpen}
+        onOpenArchive={() => setArchiveOpen(true)}
       />
 
-      {settingsOpen ? <SettingsView onClose={() => setSettingsOpen(false)} /> : <MainArea />}
+      {/* Routes are hash-exclusive, so at most one full-area pane is open. */}
+      {settingsOpen ? (
+        <SettingsView onClose={() => setSettingsOpen(false)} />
+      ) : archiveOpen ? (
+        <ArchiveView onClose={() => setArchiveOpen(false)} />
+      ) : (
+        <MainArea />
+      )}
       <CommandPalette onGoToProject={openSwitcher} onShowShortcuts={openHelp} />
       <ProjectSwitcher open={switcherOpen} onOpenChange={setSwitcherOpen} />
       <ShortcutsOverlay open={helpOpen} onOpenChange={setHelpOpen} />
@@ -232,11 +263,15 @@ export function Sidebar({
   onOpenHelp,
   settingsOpen,
   onOpenSettings,
+  archiveOpen,
+  onOpenArchive,
 }: {
   onOpenSearch: () => void;
   onOpenHelp: () => void;
   settingsOpen: boolean;
   onOpenSettings: () => void;
+  archiveOpen: boolean;
+  onOpenArchive: () => void;
 }) {
   const { userId } = useAuthSession();
   return (
@@ -261,7 +296,21 @@ export function Sidebar({
 
       <ProjectList />
 
-      <div className="px-2 pb-1 pt-1">
+      <div className="flex flex-col gap-0.5 px-2 pb-1 pt-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Archive"
+          aria-pressed={archiveOpen}
+          onClick={onOpenArchive}
+          className={cn(
+            "w-full justify-start",
+            archiveOpen ? "bg-selected text-fg" : "text-fg-muted",
+          )}
+        >
+          <Archive className="size-4" />
+          <span>Archive</span>
+        </Button>
         <Button
           variant="ghost"
           size="sm"

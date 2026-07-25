@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createCard, execute } from "@boardly/commands";
+import { archiveCard, createCard, execute } from "@boardly/commands";
 import { createMemoryContext } from "@boardly/commands";
 import { getCard, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -97,6 +97,30 @@ describe("CardDetail", () => {
     const { ctx } = setup();
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     expect(getCard(ctx.getBoardDoc(), "c1")?.archived).toBe(true);
+  });
+
+  it("shows Restore (not Archive) for an archived card and restores it on click", () => {
+    let closed = false;
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+    execute(createCard, ctx, { id: "c1", title: "Archived card" });
+    execute(archiveCard, ctx, { cardId: "c1" });
+
+    render(
+      <BoardlyProvider context={ctx}>
+        <CardDetail
+          cardId="c1"
+          onClose={() => {
+            closed = true;
+          }}
+        />
+      </BoardlyProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Archive" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(getCard(ctx.getBoardDoc(), "c1")?.archived).toBe(false);
+    expect(closed).toBe(true);
   });
 
   it("opens when cardId changes from null (deps invalidation)", () => {

@@ -22,6 +22,7 @@ function renderSidebar(props?: Partial<Parameters<typeof Sidebar>[0]>) {
   const onOpenSearch = vi.fn();
   const onOpenSettings = vi.fn();
   const onOpenHelp = vi.fn();
+  const onOpenArchive = vi.fn();
   const utils = render(
     <BoardlyProvider context={ctx}>
       <Sidebar
@@ -29,26 +30,31 @@ function renderSidebar(props?: Partial<Parameters<typeof Sidebar>[0]>) {
         onOpenHelp={onOpenHelp}
         settingsOpen={false}
         onOpenSettings={onOpenSettings}
+        archiveOpen={false}
+        onOpenArchive={onOpenArchive}
         {...props}
       />
     </BoardlyProvider>,
   );
-  return { ctx, onOpenSearch, onOpenSettings, onOpenHelp, ...utils };
+  return { ctx, onOpenSearch, onOpenSettings, onOpenHelp, onOpenArchive, ...utils };
 }
 
 describe("Sidebar placement (R12)", () => {
-  it("renders, top-to-bottom, logo → search → projects → Settings → account footer", () => {
+  it("renders, top-to-bottom, logo → search → projects → Archive → Settings → account footer", () => {
     renderSidebar();
     const logo = screen.getByText("Boardly");
     const search = screen.getByRole("button", { name: /Search/ });
     const projects = screen.getByRole("navigation", { name: "Projects" });
+    const archive = screen.getByRole("button", { name: "Archive" });
     const settings = screen.getByRole("button", { name: "Settings" });
     const account = screen.getByRole("button", { name: /Account/ });
 
-    // Settings is a full-width nav item positioned last, above the account footer.
+    // Archive + Settings are full-width nav items positioned last (Archive above
+    // Settings), above the account footer.
     expect(precedes(logo, search)).toBe(true);
     expect(precedes(search, projects)).toBe(true);
-    expect(precedes(projects, settings)).toBe(true);
+    expect(precedes(projects, archive)).toBe(true);
+    expect(precedes(archive, settings)).toBe(true);
     expect(precedes(settings, account)).toBe(true);
   });
 
@@ -75,6 +81,8 @@ describe("Sidebar placement (R12)", () => {
           onOpenHelp={vi.fn()}
           settingsOpen
           onOpenSettings={vi.fn()}
+          archiveOpen={false}
+          onOpenArchive={vi.fn()}
         />
       </BoardlyProvider>,
     );
@@ -83,24 +91,50 @@ describe("Sidebar placement (R12)", () => {
       "true",
     );
   });
+
+  it("Archive opens the archive pane and reflects aria-pressed", () => {
+    const { onOpenArchive, rerender, ctx } = renderSidebar();
+    const archive = screen.getByRole("button", { name: "Archive" });
+    expect(archive).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(archive);
+    expect(onOpenArchive).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <BoardlyProvider context={ctx}>
+        <Sidebar
+          onOpenSearch={vi.fn()}
+          onOpenHelp={vi.fn()}
+          settingsOpen={false}
+          onOpenSettings={vi.fn()}
+          archiveOpen
+          onOpenArchive={vi.fn()}
+        />
+      </BoardlyProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Archive" })).toHaveAttribute("aria-pressed", "true");
+  });
 });
 
 describe("ESC escape ladder (R13)", () => {
-  function mountLadder(settingsOpen: boolean) {
+  function mountLadder(settingsOpen: boolean, archiveOpen = false) {
     const onOpenSearch = vi.fn();
     const onOpenHelp = vi.fn();
     const onExitSettings = vi.fn();
+    const onExitArchive = vi.fn();
     const view = renderHook(
-      (props: { settingsOpen: boolean }) =>
+      (props: { settingsOpen: boolean; archiveOpen: boolean }) =>
         useGlobalKeyboard({
           onOpenSearch,
           onOpenHelp,
           onExitSettings,
           settingsOpen: props.settingsOpen,
+          onExitArchive,
+          archiveOpen: props.archiveOpen,
         }),
-      { initialProps: { settingsOpen } },
+      { initialProps: { settingsOpen, archiveOpen } },
     );
-    return { onOpenSearch, onOpenHelp, onExitSettings, ...view };
+    return { onOpenSearch, onOpenHelp, onExitSettings, onExitArchive, ...view };
   }
 
   function pressEscape(target: EventTarget = document): void {
@@ -123,6 +157,22 @@ describe("ESC escape ladder (R13)", () => {
     pressEscape();
     expect(getSelectedProject()).toBeNull();
     expect(onExitSettings).not.toHaveBeenCalled();
+  });
+
+  it("with Archive open (no Settings), ESC exits Archive (does not touch scope)", () => {
+    setSelectedProject("p1");
+    const { onExitArchive, onExitSettings } = mountLadder(false, true);
+    pressEscape();
+    expect(onExitArchive).toHaveBeenCalledTimes(1);
+    expect(onExitSettings).not.toHaveBeenCalled();
+    expect(getSelectedProject()).toBe("p1"); // scope untouched — ladder stops at Archive
+  });
+
+  it("Settings takes ESC precedence over Archive when both are open", () => {
+    const { onExitSettings, onExitArchive } = mountLadder(true, true);
+    pressEscape();
+    expect(onExitSettings).toHaveBeenCalledTimes(1);
+    expect(onExitArchive).not.toHaveBeenCalled();
   });
 
   it("ESC while an editable input is focused does NOT reset scope", () => {
@@ -154,8 +204,16 @@ describe("Global shortcuts (search / help / new task)", () => {
     const onOpenSearch = vi.fn();
     const onOpenHelp = vi.fn();
     const onExitSettings = vi.fn();
+    const onExitArchive = vi.fn();
     renderHook(() =>
-      useGlobalKeyboard({ onOpenSearch, onOpenHelp, onExitSettings, settingsOpen: false }),
+      useGlobalKeyboard({
+        onOpenSearch,
+        onOpenHelp,
+        onExitSettings,
+        settingsOpen: false,
+        onExitArchive,
+        archiveOpen: false,
+      }),
     );
     return { onOpenSearch, onOpenHelp, onExitSettings };
   }
