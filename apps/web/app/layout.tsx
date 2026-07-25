@@ -13,6 +13,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Boardly",
   description: "Fast, offline-first, keyboard-driven kanban.",
+  // Served from apps/web/public/logo, copied there from @boardly/logo by
+  // scripts/sync-logo.mjs on dev/build (the folder is git-ignored).
+  icons: {
+    icon: [
+      { url: "/logo/favicon.svg", type: "image/svg+xml" },
+      { url: "/logo/favicon-32.png", type: "image/png", sizes: "32x32" },
+    ],
+    apple: "/logo/apple-touch-icon.png",
+  },
 };
 
 // Applied before first paint to avoid a theme flash: read the persisted choice

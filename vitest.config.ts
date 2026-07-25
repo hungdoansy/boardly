@@ -11,6 +11,7 @@ export default defineConfig({
       "packages/sync",
       "packages/commands",
       "packages/ui",
+      "packages/logo",
       "apps/web",
       "apps/server",
       "apps/mcp",

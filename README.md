@@ -1,4 +1,8 @@
-# Boardly
+<p align="center">
+  <img src="packages/logo/assets/mark.svg" alt="Boardly logo" width="96" height="96" />
+</p>
+
+<h1 align="center">Boardly</h1>
 
 A performant, offline-first kanban app for **desktop and responsive web**, inspired by the Obsidian
 kanban plugin with **Linear-style UX**. Your local data is the source of truth; changes sync across
@@ -202,6 +206,8 @@ boardly/
     sync/        # Yjs schema + typed accessors (board-doc); provider/persistence (client); useY (react)
     commands/    # The command layer — every mutation as a validated command (UI + REST + MCP share it)
     ui/          # Shared React components (shadcn/ui restyled to the design tokens)
+    logo/        # Brand mark — single source of truth. <BoardlyMark/>, favicon + app-icon rasters
+
   apps/
     web/         # Next.js 16.2.6 app — the product. Web deploy AND static export for desktop
     desktop/     # Tauri (Rust) shell — bundles apps/web's static export; native URL-metadata fetch
@@ -308,9 +314,23 @@ pnpm lint            # turbo run lint
 pnpm test            # turbo run test (vitest)
 pnpm format          # prettier --write .
 pnpm format:check    # prettier --check .
+pnpm logo:generate   # regenerate brand assets from the SVGs (see below)
 ```
 
 Scope to one workspace with `--filter`, e.g. `pnpm --filter @boardly/web dev`.
+
+**Brand assets (`@boardly/logo`).** The brand mark is the single source of truth in
+`packages/logo` (`mark.svg`, the padded `mark-padded.svg`, and the `app-icon.svg` tile). Rasters
+(favicon, desktop app icon) are **committed**, not built on every run. Regenerate them **only when a
+source SVG changes**:
+
+```bash
+pnpm logo:generate   # = logo `generate` (svg→rasters) + desktop `icons` (tauri icon → .icns/.ico)
+```
+
+The web favicon is copied into the git-ignored `apps/web/public/logo/` automatically on every
+`pnpm --filter @boardly/web dev`/`build` (via `scripts/sync-logo.mjs`) — no manual step. See
+[`docs/units/UNIT-16-logo-package.md`](docs/units/UNIT-16-logo-package.md).
 
 > **Formatting note:** only run `prettier --write` on files you actually touched. A repo-wide
 > `format` run reformats many untouched files.

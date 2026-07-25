@@ -14,6 +14,7 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "logo:generate": "pnpm --filter @boardly/logo generate && pnpm --filter @boardly/desktop icons",
     "prepare": "husky"
   },
   "devDependencies": {

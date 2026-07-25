@@ -318,6 +318,32 @@ Every item carries a leading glyph (submenu triggers and "none"/empty options in
 slots), a single text size (`text-base` via the shared item class), and `gap-2` spacing. Icons that
 are decorative are `aria-hidden`.
 
+### 7.4 Brand mark & app icon (binding — `@boardly/logo` is the source of truth, UNIT-16)
+
+The Boardly **mark** is an "airy B" — two horizontal D-lobe cards stacked with a waist gap, each on
+a **fixed brand indigo gradient** (`#6E79DE→#505BC4` / `#5E6AD2→#4954B8`) over a soft shadow lobe.
+The mark's brand colors are a deliberate **exception** to §2/§10's "no hardcoded colors" rule (a logo
+is a fixed brand asset, not a themed surface); they are literals in the SVG, not tokens.
+
+- **One source of truth:** the vector lives only in `@boardly/logo` (`packages/logo/assets/mark.svg` +
+  the `MARK_SVG` string). Never re-author or copy the markup into a component/app.
+- **In-app** (sidebar; `aria-hidden`, wordmark text beside it): render `<BoardlyMark/>` from
+  `@boardly/logo` — it inlines the SVG with `useId`-scoped gradient ids (same collision-safety as
+  provider icons, §7.1 tooling) and sizes via `className` (default `size-6`). Do **not** use an
+  `<img>` for the in-app mark.
+- **Favicon:** the bare transparent mark (`/logo/favicon.svg` + a 32px PNG), wired via
+  `metadata.icons` in `app/layout.tsx`. Files are copied into the git-ignored `apps/web/public/logo/`
+  by `scripts/sync-logo.mjs` on every dev/build.
+- **Desktop app icon** (macOS Dock / Windows taskbar): the padded mark (`mark-padded.svg`, ~14%
+  padding vs the tight in-app mark) flattened onto a **flat Canvas square** (`#F6F7F8`, = `--bg-base`
+  light) → `icon-1024.png`. A flat fill, not a rounded tile — macOS won't round it, so it ships square
+  (`generate.mjs` `ICON_BG`). Regenerated via `pnpm logo:generate` (runs `tauri icon` →
+  `.icns`/`.ico`/pngs, then prunes to the 5 files `tauri.conf.json` references).
+- **Web PWA / apple-touch icon** (`app-icon.svg` → `apple-touch-icon.png`): the mark on a **dark
+  slate squircle tile** (`#2A2C42→#15161F`, `rx≈22%`), Linear-style — a tile (not the transparent
+  mark) because iOS renders apple-touch icons opaque on the home screen. Rasters come from
+  `pnpm --filter @boardly/logo generate`.
+
 ---
 
 ## 8. Key screens (layout intent)

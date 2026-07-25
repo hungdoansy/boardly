@@ -50,6 +50,13 @@ describe("Sidebar placement (R12)", () => {
     expect(precedes(settings, account)).toBe(true);
   });
 
+  it("renders the Boardly brand mark beside the wordmark", () => {
+    const { container } = renderSidebar();
+    // The <BoardlyMark/> inlines an <svg>; the wordmark text sits next to it.
+    expect(container.querySelector("[data-boardly-mark] svg")).not.toBeNull();
+    expect(screen.getByText("Boardly")).toBeInTheDocument();
+  });
+
   it("Settings opens the settings pane and reflects aria-pressed", () => {
     const { onOpenSettings, rerender, ctx } = renderSidebar();
     const settings = screen.getByRole("button", { name: "Settings" });

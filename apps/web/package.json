@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node ../../scripts/sync-logo.mjs && next dev",
+    "build": "node ../../scripts/sync-logo.mjs && next build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
@@ -13,6 +13,7 @@
   "dependencies": {
     "@boardly/commands": "workspace:*",
     "@boardly/domain": "workspace:*",
+    "@boardly/logo": "workspace:*",
     "@boardly/sync": "workspace:*",
     "@boardly/ui": "workspace:*",
     "@dnd-kit/core": "6.3.1",

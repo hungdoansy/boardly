@@ -30,6 +30,13 @@ export default tseslint.config(
     },
   },
   {
+    // Plain Node ESM/CJS scripts (build tooling, generators): Node globals only.
+    files: ["**/*.{js,cjs,mjs}"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
     files: ["**/*.{tsx,jsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: {

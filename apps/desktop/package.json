@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tauri dev",
+    "icons": "node scripts/gen-icons.mjs",
     "tauri": "tauri",
     "tauri:build": "tauri build"
   },

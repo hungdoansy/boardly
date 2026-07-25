@@ -37,6 +37,9 @@ apps/desktop/src-tauri/target/
 # Next.js auto-generated (regenerated on build/dev)
 next-env.d.ts
 
+# Brand assets copied from @boardly/logo by scripts/sync-logo.mjs on dev/build
+apps/web/public/logo/
+
 # Misc
 *.tsbuildinfo
 

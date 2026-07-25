@@ -2,8 +2,9 @@
 
 import type { Filter, FilterClause } from "@boardly/domain";
 import { emptyFilter, isEmptyFilter } from "@boardly/domain";
+import { BoardlyMark } from "@boardly/logo";
 import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@boardly/ui";
-import { Columns3, Command, LayoutGrid, List, LogOut, Search, Settings, Tag } from "lucide-react";
+import { Columns3, Command, List, LogOut, Search, Settings, Tag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getBoardDoc } from "@boardly/sync/client";
@@ -182,9 +183,7 @@ export function Sidebar({
   return (
     <aside className="flex w-52 shrink-0 flex-col border-r border-line-subtle bg-surface sm:w-60">
       <div className="flex h-12 items-center gap-2 px-3">
-        <div className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-primary text-primary-foreground">
-          <LayoutGrid className="size-3.5" />
-        </div>
+        <BoardlyMark className="size-6" />
         <span className="text-md font-semibold tracking-[-0.01em] text-fg">Boardly</span>
       </div>
 
