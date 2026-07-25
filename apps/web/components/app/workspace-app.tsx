@@ -15,6 +15,7 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
 import { useLeaderHotkeys } from "../../lib/hotkeys";
 import { isEditableTarget } from "../../lib/is-editable-target";
+import { useProjectHotkeys } from "../../lib/use-project-hotkeys";
 import { isOverlayOpen, keyboardOwnedElsewhere } from "../../lib/keyboard-ownership";
 import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
 import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
@@ -165,6 +166,9 @@ function Shell() {
     onExitSettings: exitSettings,
   });
   useLeaderHotkeys(LEADER_REGISTRY, { "project-switcher": openSwitcher });
+  // ⌘/Ctrl + 1…5 jump to the first five sidebar projects; ⌘/Ctrl + 6 opens the
+  // switcher (the numbered counterparts to the sidebar badges and `g` `p`).
+  useProjectHotkeys(openSwitcher);
 
   // Whole-app zoom (UNIT-15): the synced board-meta factor is the source of
   // truth. The ⌘/Ctrl +/−/0 shortcuts write the next factor through the command.

@@ -72,6 +72,23 @@ const GROUPS: ShortcutGroup[] = [
           </>
         ),
       },
+      {
+        label: "Jump to All / project",
+        keys: (
+          <Kbd>
+            <CommandIcon className="size-3" aria-hidden="true" />
+            1–5
+          </Kbd>
+        ),
+      },
+      {
+        label: "Open project switcher",
+        keys: (
+          <Kbd>
+            <CommandIcon className="size-3" aria-hidden="true" />6
+          </Kbd>
+        ),
+      },
       { label: "New task", keys: <Kbd>C</Kbd> },
     ],
   },
