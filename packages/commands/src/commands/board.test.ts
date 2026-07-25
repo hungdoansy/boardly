@@ -4,7 +4,7 @@ import { ZodError } from "zod";
 
 import { execute } from "../command";
 import { createMemoryContext } from "../context";
-import { setShowEmptyColumns } from "./board";
+import { setShowEmptyColumns, setZoom } from "./board";
 
 function seed() {
   const ctx = createMemoryContext({ userId: "me", clientId: "c1", now: () => 100 });
@@ -29,5 +29,27 @@ describe("setShowEmptyColumns", () => {
   it("rejects a non-boolean via zod", () => {
     const ctx = seed();
     expect(() => execute(setShowEmptyColumns, ctx, { show: "yes" as never })).toThrow(ZodError);
+  });
+});
+
+describe("setZoom", () => {
+  it("sets the zoom factor (defaults to 1)", () => {
+    const ctx = seed();
+    expect(getBoard(ctx.getBoardDoc(), "me").zoom).toBe(1);
+
+    const zoomed = execute(setZoom, ctx, { factor: 1.5 });
+    expect(zoomed.zoom).toBe(1.5);
+    expect(getBoard(ctx.getBoardDoc(), "me").zoom).toBe(1.5);
+  });
+
+  it("clamps an out-of-range factor instead of rejecting it", () => {
+    const ctx = seed();
+    expect(execute(setZoom, ctx, { factor: 99 }).zoom).toBe(2);
+    expect(execute(setZoom, ctx, { factor: 0 }).zoom).toBe(0.5);
+  });
+
+  it("rejects a non-number via zod", () => {
+    const ctx = seed();
+    expect(() => execute(setZoom, ctx, { factor: "big" as never })).toThrow(ZodError);
   });
 });

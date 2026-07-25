@@ -149,6 +149,33 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 - **Tracking:** headings `-0.01em` to `-0.02em` (tight, Linear-like); body normal.
 - Short IDs (`BRD-142`) in monospace, `text-xs`, `--text-tertiary`.
 
+### 3.1 Whole-app zoom (UNIT-15)
+
+- **Zoom = one CSS lever:** `html { zoom: var(--app-zoom, 1) }`. Because the type scale is
+  absolute px (above), page `zoom` is how the UI scales — it reflows (more cards fit) and scales
+  px tokens, which a base-font-size change cannot. Never use `transform: scale` for this (it
+  overflows, breaks `position: fixed`, and doesn't reflow).
+- **Two levers by platform (fill correctly).** Element-level CSS `zoom` can't reliably fill the
+  window — it paints at `size × zoom` while the containing block doesn't track the factor, and
+  Chromium vs WebKit (and zoom-in vs zoom-out) resolve it differently, so no single CSS formula
+  fills both. Therefore:
+  - **Desktop (Tauri): native webview zoom** — `applyZoom` calls `webview.setZoom(factor)` and pins
+    `--app-zoom` to 1. The engine rescales the layout viewport, so it reflows and fills the window
+    exactly. This is the correct path.
+  - **Web (Chromium/Firefox): CSS `zoom` on `<html>`** as a pragmatic fallback — scales the whole UI
+    (incl. body-portaled overlays: dialogs, popovers, command palette, card-detail drawer) and
+    reflows, but is standard content-zoom (may gutter on zoom-out / scroll on zoom-in).
+  - Rule: **never rely on element CSS `zoom` to fill the window** — use the webview's native zoom on
+    desktop; accept content-zoom on web.
+- **Shortcuts:** `⌘/Ctrl +` in, `⌘/Ctrl −` out, `⌘/Ctrl 0` reset — same in web and desktop.
+  Steps through a fixed ladder (`0.5 … 1 … 2`); `⌘0` snaps back to exactly 100%.
+- **Persistence:** the factor is a synced per-user board preference (`Board.zoom`), mirrored to
+  `localStorage` (`boardly-zoom`) and restored pre-paint by a no-FOUC inline script (like theme/focus).
+- **Never transition `zoom`** — it is reflow-heavy; animating it violates the "don't animate
+  expensive layout" rule (§ Motion). Zoom changes apply instantly.
+- Discoverable without the keyboard: command-palette actions (Zoom in / out / Reset) and a Zoom
+  control in Settings that shows the live percentage.
+
 ---
 
 ## 4. Spacing, sizing, radii

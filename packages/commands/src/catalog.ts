@@ -7,6 +7,7 @@ import {
   setBadgeConfig,
   setShowEmptyColumns,
   setTicketPrefix,
+  setZoom,
 } from "./commands/board";
 import {
   addChecklistItem,
@@ -54,6 +55,7 @@ export const commands = [
   setBadgeConfig,
   setTicketPrefix,
   setShowEmptyColumns,
+  setZoom,
   createCard,
   moveCard,
   renameCard,

@@ -36,6 +36,10 @@ describe("catalog", () => {
     expect(getCommand("setShowEmptyColumns")).toBeDefined();
   });
 
+  it("registers setZoom", () => {
+    expect(getCommand("setZoom")).toBeDefined();
+  });
+
   it("registers the related-card commands", () => {
     expect(getCommand("addRelatedCard")).toBeDefined();
     expect(getCommand("removeRelatedCard")).toBeDefined();

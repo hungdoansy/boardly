@@ -1,10 +1,11 @@
-import { normalizeTicketPrefix } from "@boardly/domain";
+import { ZOOM_MAX, ZOOM_MIN, normalizeTicketPrefix } from "@boardly/domain";
 import {
   getBoard,
   renameBoard as syncRenameBoard,
   setBadgeConfig as syncSetBadgeConfig,
   setShowEmptyColumns as syncSetShowEmptyColumns,
   setTicketPrefix as syncSetTicketPrefix,
+  setZoom as syncSetZoom,
 } from "@boardly/sync";
 import { z } from "zod";
 
@@ -55,6 +56,17 @@ export const setShowEmptyColumns = defineCommand({
   run: (ctx, input) => {
     const doc = ctx.getBoardDoc();
     syncSetShowEmptyColumns(doc, input.show, ctx.now());
+    return getBoard(doc, boardId(ctx));
+  },
+});
+
+export const setZoom = defineCommand({
+  name: "setZoom",
+  description: `Set the whole-app zoom factor (1 = 100%). Clamped to [${ZOOM_MIN}, ${ZOOM_MAX}]; synced across the user's devices.`,
+  input: z.object({ factor: z.number() }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    syncSetZoom(doc, input.factor, ctx.now());
     return getBoard(doc, boardId(ctx));
   },
 });

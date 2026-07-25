@@ -6,11 +6,15 @@ import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@b
 import { Columns3, Command, LayoutGrid, List, LogOut, Search, Settings, Tag } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { getBoardDoc } from "@boardly/sync/client";
+
 import { apiClient } from "../../lib/api-client";
 import { useAuthSession } from "../../lib/auth-store";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { cycleFocus } from "../../lib/focus-mode";
-import { useBoardTitle } from "../../lib/use-board";
+import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
+import { applyZoom, cacheZoom } from "../../lib/zoom";
+import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
 import { useSettingsRoute } from "../../lib/use-boards";
 import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
 import { ProjectList } from "../board/project-list";
@@ -110,6 +114,35 @@ function Shell() {
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const exitSettings = useCallback(() => setSettingsOpen(false), [setSettingsOpen]);
   useGlobalKeyboard({ onOpenSearch: openSearch, settingsOpen, onExitSettings: exitSettings });
+
+  // Whole-app zoom (UNIT-15): the synced board-meta factor is the source of
+  // truth. The ⌘/Ctrl +/−/0 shortcuts write the next factor through the command.
+  const zoom = useZoom();
+  const setZoom = useSetZoom();
+  const { userId } = useAuthSession();
+  // Apply only AFTER the board doc hydrates from IndexedDB. Before `whenSynced`,
+  // `useZoom()` returns the default (1) from a still-empty doc; applying that
+  // would clobber the pre-paint `ZOOM_INIT` stamp (web) and bounce native zoom
+  // (desktop) — a visible 100%→level flash. Gating on sync preserves the
+  // no-FOUC guarantee: the pre-paint value stays until the real value is known,
+  // then this reconciles to it (and refreshes the device cache).
+  const [docSynced, setDocSynced] = useState(false);
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void getBoardDoc(userId).whenSynced.then(() => {
+      if (!cancelled) setDocSynced(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  useEffect(() => {
+    if (!docSynced) return;
+    applyZoom(zoom);
+    cacheZoom(zoom);
+  }, [zoom, docSynced]);
+  useZoomHotkeys(zoom, setZoom);
 
   return (
     <div className="flex h-screen w-full overflow-hidden">

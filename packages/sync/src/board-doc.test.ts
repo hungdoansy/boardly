@@ -23,6 +23,7 @@ import {
   setCardPriority,
   setCardStatus,
   setShowEmptyColumns,
+  setZoom,
 } from "./board-doc";
 import { boardCards, boardMeta } from "./schema";
 
@@ -141,6 +142,36 @@ describe("showEmptyColumns board meta", () => {
   it("defaults to true even on a brand-new (uninitialized) doc", () => {
     const doc = new Y.Doc();
     expect(getBoard(doc, "u1").showEmptyColumns).toBe(true);
+  });
+});
+
+describe("zoom board meta", () => {
+  it("defaults to 1 and round-trips a write", () => {
+    const { doc } = setup();
+    expect(getBoard(doc, "u1").zoom).toBe(1);
+    setZoom(doc, 1.25, NOW + 1);
+    expect(getBoard(doc, "u1").zoom).toBe(1.25);
+    expect(boardMeta(doc).get("updatedAt")).toBe(NOW + 1);
+  });
+
+  it("clamps an out-of-range factor at write time", () => {
+    const { doc } = setup();
+    setZoom(doc, 99, NOW + 1);
+    expect(getBoard(doc, "u1").zoom).toBe(2);
+    setZoom(doc, 0.01, NOW + 2);
+    expect(getBoard(doc, "u1").zoom).toBe(0.5);
+  });
+
+  it("clamps defensively on read (stale/out-of-range persisted value)", () => {
+    const { doc } = setup();
+    // Simulate a value written by an older/other client bypassing the setter.
+    boardMeta(doc).set("zoom", 42);
+    expect(getBoard(doc, "u1").zoom).toBe(2);
+  });
+
+  it("defaults to 1 on a brand-new (uninitialized) doc", () => {
+    const doc = new Y.Doc();
+    expect(getBoard(doc, "u1").zoom).toBe(1);
   });
 });
 
@@ -308,7 +339,13 @@ describe("urgent floats to top", () => {
 
   it("does not reorder when the card is already Urgent", () => {
     const { doc } = setup();
-    const a = addCard(doc, { status: TODO, title: "A", priority: Priority.Urgent, now: NOW, clientId: "1" });
+    const a = addCard(doc, {
+      status: TODO,
+      title: "A",
+      priority: Priority.Urgent,
+      now: NOW,
+      clientId: "1",
+    });
     addCard(doc, { status: TODO, title: "B", now: NOW, clientId: "1" });
     // A is already Urgent (and at top). Re-set Urgent → no change, no crash.
     setCardPriority(doc, a, Priority.Urgent, NOW + 1, "1");
@@ -427,9 +464,24 @@ describe("moveLink", () => {
   function seedLinks() {
     const { doc } = setup();
     const card = addCard(doc, { status: TODO, title: "Card", now: NOW, clientId: "1" });
-    const l1 = addLink(doc, { cardId: card, url: "https://example.com/a", now: NOW, clientId: "1" });
-    const l2 = addLink(doc, { cardId: card, url: "https://example.com/b", now: NOW, clientId: "1" });
-    const l3 = addLink(doc, { cardId: card, url: "https://example.com/c", now: NOW, clientId: "1" });
+    const l1 = addLink(doc, {
+      cardId: card,
+      url: "https://example.com/a",
+      now: NOW,
+      clientId: "1",
+    });
+    const l2 = addLink(doc, {
+      cardId: card,
+      url: "https://example.com/b",
+      now: NOW,
+      clientId: "1",
+    });
+    const l3 = addLink(doc, {
+      cardId: card,
+      url: "https://example.com/c",
+      now: NOW,
+      clientId: "1",
+    });
     return { doc, card, l1, l2, l3 };
   }
   const order = (doc: Y.Doc, card: string) => getCard(doc, card)!.links.map((l) => l.id);

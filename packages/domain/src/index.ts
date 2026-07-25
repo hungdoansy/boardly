@@ -11,3 +11,4 @@ export * from "./status";
 export * from "./links";
 export * from "./ordering";
 export * from "./types";
+export * from "./zoom";

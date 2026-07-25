@@ -15,6 +15,11 @@
 :root {
   color-scheme: dark;
 
+  /* Whole-app zoom factor (UNIT-15); 1 = 100%. The live value is written as an
+     inline style on <html> by the zoom apply path + a no-FOUC inline script;
+     this is the base so `html { zoom: var(--app-zoom) }` has a value with JS off. */
+  --app-zoom: 1;
+
   /* Surfaces (elevation ladder — darker is lower) */
   --bg-base: #08090a;
   --bg-surface: #0e0f11;
