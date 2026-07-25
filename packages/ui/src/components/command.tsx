@@ -23,16 +23,20 @@ export function CommandDialog({
   children,
   title = "Command palette",
   shouldFilter,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   /** Accessible dialog name (screen-reader only). */
   title?: string;
   /** Forwarded to cmdk; pass `false` to rank results yourself (e.g. search). */
   shouldFilter?: boolean;
+  /** Radix close-focus-restore hook; forwarded to the underlying dialog content
+   * (e.g. `preventDefault()` it when chaining straight into another dialog). */
+  onCloseAutoFocus?: React.ComponentProps<typeof DialogContent>["onCloseAutoFocus"];
 }) {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0">
+      <DialogContent className="overflow-hidden p-0" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <Command
           shouldFilter={shouldFilter}

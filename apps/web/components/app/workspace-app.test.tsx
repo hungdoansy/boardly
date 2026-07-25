@@ -21,17 +21,19 @@ function renderSidebar(props?: Partial<Parameters<typeof Sidebar>[0]>) {
   const ctx = createMemoryContext();
   const onOpenSearch = vi.fn();
   const onOpenSettings = vi.fn();
+  const onOpenHelp = vi.fn();
   const utils = render(
     <BoardlyProvider context={ctx}>
       <Sidebar
         onOpenSearch={onOpenSearch}
+        onOpenHelp={onOpenHelp}
         settingsOpen={false}
         onOpenSettings={onOpenSettings}
         {...props}
       />
     </BoardlyProvider>,
   );
-  return { ctx, onOpenSearch, onOpenSettings, ...utils };
+  return { ctx, onOpenSearch, onOpenSettings, onOpenHelp, ...utils };
 }
 
 describe("Sidebar placement (R12)", () => {
@@ -68,7 +70,12 @@ describe("Sidebar placement (R12)", () => {
     // When the settings route is active the item shows itself as pressed.
     rerender(
       <BoardlyProvider context={ctx}>
-        <Sidebar onOpenSearch={vi.fn()} settingsOpen onOpenSettings={vi.fn()} />
+        <Sidebar
+          onOpenSearch={vi.fn()}
+          onOpenHelp={vi.fn()}
+          settingsOpen
+          onOpenSettings={vi.fn()}
+        />
       </BoardlyProvider>,
     );
     expect(screen.getByRole("button", { name: "Settings" })).toHaveAttribute(
@@ -81,13 +88,19 @@ describe("Sidebar placement (R12)", () => {
 describe("ESC escape ladder (R13)", () => {
   function mountLadder(settingsOpen: boolean) {
     const onOpenSearch = vi.fn();
+    const onOpenHelp = vi.fn();
     const onExitSettings = vi.fn();
     const view = renderHook(
       (props: { settingsOpen: boolean }) =>
-        useGlobalKeyboard({ onOpenSearch, onExitSettings, settingsOpen: props.settingsOpen }),
+        useGlobalKeyboard({
+          onOpenSearch,
+          onOpenHelp,
+          onExitSettings,
+          settingsOpen: props.settingsOpen,
+        }),
       { initialProps: { settingsOpen } },
     );
-    return { onOpenSearch, onExitSettings, ...view };
+    return { onOpenSearch, onOpenHelp, onExitSettings, ...view };
   }
 
   function pressEscape(target: EventTarget = document): void {
@@ -133,5 +146,112 @@ describe("ESC escape ladder (R13)", () => {
     pressEscape();
     expect(getSelectedProject()).toBe("p1");
     dialog.remove();
+  });
+});
+
+describe("Global shortcuts (search / help / new task)", () => {
+  function mountGlobal() {
+    const onOpenSearch = vi.fn();
+    const onOpenHelp = vi.fn();
+    const onExitSettings = vi.fn();
+    renderHook(() =>
+      useGlobalKeyboard({ onOpenSearch, onOpenHelp, onExitSettings, settingsOpen: false }),
+    );
+    return { onOpenSearch, onOpenHelp, onExitSettings };
+  }
+
+  function press(init: KeyboardEventInit, target: EventTarget = document): void {
+    act(() => {
+      target.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init }),
+      );
+    });
+  }
+
+  /** A Todo column with an add-card composer button, mirroring the real board. */
+  function mountTodoComposer(): { clickSpy: ReturnType<typeof vi.fn>; cleanup: () => void } {
+    const col = document.createElement("div");
+    col.setAttribute("data-nav-column", "todo");
+    const composer = document.createElement("button");
+    composer.setAttribute("data-nav-composer", "");
+    const clickSpy = vi.fn();
+    composer.addEventListener("click", clickSpy);
+    col.appendChild(composer);
+    document.body.appendChild(col);
+    return { clickSpy, cleanup: () => col.remove() };
+  }
+
+  it("`/` opens search; `?` opens the shortcuts overlay (and not search)", () => {
+    const { onOpenSearch, onOpenHelp } = mountGlobal();
+    press({ key: "/" });
+    expect(onOpenSearch).toHaveBeenCalledTimes(1);
+    expect(onOpenHelp).not.toHaveBeenCalled();
+    press({ key: "?" });
+    expect(onOpenHelp).toHaveBeenCalledTimes(1);
+    expect(onOpenSearch).toHaveBeenCalledTimes(1); // `?` did not also open search
+  });
+
+  it("`c` opens the Todo column composer", () => {
+    const { clickSpy, cleanup: cleanupCol } = mountTodoComposer();
+    mountGlobal();
+    press({ code: "KeyC" });
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    cleanupCol();
+  });
+
+  it("`c` yields while an overlay dialog is open", () => {
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("data-state", "open");
+    document.body.appendChild(dialog);
+    const { clickSpy, cleanup: cleanupCol } = mountTodoComposer();
+    mountGlobal();
+    press({ code: "KeyC" });
+    expect(clickSpy).not.toHaveBeenCalled();
+    dialog.remove();
+    cleanupCol();
+  });
+
+  it("`c` does nothing while typing in a field", () => {
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    const { clickSpy, cleanup: cleanupCol } = mountTodoComposer();
+    mountGlobal();
+    press({ code: "KeyC" }, input);
+    expect(clickSpy).not.toHaveBeenCalled();
+    input.remove();
+    cleanupCol();
+  });
+
+  it("`c` yields when the board already consumed it (defaultPrevented)", () => {
+    const { clickSpy, cleanup: cleanupCol } = mountTodoComposer();
+    mountGlobal();
+    // Simulate the board's focused-column `c` handler consuming the event first
+    // (capture-phase runs before useGlobalKeyboard's bubble-phase listener).
+    const consume = (e: KeyboardEvent): void => e.preventDefault();
+    document.addEventListener("keydown", consume, true);
+    press({ code: "KeyC" });
+    document.removeEventListener("keydown", consume, true);
+    expect(clickSpy).not.toHaveBeenCalled();
+    cleanupCol();
+  });
+
+  it("`c` does NOT fall back to a non-Todo column composer (no wrong-status create)", () => {
+    // Only a Backlog composer exists (Todo hidden+empty). `c` must not open it —
+    // Backlog precedes Todo in STATUS_ORDER, so a DOM-order fallback would create
+    // the card in the wrong status.
+    const col = document.createElement("div");
+    col.setAttribute("data-nav-column", "backlog");
+    const composer = document.createElement("button");
+    composer.setAttribute("data-nav-composer", "");
+    const clickSpy = vi.fn();
+    composer.addEventListener("click", clickSpy);
+    col.appendChild(composer);
+    document.body.appendChild(col);
+
+    mountGlobal();
+    press({ code: "KeyC" });
+    expect(clickSpy).not.toHaveBeenCalled();
+    col.remove();
   });
 });

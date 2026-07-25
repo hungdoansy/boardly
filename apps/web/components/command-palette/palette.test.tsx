@@ -5,7 +5,7 @@ import { createMemoryContext } from "@boardly/commands";
 import { Status, STATUS_ORDER } from "@boardly/domain";
 import { allLiveCards, cardsInStatus, initBoard } from "@boardly/sync";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { CommandPalette } from "./palette";
@@ -16,12 +16,14 @@ function renderPalette(seedBoard = true) {
   if (seedBoard) {
     initBoard(ctx.getBoardDoc(), { title: "Main board", now: 0 });
   }
+  const onGoToProject = vi.fn();
+  const onShowShortcuts = vi.fn();
   render(
     <BoardlyProvider context={ctx}>
-      <CommandPalette />
+      <CommandPalette onGoToProject={onGoToProject} onShowShortcuts={onShowShortcuts} />
     </BoardlyProvider>,
   );
-  return ctx;
+  return { ctx, onGoToProject, onShowShortcuts };
 }
 
 function pressCmdK() {
@@ -73,7 +75,7 @@ describe("CommandPalette", () => {
   });
 
   it("offers a 'new card' action that creates a card in the default (Todo) column", () => {
-    const ctx = renderPalette();
+    const { ctx } = renderPalette();
     pressCmdK();
     fireEvent.click(screen.getByText(/new card/i));
 
@@ -82,5 +84,22 @@ describe("CommandPalette", () => {
     // A card's column IS its status; a new card defaults to Todo.
     expect(cardsInStatus(boardDoc, Status.Todo)).toHaveLength(1);
     expect(STATUS_ORDER).toContain(Status.Todo);
+  });
+
+  it("'Go to project…' closes the palette and opens the switcher", () => {
+    const { onGoToProject } = renderPalette();
+    pressCmdK();
+    fireEvent.click(screen.getByText(/go to project/i));
+    expect(onGoToProject).toHaveBeenCalledTimes(1);
+    // The palette closed as part of the hand-off.
+    expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
+  });
+
+  it("'Keyboard shortcuts' closes the palette and opens the overlay", () => {
+    const { onShowShortcuts } = renderPalette();
+    pressCmdK();
+    fireEvent.click(screen.getByText(/keyboard shortcuts/i));
+    expect(onShowShortcuts).toHaveBeenCalledTimes(1);
+    expect(screen.queryByPlaceholderText(/type a command/i)).not.toBeInTheDocument();
   });
 });

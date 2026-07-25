@@ -17,6 +17,7 @@ import { Box, Boxes, EyeOff, Pencil, Plus } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { useSettingsRoute } from "../../lib/use-boards";
+import { projectBadge } from "../../lib/use-project-hotkeys";
 import {
   type ProjectActions,
   useProjectActions,
@@ -63,7 +64,10 @@ export function ProjectList() {
         </button>
       </div>
 
-      <ul className="flex flex-col gap-0.5 overflow-y-auto">
+      {/* -mx-1 px-1 gives the 2px focus ring room inside the scroll container:
+          `overflow-y-auto` also clips overflow-x, which otherwise cuts the ring
+          off at the row's left/right edge. */}
+      <ul className="-mx-1 flex flex-col gap-0.5 overflow-y-auto px-1 py-0.5">
         <li>
           <button
             type="button"
@@ -72,10 +76,13 @@ export function ProjectList() {
             className={rowClass(activeId === null)}
           >
             <Boxes className="size-3.5 shrink-0 text-fg-faint" aria-hidden="true" />
-            <span className="truncate">All</span>
+            <span className="min-w-0 flex-1 truncate">All</span>
+            <kbd className="shrink-0 font-mono text-xs text-fg-faint" aria-hidden="true">
+              1
+            </kbd>
           </button>
         </li>
-        {projects.map((project) =>
+        {projects.map((project, index) =>
           editingId === project.id ? (
             <li key={project.id}>
               <RenameRow project={project} actions={actions} onDone={() => setEditingId(null)} />
@@ -85,6 +92,7 @@ export function ProjectList() {
               <ProjectRow
                 project={project}
                 active={activeId === project.id}
+                badge={projectBadge(index)}
                 actions={actions}
                 onSelect={() => select(formatProjectRef(project.id, project.name))}
                 onStartEdit={() => setEditingId(project.id)}
@@ -100,12 +108,15 @@ export function ProjectList() {
 function ProjectRow({
   project,
   active,
+  badge,
   actions,
   onSelect,
   onStartEdit,
 }: {
   project: Project;
   active: boolean;
+  /** 1-based number shown as a `⌘N` hint on the first few rows, else null. */
+  badge: number | null;
   actions: ProjectActions;
   onSelect: () => void;
   onStartEdit: () => void;
@@ -121,7 +132,12 @@ function ProjectRow({
           className={rowClass(active)}
         >
           <Box className="size-3.5 shrink-0" style={{ color: project.color }} aria-hidden="true" />
-          <span className="truncate">{project.name}</span>
+          <span className="min-w-0 flex-1 truncate">{project.name}</span>
+          {badge !== null ? (
+            <kbd className="shrink-0 font-mono text-xs text-fg-faint" aria-hidden="true">
+              {badge}
+            </kbd>
+          ) : null}
         </button>
       </ContextMenuTrigger>
       <ContextMenuContent>

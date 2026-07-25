@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { isEditableTarget } from "../../lib/is-editable-target";
+
 /**
  * Keyboard-first board navigation.
  *
@@ -100,12 +102,6 @@ export function focusAfterRemoval(layout: BoardLayout, focus: Focus): Focus {
 // ---------------------------------------------------------------------------
 // DOM adapters
 // ---------------------------------------------------------------------------
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
-}
 
 /** Read the board layout from `data-nav-*` markup within `root`, in DOM order. */
 export function readLayout(root: HTMLElement): BoardLayout {
