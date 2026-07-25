@@ -15,6 +15,8 @@ interface BoardColumnProps {
   isOver?: boolean;
   /** Opens the column's inline add-card composer; renders the header "+". */
   onAddCard?: () => void;
+  /** The column's 3-dots actions menu, rendered at the header's right edge. */
+  menu?: ReactNode;
 }
 
 /**
@@ -36,6 +38,7 @@ export function BoardColumn({
   dndStyle,
   isOver,
   onAddCard,
+  menu,
 }: BoardColumnProps) {
   const meta = STATUS_META[status];
   const empty = count === 0;
@@ -74,6 +77,7 @@ export function BoardColumn({
             <Plus className="size-3.5" />
           </button>
         ) : null}
+        {menu}
       </header>
 
       <div className="flex min-h-9 flex-1 flex-col gap-1.5 overflow-y-auto p-2">

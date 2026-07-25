@@ -134,6 +134,53 @@ describe("BoardColumn header", () => {
   });
 });
 
+describe("column archive menu", () => {
+  // Radix's dropdown trigger opens on pointerdown/keyboard, not a bare click.
+  const openMenu = (): void => {
+    fireEvent.keyDown(screen.getByRole("button", { name: "Column actions" }), { key: "Enter" });
+  };
+
+  it("archives every visible card in a column via the 3-dots menu + confirm", async () => {
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.InProgress, title: "A" });
+      execute(createCard, ctx, { status: Status.InProgress, title: "B" });
+    });
+
+    openMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Archive all" }));
+
+    // Confirmation names the count and the column.
+    expect(
+      await screen.findByRole("heading", {
+        name: `Archive all 2 cards in ${STATUS_META[Status.InProgress].name}?`,
+      }),
+    ).toBeVisible();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Archive all" }));
+    });
+
+    expect(cardsInStatus(ctx.getBoardDoc(), Status.InProgress)).toHaveLength(0);
+  });
+
+  it("shows no menu on an empty column (nothing to archive)", () => {
+    setup(); // no cards anywhere
+    expect(screen.queryByRole("button", { name: "Column actions" })).not.toBeInTheDocument();
+  });
+
+  it("archives nothing when the confirmation is cancelled", async () => {
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.InProgress, title: "A" });
+    });
+
+    openMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Archive all" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    expect(cardsInStatus(ctx.getBoardDoc(), Status.InProgress)).toHaveLength(1);
+  });
+});
+
 describe("BoardColumn drop feedback", () => {
   afterEach(() => cleanup());
 

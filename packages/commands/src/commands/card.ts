@@ -239,6 +239,25 @@ export const unarchiveCard = defineCommand({
   },
 });
 
+export const archiveCards = defineCommand({
+  name: "archiveCards",
+  description:
+    "Archive multiple cards at once (e.g. every visible card in a column). Ids that don't exist or are already archived are ignored.",
+  input: z.object({ cardIds: z.array(z.string()) }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    const actor = ctx.userId ?? ctx.clientId;
+    const archivedIds: string[] = [];
+    for (const cardId of input.cardIds) {
+      const card = syncGetCard(doc, cardId);
+      if (!card || card.archived) continue;
+      syncArchiveCard(doc, cardId, ctx.now(), actor);
+      archivedIds.push(cardId);
+    }
+    return { archivedIds, count: archivedIds.length };
+  },
+});
+
 export const addRelatedCard = defineCommand({
   name: "addRelatedCard",
   description: "Relate two cards (untyped, symmetric — the link shows on both cards).",

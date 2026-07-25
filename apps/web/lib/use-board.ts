@@ -23,6 +23,7 @@ import {
   addLink,
   addRelatedCard,
   archiveCard,
+  archiveCards,
   assignLabel,
   createCard,
   createLabel,
@@ -270,6 +271,8 @@ export interface CardActions {
   archive(cardId: string): void;
   /** Restore an archived card to the board (inverse of archive). */
   unarchive(cardId: string): void;
+  /** Archive many cards in one command (e.g. every visible card in a column). */
+  archiveMany(cardIds: string[]): void;
   /** Permanently delete a card (hard delete; distinct from archive). */
   delete(cardId: string): void;
   addRelated(cardId: string, relatedId: string): void;
@@ -343,6 +346,12 @@ export function useCardActions(): CardActions {
     },
     [ctx],
   );
+  const archiveMany = useCallback(
+    (cardIds: string[]) => {
+      execute(archiveCards, ctx, { cardIds });
+    },
+    [ctx],
+  );
   const del = useCallback(
     (cardId: string) => {
       execute(deleteCard, ctx, { cardId });
@@ -371,6 +380,7 @@ export function useCardActions(): CardActions {
     setProject,
     archive,
     unarchive,
+    archiveMany,
     delete: del,
     addRelated,
     removeRelated,

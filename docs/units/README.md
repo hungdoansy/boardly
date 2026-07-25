@@ -52,6 +52,9 @@ reuse a number namespace). The plans, newest last:
     `tauri:build`; Node toolchain pin bumped `22.17.1` → `24.15.0` to match the machine default.
   - `UNIT-P10` — highlight the just-added (or re-pasted duplicate) link in the card's Links list,
     fading out after a short hold.
+- `docs/plans/2026-07-24-001-feat-column-archive-menu-plan.md` — column header 3-dots actions menu:
+  - `UNIT-14` — add a `dropdown-menu` UI primitive, a bulk `archiveCards` command, and a column
+    3-dots menu whose "Archive all" archives the column's filter-visible cards after a confirm.
 
 ## Convention
 

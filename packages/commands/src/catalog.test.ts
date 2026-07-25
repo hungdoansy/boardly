@@ -40,6 +40,10 @@ describe("catalog", () => {
     expect(getCommand("setZoom")).toBeDefined();
   });
 
+  it("registers the bulk archiveCards command", () => {
+    expect(getCommand("archiveCards")).toBeDefined();
+  });
+
   it("registers the related-card commands", () => {
     expect(getCommand("addRelatedCard")).toBeDefined();
     expect(getCommand("removeRelatedCard")).toBeDefined();
