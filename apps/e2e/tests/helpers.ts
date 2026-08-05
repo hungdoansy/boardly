@@ -58,8 +58,10 @@ export async function createBoard(page: Page): Promise<void> {
 
 export async function addCard(page: Page, columnTitle: string, cardTitle: string): Promise<void> {
   const column = page.getByRole("region", { name: `Column: ${columnTitle}` });
-  // `exact` so we don't also match the "Add card with details" icon button.
-  await column.getByRole("button", { name: "Add card", exact: true }).click();
+  // `exact` so we don't also match the "Add card with details" icon button, and
+  // scoped to the header because UNIT-13 gave the header a "+" carrying the same
+  // aria-label as the footer composer button — unscoped, this matches both.
+  await column.locator("header").getByRole("button", { name: "Add card", exact: true }).click();
   const input = page.getByRole("textbox", { name: "New card title" });
   await input.fill(cardTitle);
   await input.press("Enter");

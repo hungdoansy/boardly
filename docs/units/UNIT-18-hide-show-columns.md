@@ -175,7 +175,20 @@ pnpm turbo build --filter @boardly/web && pnpm --filter @boardly/e2e e2e
 
 Covers hide-from-3-dots → **reload** → still hidden (the only real proof of device-local
 persistence), restore from the menu, a hidden column's card still listed in list view, and a
-dark-mode screenshot baseline of the open menu.
+dark-mode screenshot baseline of the open menu (`snapshots/board.spec.ts-snapshots/columns-menu-dark-chromium-darwin.png`).
+All 7 tests in `board.spec.ts` pass.
+
+**One adjacent fix was required to get there.** The shared `addCard` helper did
+`column.getByRole("button", { name: "Add card", exact: true })`, which has matched **two** elements
+ever since UNIT-13 gave the column header a "+" carrying the same `aria-label` as the footer
+composer button — a Playwright strict-mode violation that failed 6 of the 7 board tests before this
+unit existed. The locator is now scoped to `column.locator("header")`.
+
+**Pre-existing e2e drift (not caused by this unit).** `a11y.spec.ts`, `auth.spec.ts`, `card.spec.ts`,
+`focus-mode.spec.ts`, and `list.spec.ts` still fail. This was verified rather than assumed: the same
+specs were run from a detached worktree at `307b5f0` (the commit before this work), where they fail
+too — in fact more of them do. Symptoms are a missing "Sign out" control, click timeouts, and a
+~1%-pixel `list-grouped-dark` baseline diff. Unrelated to columns; see the repo's known gate drift.
 
 **What "correct" looks like** (dark mode, per `DESIGN.md`): the trigger is quiet `text-fg-muted` at
 `text-xs` with a `Columns3` icon, reading `Columns · 2 hidden` when something is hidden. Rows carry

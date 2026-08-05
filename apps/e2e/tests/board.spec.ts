@@ -1,6 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { addCard, createBoard, signUp, STATUS_COLUMNS } from "./helpers";
+
+const openColumnsMenu = (page: Page): Promise<void> =>
+  page.getByRole("button", { name: /^Columns/ }).click();
+
+// The menu is modal — it `aria-hidden`s the board, so column assertions have to
+// wait until it closes.
+const closeMenu = (page: Page): Promise<void> => page.keyboard.press("Escape");
 
 test.describe("board", () => {
   test("renders the fixed status columns (no add-column) and places cards by status", async ({
@@ -27,20 +34,101 @@ test.describe("board", () => {
     await expect(inProgress.getByRole("button", { name: "Card: Ship the feature" })).toBeVisible();
   });
 
-  test("hide-empty-columns toggle hides zero-card columns", async ({ page }) => {
+  test("show-empty-columns toggle hides zero-card columns", async ({ page }) => {
     await signUp(page);
     await createBoard(page);
     await addCard(page, "Todo", "The only card");
 
-    await page.getByRole("button", { name: "Hide empty columns" }).click();
+    await openColumnsMenu(page);
+    await page.getByRole("menuitemcheckbox", { name: /Show empty columns/ }).click();
+    await closeMenu(page);
 
     // Only the populated column remains; the empty ones are hidden.
     await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Column: Backlog" })).toHaveCount(0);
 
     // Turning it back on restores all eight.
-    await page.getByRole("button", { name: "Show empty columns" }).click();
+    await openColumnsMenu(page);
+    await page.getByRole("menuitemcheckbox", { name: /Show empty columns/ }).click();
+    await closeMenu(page);
     await expect(page.getByRole("region", { name: "Column: Backlog" })).toBeVisible();
+  });
+
+  test("hides a column from its 3-dots menu and keeps it hidden across a reload", async ({
+    page,
+  }) => {
+    await signUp(page);
+    await createBoard(page);
+    await addCard(page, "Todo", "Still here");
+
+    await page.getByRole("button", { name: "Duplicate column actions" }).click();
+    await page.getByRole("menuitem", { name: "Hide" }).click();
+
+    await expect(page.getByRole("region", { name: "Column: Duplicate" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Columns, 1 hidden" })).toBeVisible();
+
+    // The preference is device-local (localStorage), so a reload is the only
+    // real proof it persists — jsdom tests cannot show this.
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Column: Duplicate" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Columns, 1 hidden" })).toBeVisible();
+  });
+
+  test("restores hidden columns from the Columns menu", async ({ page }) => {
+    await signUp(page);
+    await createBoard(page);
+
+    // Hide two, one from each surface.
+    await page.getByRole("button", { name: "Canceled column actions" }).click();
+    await page.getByRole("menuitem", { name: "Hide" }).click();
+    await openColumnsMenu(page);
+    await page.getByRole("menuitemcheckbox", { name: /^Backlog/ }).click();
+
+    // Re-checking one row brings that column back at its STATUS_ORDER position.
+    await page.getByRole("menuitemcheckbox", { name: /^Backlog/ }).click();
+    await closeMenu(page);
+    await expect(page.getByRole("region", { name: "Column: Backlog" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Column: Canceled" })).toHaveCount(0);
+
+    // "Show all columns" clears the rest.
+    await openColumnsMenu(page);
+    await page.getByRole("menuitem", { name: "Show all columns" }).click();
+    for (const name of STATUS_COLUMNS) {
+      await expect(page.getByRole("region", { name: `Column: ${name}` })).toBeVisible();
+    }
+  });
+
+  test("a card in a hidden column is not archived — it still shows in list view", async ({
+    page,
+  }) => {
+    await signUp(page);
+    await createBoard(page);
+    await addCard(page, "Todo", "Hidden but alive");
+
+    await page.getByRole("button", { name: "Todo column actions" }).click();
+    await page.getByRole("menuitem", { name: "Hide" }).click();
+    await expect(page.getByRole("region", { name: "Column: Todo" })).toHaveCount(0);
+
+    // The menu still reports the card, so it is discoverable rather than lost.
+    await openColumnsMenu(page);
+    await expect(page.getByRole("menuitemcheckbox", { name: /^Todo/ })).toContainText("1");
+    await closeMenu(page);
+
+    await page.getByRole("button", { name: "List", exact: true }).click();
+    await expect(page.getByText("Hidden but alive")).toBeVisible();
+  });
+
+  test("dark-theme Columns menu matches the visual baseline", async ({ page }) => {
+    await signUp(page);
+    await createBoard(page);
+    await addCard(page, "Todo", "Design the dashboard");
+
+    await page.getByRole("button", { name: "Canceled column actions" }).click();
+    await page.getByRole("menuitem", { name: "Hide" }).click();
+    await openColumnsMenu(page);
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(page).toHaveScreenshot("columns-menu-dark.png", { maxDiffPixelRatio: 0.03 });
   });
 
   test("dark-theme board matches the visual baseline", async ({ page }) => {
