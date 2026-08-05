@@ -28,6 +28,8 @@ test.describe("auth", () => {
 
   test("logout returns to /login; the account can log back in", async ({ page }) => {
     const email = await signUp(page);
+    // Sign out sits inside the sidebar account popover.
+    await page.getByRole("button", { name: "Account" }).click();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login\/?$/);
     await logIn(page, email);

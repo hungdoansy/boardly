@@ -10,8 +10,13 @@ test.describe("accessibility / keyboard", () => {
     await expect(page.getByRole("button", { name: "Search /" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Projects" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Switch to (light|dark) theme/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Column: Todo" })).toBeVisible();
+    // Sign out lives behind the sidebar account popover — the trigger is named,
+    // and so is the item it reveals.
+    const account = page.getByRole("button", { name: "Account" });
+    await expect(account).toBeVisible();
+    await account.click();
+    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   });
 
   test("a card is keyboard-focusable and opens / closes with Enter / Escape", async ({ page }) => {
