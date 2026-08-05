@@ -9,6 +9,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
+import { showAllColumns } from "../../lib/hidden-columns";
 import { BoardView } from "./board-view";
 import { BoardColumn } from "./column";
 
@@ -26,7 +27,34 @@ function setup(seed?: (ctx: MemoryContext) => void) {
 
 afterEach(() => {
   cleanup();
+  // The hidden-columns store is a module singleton — reset it or hides leak
+  // into the next test.
+  showAllColumns();
+  localStorage.clear();
 });
+
+/**
+ * Open the toolbar's Columns menu. Radix's dropdown trigger opens on
+ * pointerdown/keyboard, not a bare click; Enter is the deterministic path.
+ */
+function openColumnsMenu(): void {
+  fireEvent.keyDown(screen.getByRole("button", { name: /^Columns/ }), { key: "Enter" });
+}
+
+/**
+ * Radix renders the menu as a modal, which `aria-hidden`s the rest of the page —
+ * so the board's columns are invisible to role queries until it closes. Every
+ * helper that touches the menu closes it again before returning.
+ */
+function closeMenu(): void {
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+}
+
+async function toggleShowEmptyColumns(): Promise<void> {
+  openColumnsMenu();
+  fireEvent.click(await screen.findByRole("menuitemcheckbox", { name: /Show empty columns/ }));
+  closeMenu();
+}
 
 describe("BoardView fixed status columns", () => {
   it("renders exactly the eight status columns in STATUS_ORDER", () => {
@@ -46,7 +74,7 @@ describe("BoardView fixed status columns", () => {
     expect(screen.queryByRole("textbox", { name: "Column name" })).not.toBeInTheDocument();
   });
 
-  it("hides zero-card columns when 'hide empty' is toggled, and persists the flag", () => {
+  it("hides zero-card columns when 'show empty' is toggled off, and persists the flag", async () => {
     const { ctx } = setup((ctx) => {
       execute(createCard, ctx, { status: Status.InProgress, title: "Only one" });
     });
@@ -54,7 +82,7 @@ describe("BoardView fixed status columns", () => {
     // All eight visible while showEmptyColumns is on (the default).
     expect(screen.getAllByRole("region")).toHaveLength(STATUS_ORDER.length);
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide empty columns" }));
+    await toggleShowEmptyColumns();
 
     // Command persisted the flag to board meta, and only the populated column shows.
     expect(getBoard(ctx.getBoardDoc(), "me").showEmptyColumns).toBe(false);
@@ -65,12 +93,12 @@ describe("BoardView fixed status columns", () => {
     );
 
     // Turning it back on restores all eight.
-    fireEvent.click(screen.getByRole("button", { name: "Show empty columns" }));
+    await toggleShowEmptyColumns();
     expect(getBoard(ctx.getBoardDoc(), "me").showEmptyColumns).toBe(true);
     expect(screen.getAllByRole("region")).toHaveLength(STATUS_ORDER.length);
   });
 
-  it("reacts to an in-session status change while hiding empty columns", () => {
+  it("reacts to an in-session status change while hiding empty columns", async () => {
     // Regression: card counts subscribe to nested Y.Map status changes (deep),
     // so moving a card re-derives which columns are non-empty without a reload.
     const { ctx } = setup((ctx) => {
@@ -78,7 +106,7 @@ describe("BoardView fixed status columns", () => {
     });
     const cardId = cardsInStatus(ctx.getBoardDoc(), Status.Todo)[0]!.id;
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide empty columns" }));
+    await toggleShowEmptyColumns();
     expect(screen.getAllByRole("region")).toHaveLength(1);
     expect(screen.getByRole("region").getAttribute("aria-label")).toBe(
       `Column: ${STATUS_META[Status.Todo].name}`,
@@ -135,9 +163,13 @@ describe("BoardColumn header", () => {
 });
 
 describe("column archive menu", () => {
-  // Radix's dropdown trigger opens on pointerdown/keyboard, not a bare click.
-  const openMenu = (): void => {
-    fireEvent.keyDown(screen.getByRole("button", { name: "Column actions" }), { key: "Enter" });
+  // Every column carries a 3-dots menu now (UNIT-18 made empty columns hideable),
+  // so the trigger must be addressed per column or the query matches all eight.
+  const openMenu = (status: Status = Status.InProgress): void => {
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: `${STATUS_META[status].name} column actions` }),
+      { key: "Enter" },
+    );
   };
 
   it("archives every visible card in a column via the 3-dots menu + confirm", async () => {
@@ -163,9 +195,11 @@ describe("column archive menu", () => {
     expect(cardsInStatus(ctx.getBoardDoc(), Status.InProgress)).toHaveLength(0);
   });
 
-  it("shows no menu on an empty column (nothing to archive)", () => {
+  it("offers Hide but not Archive all on an empty column", async () => {
     setup(); // no cards anywhere
-    expect(screen.queryByRole("button", { name: "Column actions" })).not.toBeInTheDocument();
+    openMenu(Status.Todo);
+    await screen.findByRole("menuitem", { name: "Hide" });
+    expect(screen.queryByRole("menuitem", { name: "Archive all" })).not.toBeInTheDocument();
   });
 
   it("archives nothing when the confirmation is cancelled", async () => {

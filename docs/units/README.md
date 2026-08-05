@@ -55,6 +55,10 @@ reuse a number namespace). The plans, newest last:
 - `docs/plans/2026-07-24-001-feat-column-archive-menu-plan.md` — column header 3-dots actions menu:
   - `UNIT-14` — add a `dropdown-menu` UI primitive, a bulk `archiveCards` command, and a column
     3-dots menu whose "Archive all" archives the column's filter-visible cards after a confirm.
+- `docs/plans/2026-08-05-001-feat-hide-show-columns-plan.md` — hide and restore board columns:
+  - `UNIT-18` — a `DropdownMenuCheckboxItem` primitive, a device-local `hidden-columns` store, a
+    `Hide` item in the column 3-dots menu, and a board-toolbar **Columns** menu that restores
+    hidden columns (and absorbs the old "Show empty columns" button).
 
 ## Convention
 

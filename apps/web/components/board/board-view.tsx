@@ -10,20 +10,17 @@ import {
   visibleCardIdsByStatus,
 } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
-import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@boardly/ui";
 import { useCallback, useMemo, useRef } from "react";
 
 import { useAuthSession } from "../../lib/auth-store";
 import { useBoardlyContext } from "../../lib/boardly-context";
-import {
-  useAllCards,
-  useCardActions,
-  useSetShowEmptyColumns,
-  useShowEmptyColumns,
-} from "../../lib/use-board";
+import { showAllColumns, useHiddenStatuses } from "../../lib/hidden-columns";
+import { useAllCards, useCardActions, useShowEmptyColumns } from "../../lib/use-board";
 import { useSelectedCard } from "../../lib/use-boards";
 import { CardDetail } from "../card/card-detail";
 import { ColumnCards } from "./column-cards";
+import { ColumnsMenu } from "./columns-menu";
 import { BoardDndProvider, StatusColumn } from "./dnd";
 import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
 import { Swimlanes } from "./swimlanes";
@@ -34,7 +31,7 @@ export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: Grou
   const allCards = useAllCards();
   const cardActions = useCardActions();
   const showEmptyColumns = useShowEmptyColumns();
-  const setShowEmptyColumns = useSetShowEmptyColumns();
+  const hiddenStatuses = useHiddenStatuses();
   const [openCardId, setOpenCardId] = useSelectedCard();
   const { userId } = useAuthSession();
   const filterCtx: FilterContext = useMemo(
@@ -57,13 +54,16 @@ export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: Grou
     [allCards, filter, filterCtx],
   );
 
-  // Fixed columns: the eight statuses in STATUS_ORDER. When "hide empty" is on,
-  // drop columns with no cards *matching the active filter* — a status whose
-  // cards are all filtered out hides too.
-  const visibleStatuses = useMemo(
-    () => (showEmptyColumns ? STATUS_ORDER : STATUS_ORDER.filter((s) => (counts[s] ?? 0) > 0)),
-    [showEmptyColumns, counts],
-  );
+  // Fixed columns: the eight statuses in STATUS_ORDER, narrowed by two
+  // independent rules (UNIT-18). Explicit per-column hiding is the stronger of
+  // the two — turning "show empty" back on, or a card landing in a hidden
+  // column, never resurrects a column the user deliberately hid. When "hide
+  // empty" is on, drop columns with no cards *matching the active filter*, so a
+  // status whose cards are all filtered out hides too.
+  const visibleStatuses = useMemo(() => {
+    const hidden = new Set(hiddenStatuses);
+    return STATUS_ORDER.filter((s) => !hidden.has(s) && (showEmptyColumns || (counts[s] ?? 0) > 0));
+  }, [hiddenStatuses, showEmptyColumns, counts]);
 
   const ctx = useBoardlyContext();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -112,32 +112,35 @@ export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: Grou
     <BoardDndProvider>
       <div className="flex h-full flex-col">
         <div className="flex h-9 shrink-0 items-center justify-end border-b border-line-subtle px-4">
-          <button
-            type="button"
-            aria-pressed={!showEmptyColumns}
-            onClick={() => setShowEmptyColumns(!showEmptyColumns)}
-            className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-xs text-fg-muted transition-colors hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            {showEmptyColumns ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-            {showEmptyColumns ? "Hide empty columns" : "Show empty columns"}
-          </button>
+          <ColumnsMenu counts={counts} />
         </div>
         <div ref={boardRef} className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
-          {visibleStatuses.map((status) => (
-            <StatusColumn
-              key={status}
-              status={status}
-              count={counts[status] ?? 0}
-              visibleCardIds={visibleIds[status] ?? []}
-            >
-              <ColumnCards
+          {visibleStatuses.length === 0 ? (
+            // Every column hidden. The toolbar menu above is still the real
+            // escape hatch; this just says so where the user is looking.
+            <div className="flex flex-1 flex-col items-center gap-3 py-16">
+              <p className="text-sm text-fg-muted">Every column is hidden.</p>
+              <Button variant="outline" size="sm" onClick={() => showAllColumns()}>
+                Show all columns
+              </Button>
+            </div>
+          ) : (
+            visibleStatuses.map((status) => (
+              <StatusColumn
+                key={status}
                 status={status}
-                onOpenCard={setOpenCardId}
-                filter={filter}
-                filterCtx={filterCtx}
-              />
-            </StatusColumn>
-          ))}
+                count={counts[status] ?? 0}
+                visibleCardIds={visibleIds[status] ?? []}
+              >
+                <ColumnCards
+                  status={status}
+                  onOpenCard={setOpenCardId}
+                  filter={filter}
+                  filterCtx={filterCtx}
+                />
+              </StatusColumn>
+            ))
+          )}
         </div>
       </div>
 

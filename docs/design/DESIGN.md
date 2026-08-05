@@ -107,11 +107,33 @@ elsewhere.
 Cards in a `completed` or `canceled` category (Done, Canceled, Duplicate) render dimmed with a
 struck-through title. Each column header shows the status icon (color swatch) + name + live count;
 headers are **not** editable. On the right, the header carries an add-card **+** and a 3-dots
-(`MoreHorizontal`) **actions menu** (a `dropdown-menu`). The menu's only item today is **Archive
-all**, which archives every card the column currently shows under the active filter (the count in
-the confirmation matches the header count) after a confirmation dialog — the same dialog shape as
-the card Delete confirm, but a neutral primary "Archive all" button (archiving is non-destructive).
-The menu is omitted on an empty column (nothing to archive).
+(`MoreHorizontal`) **actions menu** (a `dropdown-menu`) — present on **every** column, empty ones
+included. Its items:
+
+- **Archive all** — archives every card the column currently shows under the active filter (the
+  count in the confirmation matches the header count) after a confirmation dialog: the same dialog
+  shape as the card Delete confirm, but a neutral primary "Archive all" button (archiving is
+  non-destructive). Omitted when the column is empty.
+- **Hide** (`EyeOff`, UNIT-18) — drops the column from the board. **No confirmation**: it touches no
+  data and the toolbar's Columns menu restores it in one click.
+
+Because every column has a menu, the trigger's accessible name is per column
+(`"In Progress column actions"`), not a shared label.
+
+**Column visibility (UNIT-18).** The board toolbar's right edge holds one **Columns** dropdown
+(`Columns3` icon, quiet `text-xs` `text-fg-muted`) reading `Columns`, or `Columns · N hidden` when
+something is hidden (with an `aria-label` of `"Columns, N hidden"`). It contains a
+`DropdownMenuCheckboxItem` per status — status icon + name + right-aligned `tabular-nums` count in
+`text-fg-faint`, checked = visible — then a separator, the **Show empty columns** toggle (this
+replaced the old standalone toolbar button), and **Show all columns** (disabled when nothing is
+hidden). Rows `preventDefault()` their select so the menu survives multiple toggles.
+
+The two rules compose as `!hidden ∧ (showEmptyColumns ∨ count > 0)` — explicit hiding wins, so
+neither re-enabling show-empty nor a card landing in a hidden column brings it back. A hidden
+column's cards are never archived or filtered, only unlaid-out; the per-row counts are how the user
+finds them. Hiding all eight renders a centered "Every column is hidden." with a restore button.
+Hiding is **device-local** (localStorage), unlike the synced `showEmptyColumns` — see
+`docs/units/UNIT-18-hide-show-columns.md`.
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
 
