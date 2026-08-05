@@ -103,6 +103,29 @@ export function DropdownMenuRadioItem({
   );
 }
 
+/**
+ * A multi-select menu item (`role="menuitemcheckbox"`). Visually identical to
+ * {@link DropdownMenuRadioItem} — only the semantics differ. Radix closes the
+ * menu on select, so a menu of several of these should `preventDefault()` in
+ * `onSelect` to stay open across toggles.
+ */
+export function DropdownMenuCheckboxItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem className={cn(itemBase, "pr-7", className)} {...props}>
+      {children}
+      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <Check className="size-3.5 text-[var(--accent)]" aria-hidden="true" />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+    </DropdownMenuPrimitive.CheckboxItem>
+  );
+}
+
 export function DropdownMenuLabel({
   className,
   ...props

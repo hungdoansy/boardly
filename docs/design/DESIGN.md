@@ -107,11 +107,33 @@ elsewhere.
 Cards in a `completed` or `canceled` category (Done, Canceled, Duplicate) render dimmed with a
 struck-through title. Each column header shows the status icon (color swatch) + name + live count;
 headers are **not** editable. On the right, the header carries an add-card **+** and a 3-dots
-(`MoreHorizontal`) **actions menu** (a `dropdown-menu`). The menu's only item today is **Archive
-all**, which archives every card the column currently shows under the active filter (the count in
-the confirmation matches the header count) after a confirmation dialog — the same dialog shape as
-the card Delete confirm, but a neutral primary "Archive all" button (archiving is non-destructive).
-The menu is omitted on an empty column (nothing to archive).
+(`MoreHorizontal`) **actions menu** (a `dropdown-menu`) — present on **every** column, empty ones
+included. Its items:
+
+- **Archive all** — archives every card the column currently shows under the active filter (the
+  count in the confirmation matches the header count) after a confirmation dialog: the same dialog
+  shape as the card Delete confirm, but a neutral primary "Archive all" button (archiving is
+  non-destructive). Omitted when the column is empty.
+- **Hide** (`EyeOff`, UNIT-18) — drops the column from the board. **No confirmation**: it touches no
+  data and the toolbar's Columns menu restores it in one click.
+
+Because every column has a menu, the trigger's accessible name is per column
+(`"In Progress column actions"`), not a shared label.
+
+**Column visibility (UNIT-18).** The board toolbar's right edge holds one **Columns** dropdown
+(`Columns3` icon, quiet `text-xs` `text-fg-muted`) reading `Columns`, or `Columns · N hidden` when
+something is hidden (with an `aria-label` of `"Columns, N hidden"`). It contains a
+`DropdownMenuCheckboxItem` per status — status icon + name + right-aligned `tabular-nums` count in
+`text-fg-faint`, checked = visible — then a separator, the **Show empty columns** toggle (this
+replaced the old standalone toolbar button), and **Show all columns** (disabled when nothing is
+hidden). Rows `preventDefault()` their select so the menu survives multiple toggles.
+
+The two rules compose as `!hidden ∧ (showEmptyColumns ∨ count > 0)` — explicit hiding wins, so
+neither re-enabling show-empty nor a card landing in a hidden column brings it back. A hidden
+column's cards are never archived or filtered, only unlaid-out; the per-row counts are how the user
+finds them. Hiding all eight renders a centered "Every column is hidden." with a restore button.
+Hiding is **device-local** (localStorage), unlike the synced `showEmptyColumns` — see
+`docs/units/UNIT-18-hide-show-columns.md`.
 
 **Priority:** Urgent `#EB5757`, High `#E2B341`, Medium `#4EA7FC`, Low `#6B6F76`, None `--text-tertiary` (faint). Use Linear-style bar-height icons, not big blobs.
 
@@ -236,22 +258,23 @@ follows `prefers-color-scheme` and live-updates. A sidebar toggle flips dark↔l
 
 Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 
-| Boardly UI                              | shadcn/ui base                     | Notes                                                                 |
-| --------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| Buttons (primary/ghost/outline/danger)  | `button`                           | Primary = accent; ghost is the default for dense toolbars             |
-| Card detail panel                       | `sheet` (right side)               | Full-screen on narrow viewports                                       |
-| Modals (confirm, board create)          | `dialog`                           | slow enter, backdrop fade                                             |
-| Command palette (⌘K)                    | `command` (cmdk)                   | keyboard hub; fuzzy filter                                            |
-| Menus (card `⋯`, column `⋯`)            | `dropdown-menu`, `context-menu`    | right-click card → context-menu; column header 3-dots → dropdown-menu |
-| Selects (status, priority, assignee)    | `popover` + `command`, or `select` | status/priority use a searchable popover list                         |
-| Labels / due pickers                    | `popover`                          |                                                                       |
-| Tooltips (icon buttons, truncated text) | `tooltip`                          | base duration; delay ~300ms                                           |
-| Inputs / textareas                      | `input`, `textarea`                | 30px height; subtle border → accent ring on focus                     |
-| Checkbox (checklist)                    | `checkbox`                         | animated check                                                        |
-| Avatars (assignee)                      | `avatar`                           | 20–24px on card face                                                  |
-| Tabs (views/settings)                   | `tabs`                             |                                                                       |
-| Long lists                              | `scroll-area`                      | virtualize if perf demands                                            |
-| Toasts (sync/errors)                    | `sonner`                           | bottom-right, quiet                                                   |
+| Boardly UI                              | shadcn/ui base                     | Notes                                                                                                                                                                                                                                                |
+| --------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buttons (primary/ghost/outline/danger)  | `button`                           | Primary = accent; ghost is the default for dense toolbars                                                                                                                                                                                            |
+| Card detail panel                       | `sheet` (right side)               | Full-screen on narrow viewports                                                                                                                                                                                                                      |
+| Modals (confirm, board create)          | `dialog`                           | slow enter, backdrop fade                                                                                                                                                                                                                            |
+| Command palette (⌘K)                    | `command` (cmdk)                   | keyboard hub; fuzzy filter                                                                                                                                                                                                                           |
+| Menus (card `⋯`, column `⋯`)            | `dropdown-menu`, `context-menu`    | right-click card → context-menu; column header 3-dots → dropdown-menu                                                                                                                                                                                |
+| Multi-toggle menu rows (board columns)  | `dropdown-menu` `CheckboxItem`     | `role="menuitemcheckbox"`; check indicator is a lucide SVG, right-aligned in a `pr-7` gutter — visually identical to `RadioItem`, only the semantics differ. A menu of several must `preventDefault()` in `onSelect` so it stays open across toggles |
+| Selects (status, priority, assignee)    | `popover` + `command`, or `select` | status/priority use a searchable popover list                                                                                                                                                                                                        |
+| Labels / due pickers                    | `popover`                          |                                                                                                                                                                                                                                                      |
+| Tooltips (icon buttons, truncated text) | `tooltip`                          | base duration; delay ~300ms                                                                                                                                                                                                                          |
+| Inputs / textareas                      | `input`, `textarea`                | 30px height; subtle border → accent ring on focus                                                                                                                                                                                                    |
+| Checkbox (checklist)                    | `checkbox`                         | animated check                                                                                                                                                                                                                                       |
+| Avatars (assignee)                      | `avatar`                           | 20–24px on card face                                                                                                                                                                                                                                 |
+| Tabs (views/settings)                   | `tabs`                             |                                                                                                                                                                                                                                                      |
+| Long lists                              | `scroll-area`                      | virtualize if perf demands                                                                                                                                                                                                                           |
+| Toasts (sync/errors)                    | `sonner`                           | bottom-right, quiet                                                                                                                                                                                                                                  |
 
 Icons: **lucide-react**, 14–16px on card face, 16–18px in toolbars, `--text-secondary` default, `--text-primary`/accent when active. Link chips detect ~45 common providers — issue trackers (Linear, GitHub, GitLab, Jira), docs/design/media (Figma, Notion, Confluence, the Google Docs/Sheets/Drive/Calendar/Meet family, Loom, Miro, Dropbox, Spotify, YouTube, Vimeo, Twitch, Behance, Dribbble), work tools (Zoom, Asana, Trello, Airtable, Slack, Discord, WhatsApp, Telegram, Bitbucket, npm, Docker Hub, CodePen, Replit, Stripe), and general web/social (Facebook, Twitter/X, Instagram, LinkedIn, Reddit, TikTok, Pinterest, Medium, Stack Overflow, Wikipedia) — and render one **bundled brand SVG each** from `@thesvg/icons` (github.com/glincker/thesvg) — none fetched over the network. Each icon's `svg` field is a complete, self-contained markup string injected verbatim (`dangerouslySetInnerHTML`, safe here since it's build-time package data, never user/link input); the package's separate `hex` metadata field is unreliable for several brands (wrong for Slack/LinkedIn/Notion in spot checks) so it's never read. Every provider icon renders at a fixed `size-3` (12px) regardless of brand. A brand mark with <3:1 contrast against the card surface, computed via the WCAG relative-luminance formula (GitHub, Notion, Jira, Confluence, Trello, Miro, Twitter/X, TikTok, Medium, Bitbucket, Wikipedia, CodePen) renders via the package's `mono` variant + `currentColor`/`text-fg-muted` instead of its colored default, so it stays legible in both themes. (GitHub's colored `default` asset also has a data bug — mismatched viewBox/path scale — independent reason to prefer its `mono` variant.) Several marks (Figma, Instagram, Reddit, TikTok, Telegram, Zoom, Facebook, the Google Sheets/Calendar/Meet icons) define internal gradient/clip-path ids referenced via `url(#x)`; each render scopes those ids with `React.useId()` (`scope-svg-ids.ts`) so two instances of the same — or a different — icon on the same page never resolve each other's ids.
 

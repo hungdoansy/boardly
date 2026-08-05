@@ -11,20 +11,28 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@boardly/ui";
-import { Archive, MoreHorizontal } from "lucide-react";
+import { Archive, EyeOff, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
+import { setColumnHidden } from "../../lib/hidden-columns";
 import { useCardActions } from "../../lib/use-board";
 
 /**
- * The column header's 3-dots ("more") menu. Its one action, "Archive all",
- * archives every card currently visible in the column — the ids the board passes
- * in are already scoped to the active filter, so the confirmation count matches
- * the header count exactly. Archiving routes through the command-backed
- * `archiveMany` (agent-native parity). Renders nothing for an empty column:
- * there is nothing to archive and no other menu item yet.
+ * The column header's 3-dots ("more") menu.
+ *
+ * "Archive all" archives every card currently visible in the column — the ids
+ * the board passes in are already scoped to the active filter, so the
+ * confirmation count matches the header count exactly. Archiving routes through
+ * the command-backed `archiveMany` (agent-native parity), and confirms first
+ * because it mutates card data.
+ *
+ * "Hide" drops the column from the board (UNIT-18). It always renders, on empty
+ * columns too — an unused column is the likeliest thing to want gone. There is
+ * deliberately no confirmation: hiding touches no data and the toolbar's Columns
+ * menu undoes it in one click, so a dialog would imply a weight it does not have.
  */
 export function ColumnMenu({
   status,
@@ -37,8 +45,6 @@ export function ColumnMenu({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const count = visibleCardIds.length;
-  if (count === 0) return null;
-
   const statusName = STATUS_META[status].name;
   const noun = count === 1 ? "card" : "cards";
 
@@ -46,16 +52,25 @@ export function ColumnMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger
-          aria-label="Column actions"
+          aria-label={`${statusName} column actions`}
           title="Column actions"
           className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] text-fg-faint transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] data-[state=open]:bg-hover data-[state=open]:text-fg"
         >
           <MoreHorizontal className="size-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setConfirmOpen(true)}>
-            <Archive className="size-3.5 text-fg-faint" aria-hidden="true" />
-            Archive all
+          {count > 0 ? (
+            <>
+              <DropdownMenuItem onSelect={() => setConfirmOpen(true)}>
+                <Archive className="size-3.5 text-fg-faint" aria-hidden="true" />
+                Archive all
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+          <DropdownMenuItem onSelect={() => setColumnHidden(status, true)}>
+            <EyeOff className="size-3.5 text-fg-faint" aria-hidden="true" />
+            Hide
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
