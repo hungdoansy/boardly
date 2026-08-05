@@ -1,7 +1,7 @@
 ---
 title: "feat: Hide and restore board columns"
 type: feat
-status: active
+status: complete
 date: 2026-08-05
 ---
 
@@ -193,7 +193,7 @@ flowchart LR
 
 ---
 
-- [ ] **Unit 1: `DropdownMenuCheckboxItem` primitive**
+- [x] **Unit 1: `DropdownMenuCheckboxItem` primitive**
 
 **Goal:** Add a checkbox item to the shared dropdown-menu primitive so the toolbar menu can render
 multi-select toggles that look identical to the rest of the menu system.
@@ -238,7 +238,7 @@ multi-select toggles that look identical to the rest of the menu system.
 
 ---
 
-- [ ] **Unit 2: Device-local `hidden-columns` store**
+- [x] **Unit 2: Device-local `hidden-columns` store**
 
 **Goal:** A localStorage-backed, `useSyncExternalStore`-driven store holding the set of hidden
 statuses, with a pure parser for stale/corrupt values.
@@ -303,7 +303,7 @@ core of the unit and cheapest to pin down before the stateful shell exists.
 
 ---
 
-- [ ] **Unit 3: `Columns` toolbar menu (restore path)**
+- [x] **Unit 3: `Columns` toolbar menu (restore path)**
 
 **Goal:** Replace the board toolbar's lone hide-empty button with a `Columns` dropdown that lists
 every status with its live count and a checkbox, folds in the show-empty toggle, and offers
@@ -382,7 +382,7 @@ every status with its live count and a checkbox, folds in the show-empty toggle,
 
 ---
 
-- [ ] **Unit 4: `Hide` in the column 3-dots menu**
+- [x] **Unit 4: `Hide` in the column 3-dots menu**
 
 **Goal:** Add `Hide` to each column header's actions menu, and make that menu render for empty
 columns so empty columns are hideable.
@@ -445,7 +445,7 @@ columns so empty columns are hideable.
 
 ---
 
-- [ ] **Unit 5: End-to-end coverage and documentation**
+- [x] **Unit 5: End-to-end coverage and documentation**
 
 **Goal:** Prove the flow in a real browser and satisfy the repo's same-commit documentation rule.
 
