@@ -60,6 +60,7 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
   DropdownMenuRadioItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "./components/dropdown-menu";
