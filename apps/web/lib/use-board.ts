@@ -43,6 +43,7 @@ import {
   setCardDueDate,
   setCardPriority,
   setCardProject,
+  setCardsStatus,
   setCardStatus,
   setChecklistItemText,
   setShowEmptyColumns,
@@ -266,6 +267,11 @@ export interface CardActions {
   setDescription(cardId: string, description: string): void;
   setPriority(cardId: string, priority: PriorityValue): void;
   setStatus(cardId: string, status: Status): void;
+  /**
+   * Set many cards' status in one command (e.g. mark every visible card in a
+   * column done). Cards already at that status are left untouched.
+   */
+  setStatusMany(cardIds: string[], status: Status): void;
   setDueDate(cardId: string, dueDate: DueDate | null): void;
   setProject(cardId: string, projectId: string | null): void;
   archive(cardId: string): void;
@@ -319,6 +325,12 @@ export function useCardActions(): CardActions {
   const setStatus = useCallback(
     (cardId: string, status: Status) => {
       execute(setCardStatus, ctx, { cardId, status });
+    },
+    [ctx],
+  );
+  const setStatusMany = useCallback(
+    (cardIds: string[], status: Status) => {
+      execute(setCardsStatus, ctx, { cardIds, status });
     },
     [ctx],
   );
@@ -376,6 +388,7 @@ export function useCardActions(): CardActions {
     setDescription,
     setPriority,
     setStatus,
+    setStatusMany,
     setDueDate,
     setProject,
     archive,

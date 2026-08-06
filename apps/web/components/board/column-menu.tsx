@@ -1,6 +1,6 @@
 "use client";
 
-import { type Status, STATUS_META } from "@boardly/domain";
+import { isDoneStatus, Status, STATUS_META } from "@boardly/domain";
 import {
   Button,
   Dialog,
@@ -13,21 +13,44 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  StatusIcon,
+  type StatusVariant,
 } from "@boardly/ui";
-import { Archive, EyeOff, MoreHorizontal } from "lucide-react";
+import { Archive, Check, EyeOff, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
 import { setColumnHidden } from "../../lib/hidden-columns";
 import { useCardActions } from "../../lib/use-board";
 
+/** Which bulk action is awaiting confirmation (at most one dialog is ever open). */
+type PendingBulk = "done" | "archive" | null;
+
+/*
+ * The confirmation bodies are built as strings, not written as JSX prose.
+ *
+ * A JSX text run that wraps onto a second source line loses the space that
+ * preceded it, so `…{it ? "it" : "them"} from the board. <wraps here> …` renders
+ * as "themfrom the board" — and Prettier deletes the `{" "}` that would fix it,
+ * because Babel's whitespace rules (which Prettier models) say the space
+ * survives. A template literal keeps the compiler out of the copy entirely.
+ */
+const doneBody = (count: number): string =>
+  `This moves ${count === 1 ? "it" : "them"} to the Done column. ` +
+  `Cards hidden by the current filter aren’t touched.`;
+
+const archiveBody = (count: number): string =>
+  `This removes ${count === 1 ? "it" : "them"} from the board. ` +
+  `Archived cards aren’t deleted — unlike deleting, archiving keeps them.`;
+
 /**
  * The column header's 3-dots ("more") menu.
  *
- * "Archive all" archives every card currently visible in the column — the ids
- * the board passes in are already scoped to the active filter, so the
- * confirmation count matches the header count exactly. Archiving routes through
- * the command-backed `archiveMany` (agent-native parity), and confirms first
- * because it mutates card data.
+ * The two bulk actions — "Mark all done" and "Archive all" — operate on exactly
+ * the cards currently visible in the column: the ids the board passes in are
+ * already scoped to the active filter, so filtered-out cards are never touched
+ * and the confirmation count matches the header count. Both route through the
+ * command layer (`setStatusMany` / `archiveMany`) for agent-native parity, and
+ * both confirm first because they mutate many cards at once.
  *
  * "Hide" drops the column from the board (UNIT-18). It always renders, on empty
  * columns too — an unused column is the likeliest thing to want gone. There is
@@ -42,11 +65,16 @@ export function ColumnMenu({
   visibleCardIds: string[];
 }) {
   const actions = useCardActions();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pending, setPending] = useState<PendingBulk>(null);
+  const close = (): void => setPending(null);
 
   const count = visibleCardIds.length;
   const statusName = STATUS_META[status].name;
   const noun = count === 1 ? "card" : "cards";
+  // Marking a Done column done is a no-op, so the item only makes sense
+  // elsewhere. Canceled/Duplicate keep it — reviving a dropped card as done is a
+  // real (if rarer) intent.
+  const canMarkDone = count > 0 && !isDoneStatus(status);
 
   return (
     <>
@@ -59,9 +87,18 @@ export function ColumnMenu({
           <MoreHorizontal className="size-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {canMarkDone ? (
+            <DropdownMenuItem onSelect={() => setPending("done")}>
+              <StatusIcon
+                variant={Status.Done as StatusVariant}
+                color={STATUS_META[Status.Done].color}
+              />
+              Mark all done
+            </DropdownMenuItem>
+          ) : null}
           {count > 0 ? (
             <>
-              <DropdownMenuItem onSelect={() => setConfirmOpen(true)}>
+              <DropdownMenuItem onSelect={() => setPending("archive")}>
                 <Archive className="size-3.5 text-fg-faint" aria-hidden="true" />
                 Archive all
               </DropdownMenuItem>
@@ -75,25 +112,47 @@ export function ColumnMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog open={pending === "done"} onOpenChange={(open) => !open && close()}>
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>
+              Mark all {count} {noun} in {statusName} as done?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-fg-muted">{doneBody(count)}</p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                actions.setStatusMany(visibleCardIds, Status.Done);
+                close();
+              }}
+            >
+              <Check className="size-3.5" />
+              Mark all done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pending === "archive"} onOpenChange={(open) => !open && close()}>
         <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               Archive all {count} {noun} in {statusName}?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-fg-muted">
-            This removes {count === 1 ? "it" : "them"} from the board. Archived cards aren&rsquo;t
-            deleted — unlike deleting, archiving keeps them.
-          </p>
+          <p className="text-sm text-fg-muted">{archiveBody(count)}</p>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
+            <Button variant="ghost" onClick={close}>
               Cancel
             </Button>
             <Button
               onClick={() => {
                 actions.archiveMany(visibleCardIds);
-                setConfirmOpen(false);
+                close();
               }}
             >
               <Archive className="size-3.5" />

@@ -110,6 +110,11 @@ headers are **not** editable. On the right, the header carries an add-card **+**
 (`MoreHorizontal`) **actions menu** (a `dropdown-menu`) — present on **every** column, empty ones
 included. Its items:
 
+- **Mark all done** (UNIT-19) — first item; sets every card the column shows **under the active
+  filter** to Done, after the same confirmation shape as Archive all (neutral primary button with a
+  lucide `Check`). Its leading glyph is the shared done `StatusIcon` in the Done accent, matching the
+  card context menu's "Mark done". Omitted when the column is empty **or is the Done column** (there
+  it is a no-op); Canceled and Duplicate keep it.
 - **Archive all** — archives every card the column currently shows under the active filter (the
   count in the confirmation matches the header count) after a confirmation dialog: the same dialog
   shape as the card Delete confirm, but a neutral primary "Archive all" button (archiving is

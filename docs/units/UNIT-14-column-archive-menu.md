@@ -102,4 +102,9 @@ partial corruption.
 - The 3-dots menu is on the standard board columns only, not the grouped **swimlane** view (which
   doesn't render `StatusColumn`).
 - `ColumnMenu` holds a single action; the primitive/structure is ready for future items
-  (e.g. Mark all done) without rework.
+  (e.g. Mark all done) without rework. **Done in UNIT-19**, which added "Mark all done" beside
+  "Archive all" — as predicted, with no rework to this unit's primitive or plumbing.
+- **Fixed in UNIT-19:** this dialog's body rendered as "This removes **themfrom** the board" — a JSX
+  text run that wraps onto a second source line drops the space that preceded it, and Prettier
+  removes the `{" "}` that would restore it. The copy is now built by an `archiveBody(count)` string
+  helper in `column-menu.tsx`; see UNIT-19's _Why_ for the full explanation.

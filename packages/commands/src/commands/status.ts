@@ -17,3 +17,25 @@ export const setCardStatus = defineCommand({
     return syncGetCard(doc, input.cardId);
   },
 });
+
+export const setCardsStatus = defineCommand({
+  name: "setCardsStatus",
+  description:
+    "Set the status of multiple cards at once (e.g. mark every visible card in a column done). Ids that don't exist, or cards already at that status, are ignored.",
+  input: z.object({ cardIds: z.array(z.string()), status: statusInput }),
+  run: (ctx, input) => {
+    const doc = ctx.getBoardDoc();
+    const now = ctx.now();
+    // Report only the cards this actually moved: `syncSetStatus` no-ops when the
+    // status is unchanged, so counting every supplied id would overstate the
+    // effect (and the activity log would disagree).
+    const updatedIds: string[] = [];
+    for (const cardId of input.cardIds) {
+      const card = syncGetCard(doc, cardId);
+      if (!card || card.status === input.status) continue;
+      syncSetStatus(doc, cardId, input.status, now, ctx.clientId);
+      updatedIds.push(cardId);
+    }
+    return { updatedIds, count: updatedIds.length };
+  },
+});

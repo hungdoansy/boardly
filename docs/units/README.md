@@ -59,6 +59,9 @@ reuse a number namespace). The plans, newest last:
   - `UNIT-18` — a `DropdownMenuCheckboxItem` primitive, a device-local `hidden-columns` store, a
     `Hide` item in the column 3-dots menu, and a board-toolbar **Columns** menu that restores
     hidden columns (and absorbs the old "Show empty columns" button).
+- Interactive, ad hoc (continued):
+  - `UNIT-19` — a bulk `setCardsStatus` command and a **Mark all done** item in the column 3-dots
+    menu, applying to the column's filter-visible cards only (sibling of UNIT-14's "Archive all").
 
 ## Convention
 

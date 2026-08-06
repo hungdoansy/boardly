@@ -44,6 +44,11 @@ describe("catalog", () => {
     expect(getCommand("archiveCards")).toBeDefined();
   });
 
+  it("registers the bulk setCardsStatus command", () => {
+    expect(getCommand("setCardsStatus")).toBeDefined();
+    expect(listCommandNames()).toContain("setCardsStatus");
+  });
+
   it("registers the related-card commands", () => {
     expect(getCommand("addRelatedCard")).toBeDefined();
     expect(getCommand("removeRelatedCard")).toBeDefined();

@@ -49,7 +49,7 @@ import {
   showProject,
 } from "./commands/project";
 import { searchCards } from "./commands/search";
-import { setCardStatus } from "./commands/status";
+import { setCardsStatus, setCardStatus } from "./commands/status";
 import { deleteView, saveView } from "./commands/view";
 
 export const commands = [
@@ -77,6 +77,7 @@ export const commands = [
   addRelatedCard,
   removeRelatedCard,
   setCardStatus,
+  setCardsStatus,
   createLabel,
   renameLabel,
   recolorLabel,

@@ -54,6 +54,40 @@ test.describe("board", () => {
     await expect(page.getByRole("region", { name: "Column: Backlog" })).toBeVisible();
   });
 
+  test("marks a column's visible cards done from its 3-dots menu (UNIT-19)", async ({ page }) => {
+    await signUp(page);
+    await createBoard(page);
+    await addCard(page, "Todo", "First chore");
+    await addCard(page, "Todo", "Second chore");
+    await addCard(page, "Backlog", "Untouched");
+
+    await page.getByRole("button", { name: "Todo column actions" }).click();
+    await page.getByRole("menuitem", { name: "Mark all done" }).click();
+
+    // The confirmation names the visible count and the column.
+    await expect(
+      page.getByRole("heading", { name: "Mark all 2 cards in Todo as done?" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Mark all done" }).click();
+
+    // A card's column IS its status, so both cards land in Done; other columns stay put.
+    const done = page.getByRole("region", { name: "Column: Done" });
+    await expect(done.getByRole("button", { name: "Card: First chore" })).toBeVisible();
+    await expect(done.getByRole("button", { name: "Card: Second chore" })).toBeVisible();
+    const todo = page.getByRole("region", { name: "Column: Todo" });
+    await expect(todo.getByRole("button", { name: /^Card: / })).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Column: Backlog" }).getByRole("button", {
+        name: "Card: Untouched",
+      }),
+    ).toBeVisible();
+
+    // Done is now the one column where the action would be a no-op, so it is gone.
+    await page.getByRole("button", { name: "Done column actions" }).click();
+    await expect(page.getByRole("menuitem", { name: "Archive all" })).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "Mark all done" })).toHaveCount(0);
+  });
+
   test("hides a column from its 3-dots menu and keeps it hidden across a reload", async ({
     page,
   }) => {

@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 
 import { createCard, execute, setCardStatus } from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
+import { type Filter, Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
 import { cardsInStatus, getBoard, initBoard } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,17 +17,30 @@ import { ColumnsMenu } from "./columns-menu";
 // Mirrors the real composition: the Columns menu sits in the app header, the
 // board below it. They are siblings, not parent/child, so a test that drives one
 // against the other has to render both.
-function setup(seed?: (ctx: MemoryContext) => void) {
+function setup(seed?: (ctx: MemoryContext) => void, filter?: Filter) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
       <ColumnsMenu />
-      <BoardView />
+      <BoardView filter={filter} />
     </BoardlyProvider>,
   );
   return { ctx };
+}
+
+/**
+ * Open a column's header 3-dots menu. Every column carries one (UNIT-18 made
+ * empty columns hideable), so the trigger must be addressed per column or the
+ * query matches all eight. Radix opens on pointerdown/keyboard, not a bare
+ * click; Enter is the deterministic path.
+ */
+function openColumnMenu(status: Status = Status.InProgress): void {
+  fireEvent.keyDown(
+    screen.getByRole("button", { name: `${STATUS_META[status].name} column actions` }),
+    { key: "Enter" },
+  );
 }
 
 afterEach(() => {
@@ -168,22 +181,13 @@ describe("BoardColumn header", () => {
 });
 
 describe("column archive menu", () => {
-  // Every column carries a 3-dots menu now (UNIT-18 made empty columns hideable),
-  // so the trigger must be addressed per column or the query matches all eight.
-  const openMenu = (status: Status = Status.InProgress): void => {
-    fireEvent.keyDown(
-      screen.getByRole("button", { name: `${STATUS_META[status].name} column actions` }),
-      { key: "Enter" },
-    );
-  };
-
   it("archives every visible card in a column via the 3-dots menu + confirm", async () => {
     const { ctx } = setup((ctx) => {
       execute(createCard, ctx, { status: Status.InProgress, title: "A" });
       execute(createCard, ctx, { status: Status.InProgress, title: "B" });
     });
 
-    openMenu();
+    openColumnMenu();
     fireEvent.click(await screen.findByRole("menuitem", { name: "Archive all" }));
 
     // Confirmation names the count and the column.
@@ -202,7 +206,7 @@ describe("column archive menu", () => {
 
   it("offers Hide but not Archive all on an empty column", async () => {
     setup(); // no cards anywhere
-    openMenu(Status.Todo);
+    openColumnMenu(Status.Todo);
     await screen.findByRole("menuitem", { name: "Hide" });
     expect(screen.queryByRole("menuitem", { name: "Archive all" })).not.toBeInTheDocument();
   });
@@ -212,11 +216,98 @@ describe("column archive menu", () => {
       execute(createCard, ctx, { status: Status.InProgress, title: "A" });
     });
 
-    openMenu();
+    openColumnMenu();
     fireEvent.click(await screen.findByRole("menuitem", { name: "Archive all" }));
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
 
     expect(cardsInStatus(ctx.getBoardDoc(), Status.InProgress)).toHaveLength(1);
+  });
+});
+
+describe("column mark-all-done menu", () => {
+  const titlesIn = (ctx: MemoryContext, status: Status): string[] =>
+    cardsInStatus(ctx.getBoardDoc(), status).map((c) => c.title);
+
+  it("moves every visible card in a column to Done via the 3-dots menu + confirm", async () => {
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.InProgress, title: "A" });
+      execute(createCard, ctx, { status: Status.InProgress, title: "B" });
+    });
+
+    openColumnMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Mark all done" }));
+
+    // Confirmation names the count and the column.
+    expect(
+      await screen.findByRole("heading", {
+        name: `Mark all 2 cards in ${STATUS_META[Status.InProgress].name} as done?`,
+      }),
+    ).toBeVisible();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Mark all done" }));
+    });
+
+    expect(titlesIn(ctx, Status.InProgress)).toEqual([]);
+    expect(titlesIn(ctx, Status.Done)).toEqual(["A", "B"]);
+  });
+
+  it("only touches the cards the active filter leaves visible", async () => {
+    const filter: Filter = {
+      op: "and",
+      clauses: [{ field: "title", condition: "contains", values: ["keep"] }],
+    };
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.InProgress, title: "keep one" });
+      execute(createCard, ctx, { status: Status.InProgress, title: "hidden by filter" });
+      execute(createCard, ctx, { status: Status.InProgress, title: "keep two" });
+    }, filter);
+
+    openColumnMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Mark all done" }));
+
+    // The count is the *visible* count, not the column's total.
+    expect(
+      await screen.findByRole("heading", {
+        name: `Mark all 2 cards in ${STATUS_META[Status.InProgress].name} as done?`,
+      }),
+    ).toBeVisible();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Mark all done" }));
+    });
+
+    expect(titlesIn(ctx, Status.Done)).toEqual(["keep one", "keep two"]);
+    expect(titlesIn(ctx, Status.InProgress)).toEqual(["hidden by filter"]);
+  });
+
+  it("is not offered on the Done column (no-op) nor on an empty column", async () => {
+    setup((ctx) => {
+      execute(createCard, ctx, { status: Status.Done, title: "Already done" });
+    });
+
+    openColumnMenu(Status.Done);
+    // The Done column still archives and hides — it just can't be "marked done".
+    await screen.findByRole("menuitem", { name: "Archive all" });
+    expect(screen.queryByRole("menuitem", { name: "Mark all done" })).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
+    openColumnMenu(Status.Todo); // empty
+    await screen.findByRole("menuitem", { name: "Hide" });
+    expect(screen.queryByRole("menuitem", { name: "Mark all done" })).not.toBeInTheDocument();
+  });
+
+  it("marks nothing when the confirmation is cancelled", async () => {
+    const { ctx } = setup((ctx) => {
+      execute(createCard, ctx, { status: Status.InProgress, title: "A" });
+    });
+
+    openColumnMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Mark all done" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    expect(titlesIn(ctx, Status.InProgress)).toEqual(["A"]);
+    expect(titlesIn(ctx, Status.Done)).toEqual([]);
   });
 });
 
