@@ -11,13 +11,18 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { showAllColumns } from "../../lib/hidden-columns";
 import { BoardView } from "./board-view";
+import { ColumnsMenu } from "./columns-menu";
 
+// The menu lives in the app header and the columns in the board below it — two
+// siblings driven by the same filter, exactly as `MainArea` composes them. Both
+// are rendered here because every assertion is about one affecting the other.
 function setup(seed?: (ctx: MemoryContext) => void, filter?: Filter) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
+      <ColumnsMenu filter={filter} />
       <BoardView filter={filter} />
     </BoardlyProvider>,
   );

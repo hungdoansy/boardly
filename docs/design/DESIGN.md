@@ -115,14 +115,18 @@ included. Its items:
   shape as the card Delete confirm, but a neutral primary "Archive all" button (archiving is
   non-destructive). Omitted when the column is empty.
 - **Hide** (`EyeOff`, UNIT-18) — drops the column from the board. **No confirmation**: it touches no
-  data and the toolbar's Columns menu restores it in one click.
+  data and the header's Columns menu restores it in one click.
 
 Because every column has a menu, the trigger's accessible name is per column
 (`"In Progress column actions"`), not a shared label.
 
-**Column visibility (UNIT-18).** The board toolbar's right edge holds one **Columns** dropdown
-(`Columns3` icon, quiet `text-xs` `text-fg-muted`) reading `Columns`, or `Columns · N hidden` when
-something is hidden (with an `aria-label` of `"Columns, N hidden"`). It contains a
+**Column visibility (UNIT-18).** The **view header** holds one **Columns** dropdown, immediately
+right of the Board/List switch and left of `Group` — a ghost `sm` Button like its neighbours, reading
+`Columns` in `text-fg-muted`, or `Columns · N hidden` in `text-fg` when something is hidden (with an
+`aria-label` of `"Columns, N hidden"`). Its icon is `Columns3Cog`, **not** plain `Columns3`: that
+glyph is the layout switch's Board icon sitting directly beside it. The control appears only for the
+plain board lens — the list layout has no columns, and swimlanes lay out all eight statuses per lane.
+It contains a
 `DropdownMenuCheckboxItem` per status — status icon + name + right-aligned `tabular-nums` count in
 `text-fg-faint`, checked = visible — then a separator, the **Show empty columns** toggle (this
 replaced the old standalone toolbar button), and **Show all columns** (disabled when nothing is
@@ -378,7 +382,7 @@ is a fixed brand asset, not a themed surface); they are literals in the SVG, not
 
 - **App shell:** a user has **one space** (no board list / switcher). Left **sidebar** (~240px, `--bg-surface`) top→bottom: logo → Search → **projects list** (scopes the board; `flex-1`) → **Archive** then **Settings** (the two last full-width nav items, Archive above Settings) → account/theme footer. Main board area is `--bg-base`. Archive and Settings each open a full-pane view (routed by `#archive` / `#settings`, hash-exclusive); the account button and theme toggle stay in the footer.
 - **Archive view:** full-pane list (routed by `#archive`, sidebar `Archive` icon) of every **archived** card, most-recently-archived first. Header mirrors Settings (back arrow + "Archive" + count). Each row: status glyph, mono ticket id, title (line-through when terminal), the configured badge row, a relative "archived Nd ago", and hover/focus-revealed **Restore** (`ArchiveRestore`) + **Delete** (`Trash2`) controls. Opening a row (its main region is the button) shows the card in the detail sheet — whose footer swaps **Archive** for **Restore** when the card is archived. Delete reuses the irreversible-delete confirm dialog; Restore is one-click (reversible). Empty state: a calm centered `Archive` glyph + "No archived cards." (Archived _projects_ remain separate, in Settings › Projects › Hidden.)
-- **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count **grouped left**, with an add-card **"+"** pushed to the right — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). The header "+" and the footer composer open the **same** inline composer (as does the `c` shortcut). Above the columns, a board-toolbar toggle **shows/hides empty columns** (synced board-meta flag, default show). Dragging a card onto a column applies that status immediately; the hovered column shows an accent ring and — when empty — expands into a drop zone (see §8 Motion). Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
+- **Board view:** horizontal scroll of the **eight fixed status columns** (Backlog…Duplicate, §2 encodings). Column: header (status icon + name `text-md medium` + live count **grouped left**, with an add-card **"+"** pushed to the right — **not** editable, no `⋯`/rename/WIP), scrollable card list, footer add-card composer (new cards default to Todo). The header "+" and the footer composer open the **same** inline composer (as does the `c` shortcut). Which columns render is answered entirely by the view header's **Columns** menu (per-column hide + the synced show-empty-columns flag, default show) — the board area itself is all columns, with no toolbar row of its own. Dragging a card onto a column applies that status immediately; the hovered column shows an accent ring and — when empty — expands into a drop zone (see §8 Motion). Optional swimlanes stack horizontally (read/triage; each lane shows all eight status columns).
 - **Card face:** four fixed lines, top to bottom, in a locked order (Unit P3/Unit 5/2026-07-12 card-polish plan — do not reshuffle): **line 1** — ticket id (mono, tertiary, far left) with due chip + checklist meter pushed right; **line 2** — status glyph + title (`text-base`, up to 2 lines); **line 3** — labels (omitted when none); **line 4** — priority icon, then link chips on the left, the project badge pushed to the far right (omitted when all three are empty). Each line wraps independently. No archive affordance on the card face — archive lives in the card detail drawer and the `e` keyboard shortcut. Hover raises to `--bg-overlay`; selected gets `--bg-selected` + accent left-border (2px). Right-clicking a card opens the context menu, whose first action is a one-click **Mark done / Mark not done** toggle (Done ⇄ Todo), above the Status/Priority/Project pickers and Copy-link/Archive/Delete.
 - **Card detail:** right `sheet` — title, status/priority/assignee/due controls in a compact property list, markdown description, checklist, links, activity. Full-screen sheet on narrow widths. Adding (or re-pasting a de-duped) link briefly highlights that row with the same `--bg-selected` + accent left-border pairing used for a selected card, fading out after ~2s (`--dur-slow`, one-shot, no loop; UNIT-P10).
 - **Command palette:** centered `command` dialog, `--bg-overlay`, subtle border + shadow; grouped results; keyboard nav; instant.

@@ -2,25 +2,22 @@
 
 import {
   type Filter,
-  type FilterContext,
   type GroupByField,
   Priority,
   STATUS_ORDER,
-  countByStatus,
   visibleCardIdsByStatus,
 } from "@boardly/domain";
 import { getCard } from "@boardly/sync";
 import { Button } from "@boardly/ui";
 import { useCallback, useMemo, useRef } from "react";
 
-import { useAuthSession } from "../../lib/auth-store";
 import { useBoardlyContext } from "../../lib/boardly-context";
 import { showAllColumns, useHiddenStatuses } from "../../lib/hidden-columns";
 import { useAllCards, useCardActions, useShowEmptyColumns } from "../../lib/use-board";
+import { useFilterContext, useStatusCounts } from "../../lib/use-status-counts";
 import { useSelectedCard } from "../../lib/use-boards";
 import { CardDetail } from "../card/card-detail";
 import { ColumnCards } from "./column-cards";
-import { ColumnsMenu } from "./columns-menu";
 import { BoardDndProvider, StatusColumn } from "./dnd";
 import { focusCard, useBoardKeyboardNav } from "./keyboard-nav";
 import { Swimlanes } from "./swimlanes";
@@ -33,18 +30,12 @@ export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: Grou
   const showEmptyColumns = useShowEmptyColumns();
   const hiddenStatuses = useHiddenStatuses();
   const [openCardId, setOpenCardId] = useSelectedCard();
-  const { userId } = useAuthSession();
-  const filterCtx: FilterContext = useMemo(
-    () => ({ now: Date.now(), currentUserId: userId ?? undefined }),
-    [userId],
-  );
+  const filterCtx = useFilterContext();
 
-  // Per-status counts under the ACTIVE filter (Unit 9.6), so both the header
-  // counts and the hide-empty toggle agree with what each column renders.
-  const counts = useMemo(
-    () => countByStatus(allCards, filter, filterCtx),
-    [allCards, filter, filterCtx],
-  );
+  // Per-status counts under the ACTIVE filter (Unit 9.6), so the column headers,
+  // the hide-empty rule, and the header's Columns menu (same hook) all agree
+  // with what each column renders.
+  const counts = useStatusCounts(filter);
 
   // The ids each column shows under the active filter, grouped by status — same
   // filter path as the counts above, so a column's "Archive all" targets exactly
@@ -110,38 +101,33 @@ export function BoardView({ filter, groupBy }: { filter?: Filter; groupBy?: Grou
 
   return (
     <BoardDndProvider>
-      <div className="flex h-full flex-col">
-        <div className="flex h-9 shrink-0 items-center justify-end border-b border-line-subtle px-4">
-          <ColumnsMenu counts={counts} />
-        </div>
-        <div ref={boardRef} className="flex flex-1 items-start gap-3 overflow-x-auto p-4">
-          {visibleStatuses.length === 0 ? (
-            // Every column hidden. The toolbar menu above is still the real
-            // escape hatch; this just says so where the user is looking.
-            <div className="flex flex-1 flex-col items-center gap-3 py-16">
-              <p className="text-sm text-fg-muted">Every column is hidden.</p>
-              <Button variant="outline" size="sm" onClick={() => showAllColumns()}>
-                Show all columns
-              </Button>
-            </div>
-          ) : (
-            visibleStatuses.map((status) => (
-              <StatusColumn
-                key={status}
+      <div ref={boardRef} className="flex h-full items-start gap-3 overflow-x-auto p-4">
+        {visibleStatuses.length === 0 ? (
+          // Every column hidden. The header's Columns menu is still the real
+          // escape hatch; this just says so where the user is looking.
+          <div className="flex flex-1 flex-col items-center gap-3 py-16">
+            <p className="text-sm text-fg-muted">Every column is hidden.</p>
+            <Button variant="outline" size="sm" onClick={() => showAllColumns()}>
+              Show all columns
+            </Button>
+          </div>
+        ) : (
+          visibleStatuses.map((status) => (
+            <StatusColumn
+              key={status}
+              status={status}
+              count={counts[status] ?? 0}
+              visibleCardIds={visibleIds[status] ?? []}
+            >
+              <ColumnCards
                 status={status}
-                count={counts[status] ?? 0}
-                visibleCardIds={visibleIds[status] ?? []}
-              >
-                <ColumnCards
-                  status={status}
-                  onOpenCard={setOpenCardId}
-                  filter={filter}
-                  filterCtx={filterCtx}
-                />
-              </StatusColumn>
-            ))
-          )}
-        </div>
+                onOpenCard={setOpenCardId}
+                filter={filter}
+                filterCtx={filterCtx}
+              />
+            </StatusColumn>
+          ))
+        )}
       </div>
 
       <CardDetail cardId={openCardId} onClose={closeCard} />

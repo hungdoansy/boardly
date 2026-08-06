@@ -1,7 +1,8 @@
 "use client";
 
-import { type Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
+import { type Filter, STATUS_META, STATUS_ORDER } from "@boardly/domain";
 import {
+  Button,
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -11,27 +12,31 @@ import {
   DropdownMenuTrigger,
   StatusIcon,
 } from "@boardly/ui";
-import { Columns3 } from "lucide-react";
+import { Columns3Cog } from "lucide-react";
 
 import { setColumnHidden, showAllColumns, useHiddenStatuses } from "../../lib/hidden-columns";
 import { useSetShowEmptyColumns, useShowEmptyColumns } from "../../lib/use-board";
+import { useStatusCounts } from "../../lib/use-status-counts";
 
 /**
- * The board toolbar's column-visibility control (UNIT-18). One menu owns both
+ * The header toolbar's column-visibility control (UNIT-18). One menu owns both
  * visibility rules: a checkbox per status (checked = visible) and the synced
  * `showEmptyColumns` toggle that used to be a standalone toolbar button.
  *
  * A hidden column's cards are not archived or filtered — they simply are not
  * laid out. So every row carries its live, filter-aware count, and the trigger
  * advertises how many columns are hidden: that is the whole discovery story for
- * a card that lands in a hidden column.
+ * a card that lands in a hidden column. The counts come from the same hook the
+ * board's columns use, so the two can't drift even though they no longer share
+ * a parent.
  *
  * The checkbox rows `preventDefault()` their select because Radix closes the
  * menu on select, and hiding three columns should not mean opening the menu
  * three times. `Show all columns` is a plain item and *does* close — it is a
  * one-shot reset with nothing left to toggle.
  */
-export function ColumnsMenu({ counts }: { counts: Record<Status, number> }) {
+export function ColumnsMenu({ filter }: { filter?: Filter }) {
+  const counts = useStatusCounts(filter);
   const hidden = useHiddenStatuses();
   const showEmptyColumns = useShowEmptyColumns();
   const setShowEmptyColumns = useSetShowEmptyColumns();
@@ -41,12 +46,18 @@ export function ColumnsMenu({ counts }: { counts: Record<Status, number> }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={hiddenCount > 0 ? `Columns, ${hiddenCount} hidden` : "Columns"}
-        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-1.5 py-1 text-xs text-fg-muted transition-colors duration-[var(--dur-fast)] hover:bg-hover hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] data-[state=open]:bg-hover data-[state=open]:text-fg"
-      >
-        <Columns3 className="size-3.5" aria-hidden="true" />
-        {label}
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={hiddenCount > 0 ? `Columns, ${hiddenCount} hidden` : "Columns"}
+          className={hiddenCount > 0 ? "text-fg" : "text-fg-muted"}
+        >
+          {/* Not plain `Columns3` — that is the layout switch's Board icon, which
+              now sits immediately to the left. The cog says "column settings". */}
+          <Columns3Cog className="size-3.5" aria-hidden="true" />
+          {label}
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[15rem]">
         <DropdownMenuLabel>Columns</DropdownMenuLabel>

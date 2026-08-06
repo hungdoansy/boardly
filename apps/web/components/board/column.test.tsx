@@ -12,13 +12,18 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { showAllColumns } from "../../lib/hidden-columns";
 import { BoardView } from "./board-view";
 import { BoardColumn } from "./column";
+import { ColumnsMenu } from "./columns-menu";
 
+// Mirrors the real composition: the Columns menu sits in the app header, the
+// board below it. They are siblings, not parent/child, so a test that drives one
+// against the other has to render both.
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
+      <ColumnsMenu />
       <BoardView />
     </BoardlyProvider>,
   );

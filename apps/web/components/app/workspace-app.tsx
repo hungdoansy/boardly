@@ -36,6 +36,7 @@ import { ArchiveView } from "../archive/archive-view";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
 import { BoardView } from "../board/board-view";
+import { ColumnsMenu } from "../board/columns-menu";
 import { ImportExportMenu } from "../board/import-export";
 import { ListView } from "../board/list-view";
 import { LabelManager } from "../board/label-manager";
@@ -408,6 +409,12 @@ function MainArea() {
             layout={activeView.layout}
             onChange={(layout) => setActiveView((v) => ({ ...v, layout, view: null }))}
           />
+          {/* Column visibility only means something for the status columns, so it
+              appears for the plain board lens — not for the list layout, and not
+              for swimlanes (which lay out all eight statuses per lane). */}
+          {activeView.layout === "board" && activeView.groupBy === null ? (
+            <ColumnsMenu filter={filter} />
+          ) : null}
           <GroupMenu
             groupBy={activeView.groupBy}
             onChange={(groupBy) => setActiveView((v) => ({ ...v, groupBy, view: null }))}

@@ -11,13 +11,17 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { showAllColumns } from "../../lib/hidden-columns";
 import { BoardView } from "./board-view";
+import { ColumnsMenu } from "./columns-menu";
 
+// The header's Columns menu is rendered alongside the board (as in the app) so
+// the "Hide" item's effect on the trigger label can be asserted.
 function setup(seed?: (ctx: MemoryContext) => void) {
   const ctx = createMemoryContext();
   initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
   seed?.(ctx);
   render(
     <BoardlyProvider context={ctx}>
+      <ColumnsMenu />
       <BoardView />
     </BoardlyProvider>,
   );
