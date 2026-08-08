@@ -92,3 +92,9 @@ Prereqs: Docker `boardly-db` up + migrations applied; Node 22.17.1
     trusting a small ratio.** `board-dark` masked the same drift via `maxDiffPixelRatio: 0.03`.
   - `addCard` now parks the cursor (`page.mouse.move(0, 0)`) so a seeded board's column header `+`
     isn't left hovered in every later visual baseline.
+- **Rebase onto UNIT-18/19 (2026-08-06)** landed cleanly (no textual conflicts — UNIT-18 shipped
+  the identical `addCard` header-scoping fix independently, so that hunk was a no-op merge) but
+  broke the just-recorded `focus-mode` baselines: UNIT-18 makes the column `…` menu render on
+  **empty** columns too (previously hover/count-gated), so `focus-calm-dark`/`focus-zen-board-dark`
+  (+ light) picked up a genuine, intentional extra `…` on Backlog/Pending. Re-recorded after
+  confirming the diff against the UNIT-18 unit doc, not on reflex.
