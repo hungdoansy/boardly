@@ -12,6 +12,15 @@ import { BoardlyProvider } from "../../lib/boardly-context";
 import { useCardById } from "../../lib/use-board";
 import { CardLinks } from "./links";
 
+// Desktop-only click interception (UNIT-9.4) — default to the web path so every
+// other case here exercises the untouched native anchor.
+const { isTauriMock, openExternalMock } = vi.hoisted(() => ({
+  isTauriMock: vi.fn(() => false),
+  openExternalMock: vi.fn(async () => true),
+}));
+vi.mock("../../lib/platform", () => ({ isTauri: isTauriMock }));
+vi.mock("../../lib/open-external", () => ({ openExternal: openExternalMock }));
+
 function Harness({ cardId }: { cardId: string }) {
   const card = useCardById(cardId);
   return card ? <CardLinks card={card} /> : null;
@@ -35,6 +44,9 @@ const links = (ctx: MemoryContext) => getCard(ctx.getBoardDoc(), "c1")?.links ??
 
 afterEach(() => {
   cleanup();
+  isTauriMock.mockReturnValue(false);
+  openExternalMock.mockReset();
+  openExternalMock.mockResolvedValue(true);
 });
 
 describe("CardLinks", () => {
@@ -76,6 +88,38 @@ describe("CardLinks", () => {
     const anchor = screen.getByRole("link", { name: /Ex/ });
     expect(anchor).toHaveAttribute("href", "https://example.com/x");
     expect(anchor).toHaveAttribute("target", "_blank");
+  });
+
+  it("routes a click through the opener on desktop instead of the anchor", () => {
+    isTauriMock.mockReturnValue(true);
+    setup((c) => {
+      execute(addLink, c, { cardId: "c1", id: "l1", url: "https://example.com/x", title: "Ex" });
+    });
+    const click = fireEvent.click(screen.getByRole("link", { name: /Ex/ }));
+    // preventDefault'd, so the webview never navigates itself.
+    expect(click).toBe(false);
+    expect(openExternalMock).toHaveBeenCalledWith("https://example.com/x");
+  });
+
+  it("toasts when the desktop opener can't open the link", async () => {
+    // A denied/too-narrow `opener:allow-open-url` scope used to fail silently, so
+    // the click looked simply dead. Surface it instead.
+    isTauriMock.mockReturnValue(true);
+    openExternalMock.mockResolvedValue(false);
+
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+    execute(createCard, ctx, { id: "c1", title: "Card" });
+    execute(addLink, ctx, { cardId: "c1", id: "l1", url: "https://example.com/x", title: "Ex" });
+    render(
+      <BoardlyProvider context={ctx}>
+        <Harness cardId="c1" />
+        <Toaster />
+      </BoardlyProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: /Ex/ }));
+    expect(await screen.findByText("Couldn't open that link")).toBeInTheDocument();
   });
 
   it("ignores a non-http(s) url (XSS guard)", () => {

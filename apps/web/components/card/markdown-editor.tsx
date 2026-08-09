@@ -1,9 +1,12 @@
 "use client";
 
-import { cn } from "@boardly/ui";
+import { cn, toast } from "@boardly/ui";
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+import { openExternal } from "../../lib/open-external";
+import { isTauri } from "../../lib/platform";
 
 interface MarkdownEditorProps {
   value: string;
@@ -11,6 +14,33 @@ interface MarkdownEditorProps {
 }
 
 const TABS = ["write", "preview"] as const;
+
+// A description link points somewhere outside the app, so it must never navigate
+// the sheet (and on desktop, never the whole Tauri webview) away from the board.
+// Same split as the Links list (UNIT-9.4): web keeps the native `target="_blank"`
+// anchor so cmd/middle-click still work; desktop intercepts and hands the URL to
+// the opener plugin, since the webview won't open `_blank` in the OS browser.
+// `href` is already protocol-sanitized by react-markdown's default urlTransform,
+// and `openExternal` re-checks with `isSafeHttpUrl`.
+const MARKDOWN_COMPONENTS: Components = {
+  a: ({ href, children, ...rest }) => (
+    <a
+      {...rest}
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => {
+        if (!isTauri()) return;
+        e.preventDefault();
+        void openExternal(href ?? "").then((ok) => {
+          if (!ok) toast("Couldn't open that link");
+        });
+      }}
+    >
+      {children}
+    </a>
+  ),
+};
 
 export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("write");
@@ -46,7 +76,9 @@ export function MarkdownEditor({ value, onChange }: MarkdownEditorProps) {
       ) : (
         <div className="prose-boardly min-h-40 rounded-[var(--radius-md)] border border-line-subtle bg-surface p-3 text-base text-fg">
           {value.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MARKDOWN_COMPONENTS}>
+              {value}
+            </ReactMarkdown>
           ) : (
             <p className="text-fg-faint">Nothing to preview.</p>
           )}
