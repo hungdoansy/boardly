@@ -75,3 +75,26 @@ Prereqs: Docker `boardly-db` up + migrations applied; Node 22.17.1
   `apps/web`); a pointer-drag spec could be added.
 - **CI wiring:** the suite assumes a local Postgres; a CI job would stand up the db service and run
   `e2e` after the web build.
+- **Accumulated locator/baseline drift (fixed 2026-08-05).** With no CI job running it, the suite
+  silently rotted against later units. Every failure was stale _test_, not app regression:
+  - `addCard` matched two "Add card" buttons once UNIT-13 gave the column header a `+` sharing the
+    footer composer's `aria-label` → scoped to `column.locator("header")`.
+  - `openCard` clicked a `button` named after the card title, but UNIT-9.7 made the whole
+    `<article aria-label="Card: …">` face clickable and dropped the inner title button → new
+    `cardFace()` helper; same stale locator fixed in `focus-mode.spec`.
+  - `a11y`/`auth` expected a top-level "Sign out" button; it now lives behind the sidebar **Account**
+    popover → both open the popover first.
+  - The `focus-mode` + `list` baselines predated two shipped changes and were re-recorded: the
+    focus-mode PNGs still showed the **pre-UNIT-9 user-managed columns** ("To Do"/"Doing"/"Done" +
+    "Add column"), and `list-grouped-dark` still showed the legacy `BRD-` short-id prefix, whereas
+    an unset `shortIdPrefix` now renders `#N` (`domain/ids.ts` `formatTicketId`). Both diffs read as
+    only ~1% of pixels because the region is mostly empty background — **open the diff image before
+    trusting a small ratio.** `board-dark` masked the same drift via `maxDiffPixelRatio: 0.03`.
+  - `addCard` now parks the cursor (`page.mouse.move(0, 0)`) so a seeded board's column header `+`
+    isn't left hovered in every later visual baseline.
+- **Rebase onto UNIT-18/19 (2026-08-06)** landed cleanly (no textual conflicts — UNIT-18 shipped
+  the identical `addCard` header-scoping fix independently, so that hunk was a no-op merge) but
+  broke the just-recorded `focus-mode` baselines: UNIT-18 makes the column `…` menu render on
+  **empty** columns too (previously hover/count-gated), so `focus-calm-dark`/`focus-zen-board-dark`
+  (+ light) picked up a genuine, intentional extra `…` on Backlog/Pending. Re-recorded after
+  confirming the diff against the UNIT-18 unit doc, not on reflex.

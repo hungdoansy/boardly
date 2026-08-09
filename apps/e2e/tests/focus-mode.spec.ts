@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { addCard, createBoard, signUp } from "./helpers";
+import { addCard, cardFace, createBoard, signUp } from "./helpers";
 
 const mainFilter = (page: Page): Promise<string> =>
   page.getByRole("main").evaluate((el) => getComputedStyle(el).filter);
@@ -33,7 +33,7 @@ test("focus mode: Shift+F cycles + mutes the board; drawer escapes; per-theme sa
   await expect(page.getByRole("main")).toHaveScreenshot("focus-calm-dark.png");
 
   // The detail drawer portals out of the scoped region → stays full-color.
-  await page.getByRole("button", { name: "Apple", exact: true }).click();
+  await cardFace(page, "Apple").click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   // Not muted — it portals out of the scoped region (no `saturate` applied).
@@ -60,7 +60,7 @@ test("focus mode: Zen collapses the card face + list row (both surfaces, both th
   await seed(page);
 
   // Give a card a visible, queryable badge (a past due date → "Overdue" chip).
-  await page.getByRole("button", { name: "Apple", exact: true }).click();
+  await cardFace(page, "Apple").click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Due date" }).click();
   await page.getByLabel("Due date input").fill("2020-06-15");

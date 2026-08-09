@@ -67,6 +67,10 @@ export async function addCard(page: Page, columnTitle: string, cardTitle: string
   await input.press("Enter");
   await expect(column.getByRole("button", { name: `Card: ${cardTitle}` })).toBeVisible();
   await page.keyboard.press("Escape"); // close the composer
+  // Park the cursor off the column header: the click leaves the header "+" in
+  // its hover state and reveals the hover-gated 3-dots menu, which would
+  // otherwise bake into every visual baseline taken after seeding.
+  await page.mouse.move(0, 0);
 }
 
 /** The card face wrapper (aria-label "Card: <title>") — used for visibility checks. */
@@ -74,8 +78,17 @@ export function cardButton(page: Page, title: string) {
   return page.getByRole("button", { name: `Card: ${title}` });
 }
 
-/** Open a card's detail by clicking its inner title button (the wrapper is drag-only). */
+/**
+ * The clickable card face (`<article aria-label="Card: <title>">`). Since UNIT-9.7
+ * the whole face opens the card — there is no inner title button any more — so
+ * this, not a `button` named after the title, is what a click should target.
+ */
+export function cardFace(page: Page, title: string) {
+  return page.getByRole("article", { name: `Card: ${title}` });
+}
+
+/** Open a card's detail by clicking its face (the wrapper around it is drag-only). */
 export async function openCard(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: title, exact: true }).click();
+  await cardFace(page, title).click();
   await expect(page.getByRole("dialog", { name: title })).toBeVisible();
 }
