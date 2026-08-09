@@ -11,18 +11,28 @@ import { isTauri } from "./platform";
 /**
  * Open `url` in the OS default browser (desktop) or a new tab (web). Only http(s)
  * URLs are opened (blocks `javascript:`, `slack://`, …); anything else is a
- * no-op. Never throws — a failed opener import/call is swallowed.
+ * no-op. Never throws.
+ *
+ * Returns `false` when the URL was rejected or the desktop opener call failed,
+ * so callers can surface the dead click instead of leaving the user staring at a
+ * link that does nothing. (The desktop opener rejects on a missing/too-narrow
+ * `opener:allow-open-url` URL scope — the exact bug that shipped with UNIT-9.4;
+ * swallowing it silently is what let it go unnoticed.) The web path always
+ * reports success: `window.open` with `noopener` returns `null` by spec even
+ * when the tab opens, so its return value can't distinguish a blocked popup.
  */
-export async function openExternal(url: string): Promise<void> {
-  if (!isSafeHttpUrl(url)) return;
+export async function openExternal(url: string): Promise<boolean> {
+  if (!isSafeHttpUrl(url)) return false;
   if (isTauri()) {
     try {
       const opener = await import("@tauri-apps/plugin-opener");
       await opener.openUrl(url);
+      return true;
     } catch {
       // Opener unavailable/denied — nothing else we can safely do on desktop.
+      return false;
     }
-    return;
   }
   window.open(url, "_blank", "noopener,noreferrer");
+  return true;
 }

@@ -17,8 +17,10 @@ afterEach(() => {
 describe("openExternal", () => {
   it("opens a new tab on web", async () => {
     isTauriMock.mockReturnValue(false);
+    // `noopener` makes `window.open` return null even on success, so the web path
+    // must report success regardless of what it gets back.
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    await openExternal("https://example.com");
+    await expect(openExternal("https://example.com")).resolves.toBe(true);
     expect(open).toHaveBeenCalledWith("https://example.com", "_blank", "noopener,noreferrer");
     expect(openUrlMock).not.toHaveBeenCalled();
   });
@@ -26,7 +28,7 @@ describe("openExternal", () => {
   it("uses the Tauri opener on desktop", async () => {
     isTauriMock.mockReturnValue(true);
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    await openExternal("https://example.com");
+    await expect(openExternal("https://example.com")).resolves.toBe(true);
     expect(openUrlMock).toHaveBeenCalledWith("https://example.com");
     expect(open).not.toHaveBeenCalled();
   });
@@ -34,17 +36,21 @@ describe("openExternal", () => {
   it("ignores non-http(s) URLs (web and desktop)", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     isTauriMock.mockReturnValue(false);
-    await openExternal("javascript:alert(1)");
-    await openExternal("slack://channel/123");
+    await expect(openExternal("javascript:alert(1)")).resolves.toBe(false);
+    await expect(openExternal("slack://channel/123")).resolves.toBe(false);
     isTauriMock.mockReturnValue(true);
-    await openExternal("data:text/html,x");
+    await expect(openExternal("data:text/html,x")).resolves.toBe(false);
     expect(open).not.toHaveBeenCalled();
     expect(openUrlMock).not.toHaveBeenCalled();
   });
 
-  it("swallows a failing opener call on desktop (never throws)", async () => {
+  it("reports a failing opener call on desktop without throwing", async () => {
     isTauriMock.mockReturnValue(true);
-    openUrlMock.mockRejectedValueOnce(new Error("opener unavailable"));
-    await expect(openExternal("https://example.com")).resolves.toBeUndefined();
+    // What a missing/too-narrow `opener:allow-open-url` URL scope looks like from
+    // JS: the command rejects with the plugin's ForbiddenUrl error.
+    openUrlMock.mockRejectedValueOnce(
+      new Error("url not allowed on the configured scope: https://example.com"),
+    );
+    await expect(openExternal("https://example.com")).resolves.toBe(false);
   });
 });

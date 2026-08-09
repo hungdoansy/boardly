@@ -146,7 +146,9 @@ export function CardLinks({ card }: { card: Card }) {
                     onClick={(e) => {
                       if (isTauri()) {
                         e.preventDefault();
-                        void openExternal(link.url);
+                        void openExternal(link.url).then((ok) => {
+                          if (!ok) toast("Couldn't open that link");
+                        });
                       }
                     }}
                     className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"

@@ -50,9 +50,81 @@ desktop; on web the browser handles the anchor natively.
 - **DoD run (Node 22.17.1):** web typecheck clean; lint clean (exit 0); `vitest run` = 422 passed /
   37 skipped; `@boardly/web` build compiles.
 
+---
+
+## Fix (2026-08-09) — the capability grant was missing its URL scope
+
+Desktop links were **still** dead: clicking one in the card drawer did nothing, and the only way to
+reach the page was right-click → Copy Link → paste in a browser. This is the "known gap" below
+coming true — the runtime click was never exercised, and it never worked.
+
+### Root cause
+
+`tauri-plugin-opener`'s `open_url` command is guarded by **both** a permission and a **URL scope**
+(`src/commands.rs` → `scope.is_url_allowed(&url, …)` → `Error::ForbiddenUrl`). `is_url_allowed`
+ends in `self.allowed.iter().any(…)`, so an **empty allow list rejects every URL**.
+
+The capability granted the bare `"opener:allow-open-url"`, which enables the _command_ and nothing
+else. The scope lives in a separate permission — the plugin's own `allow-default-urls` (bundled into
+its `opener:default` set) is what supplies `mailto:*`/`tel:*`/`http://*`/`https://*`. Without it the
+allow list was empty, so **every** `openUrl` call rejected with `ForbiddenUrl`… and `openExternal`'s
+`catch {}` swallowed it. A permanently-broken feature that logged nothing and looked exactly like a
+dead click.
+
+### What changed
+
+- **`apps/desktop/src-tauri/capabilities/default.json`** — `opener:allow-open-url` is now a scoped
+  object granting `http://*` + `https://*`, in the same shape already used for `http:default`:
+
+  ```json
+  {
+    "identifier": "opener:allow-open-url",
+    "allow": [{ "url": "http://*" }, { "url": "https://*" }]
+  }
+  ```
+
+  Scoped explicitly rather than switching to `opener:default`, which would also hand the webview
+  `reveal_item_in_dir` and the `mailto:`/`tel:` schemes — none of which the app uses. The `glob`
+  patterns are the plugin's own (`allow-default-urls.toml`); `glob::Pattern::matches` defaults to
+  `require_literal_separator: false`, so `*` spans the `/`s of a full URL.
+
+- **`apps/web/lib/open-external.ts`** — `openExternal` now returns `Promise<boolean>` instead of
+  `void`: `false` when the URL was rejected or the desktop opener call failed. It still never
+  throws. The web path always returns `true` — `window.open` with `noopener` returns `null` by spec
+  even on success, so its return value can't detect a blocked popup.
+
+- **`apps/web/components/card/links.tsx`** — toasts _"Couldn't open that link"_ when
+  `openExternal` reports failure. Silence is what let this ship; a dead click now says so.
+
+- **`apps/web/components/card/markdown-editor.tsx`** — the **description preview** had no external-open
+  handling at all: `react-markdown` emitted a plain same-tab `<a href>`, so on desktop clicking a
+  link in a description navigated the entire Tauri webview off the app, and on web it navigated the
+  board away. A `components.a` override now applies the same rule as the Links list —
+  `target="_blank" rel="noreferrer"`, untouched on web (cmd/middle-click preserved), intercepted
+  into `openExternal` on desktop. `href` is already protocol-sanitized by react-markdown's default
+  `urlTransform` (a `javascript:` URL becomes `href=""`), and `openExternal` re-checks with
+  `isSafeHttpUrl`.
+
+### How to verify
+
+- **Unit tests:** `apps/web/lib/open-external.test.ts` (return value per path; a rejected
+  `openUrl` — what a missing scope looks like from JS — resolves `false`, never throws);
+  `apps/web/components/card/links.test.tsx` (desktop click is `preventDefault`ed and routed to
+  `openExternal`; a `false` result toasts); new `apps/web/components/card/markdown-editor.test.tsx`
+  (preview anchor attrs; web click left native; desktop click routed; failure toasts;
+  `javascript:` link inert). Full `@boardly/web` suite: 356 passed / 48 files. Typecheck + lint clean.
+- **Resolved ACL:** after `cargo check`, the scope is baked into
+  `target/debug/build/boardly-*/out/capabilities.json` as the `allow` array above (an empty `allow`
+  there is the bug's signature).
+- **Runtime (the check that was skipped last time):** in `pnpm --filter @boardly/desktop dev`, open a
+  card with a link and click it → the OS default browser opens that URL and the Boardly window
+  stays on the board. Repeat for a markdown link in the Description **preview** tab. An installed
+  `/Applications/Boardly.app` must be **rebuilt** (`pnpm --filter @boardly/desktop tauri:build`) to
+  pick up the capability — it is compiled in, not read at runtime.
+
 ## Follow-ups / known gaps
 
-- The one thing not exercised here is the **runtime** click → OS-browser on a launched desktop
-  build (requires `pnpm --filter @boardly/desktop tauri:build`/`dev`, not run this session). The
-  JS path is unit-tested, the Rust shell compiles, and the capability is granted, so this is a
-  smoke-check only — open a card's link in the packaged app and confirm the system browser opens.
+- Nothing outstanding for this unit. (Historical note: the original pass shipped without the runtime
+  click ever being exercised — "the Rust shell compiles and the capability is granted" was treated as
+  sufficient. It wasn't; see the fix above. A Tauri capability grant is not verified until the
+  command is actually called in a running window, because scope rejection happens at call time.)
