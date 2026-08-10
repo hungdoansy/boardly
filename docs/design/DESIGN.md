@@ -275,6 +275,7 @@ Build on shadcn/ui; restyle to tokens. Boardly UI → shadcn primitive:
 | Command palette (⌘K)                    | `command` (cmdk)                   | keyboard hub; fuzzy filter                                                                                                                                                                                                                           |
 | Menus (card `⋯`, column `⋯`)            | `dropdown-menu`, `context-menu`    | right-click card → context-menu; column header 3-dots → dropdown-menu                                                                                                                                                                                |
 | Multi-toggle menu rows (board columns)  | `dropdown-menu` `CheckboxItem`     | `role="menuitemcheckbox"`; check indicator is a lucide SVG, right-aligned in a `pr-7` gutter — visually identical to `RadioItem`, only the semantics differ. A menu of several must `preventDefault()` in `onSelect` so it stays open across toggles |
+| Toggle row inside a palette             | `command` (cmdk) `Item`            | Not a `CheckboxItem` — see §7.5. Force-mounted, keeps cmdk's `role="option"`, state on `aria-checked`, borrows only the `pr-7` check gutter above                                                                                                    |
 | Selects (status, priority, assignee)    | `popover` + `command`, or `select` | status/priority use a searchable popover list                                                                                                                                                                                                        |
 | Labels / due pickers                    | `popover`                          |                                                                                                                                                                                                                                                      |
 | Tooltips (icon buttons, truncated text) | `tooltip`                          | base duration; delay ~300ms                                                                                                                                                                                                                          |
@@ -380,6 +381,41 @@ is a fixed brand asset, not a themed surface); they are literals in the SVG, not
   slate squircle tile** (`#2A2C42→#15161F`, `rx≈22%`), Linear-style — a tile (not the transparent
   mark) because iOS renders apple-touch icons opaque on the home screen. Rasters come from
   `pnpm --filter @boardly/logo generate`.
+
+### 7.5 Palette toggle rows & the hidden-project marker (binding — UNIT-20)
+
+A **toggle row inside a cmdk palette** (⌘K or `/`) is a control, not a result, and both surfaces
+must render it the same way:
+
+- **Force-mount the item _and_ its group** (`forceMount` on each). cmdk drops an ordinary item the
+  moment the user types, which is exactly when a "change what you're searching" control has a job —
+  the user types a term only an excluded card matches, reads "No results.", and the row that would
+  reveal it is gone. Force-mounted items are also excluded from cmdk's registry, so the row never
+  props up `filtered.count` and the empty state stays reachable. Mechanics:
+  `docs/solutions/integration-issues/cmdk-non-result-rows-in-the-two-palettes.md`.
+- **Keep cmdk's own `role="option"` and put the state on `aria-checked`.** A `role` passed to a
+  `CommandItem` is silently discarded (cmdk hardcodes its own after spreading props), and a menu
+  role inside cmdk's `role="listbox"` would be invalid ARIA. Reuse only the _visual_ half of §7's
+  multi-toggle pattern: the right-aligned lucide `Check` in a `pr-7` gutter.
+- **No key chord, and nothing in §5's global-keys list.** The row is reached by arrow keys and
+  activated with Enter; a bare-letter chord would be swallowed by the palette's own input.
+- **`onSelect` flips the state and does not close the dialog** — the result it reveals is the point.
+  Closing is always an explicit call in this codebase, so a non-closing row simply omits it.
+- **Render the row only when it has something to do** (e.g. only when the board has a hidden
+  project). Unlike a fixed menu — where `ColumnsMenu` disables "Show all columns" at zero — a
+  palette list is query-filtered content, so absence beats a permanently dead row in the keyboard hub.
+- The reveal affordance is lucide **`Eye`**, matching Settings' "Show" action. Never `EyeOff` on a
+  control that reveals: `EyeOff` means "hide this" everywhere else, so a _checked_ `EyeOff` row would
+  read as "hiding is on".
+
+The **hidden-project marker** (`apps/web/components/search/hidden-project-marker.tsx`, shared by both
+surfaces) sits in a result row's trailing cluster, before the mono `shortId`: a `size-3.5`
+`aria-hidden` lucide **`EyeOff`** — reporting the _state_ "this project is hidden" — plus the project
+name in `text-xs text-fg-faint`, with an adjacent `sr-only` "Hidden project" so the distinction is
+never carried by the glyph alone (§9). It is deliberately **not** §7.3's project `Box`: that glyph is
+bound to the project's own color, which a search doc doesn't carry, and this marker is about
+hiddenness rather than identity. **The marker's text must stay out of the item's cmdk `value`**, or
+typing a hidden project's name would match every card it holds.
 
 ---
 

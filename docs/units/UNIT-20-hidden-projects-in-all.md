@@ -48,6 +48,19 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
 - Tests in `search.test.tsx`, including a guard that project context never
   affects ranking.
 
+### Plan unit U4 — the ⌘K palette (`apps/web`)
+
+- **`apps/web/components/search/hidden-project-marker.tsx`** (new) —
+  `HiddenProjectMarker({ doc })`, self-gating on `doc.projectHidden`, shared by
+  both search surfaces.
+- **`apps/web/components/command-palette/palette.tsx`** — an "Include hidden
+  projects" toggle row, rendered only when the board has a hidden project;
+  results carry the marker. The ⌘K handler now routes through `setOpenState`
+  instead of a bare `setOpen((o) => !o)`.
+- **`docs/design/DESIGN.md`** — new §7.5 binding the palette toggle-row pattern
+  and the marker, plus a §7 table row. Nothing added to §5's global-keys list.
+- Tests in `palette.test.tsx`.
+
 ## Why
 
 - **One clause, composed once.** `matchesClause` already implements `project` +
@@ -112,6 +125,29 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   byte-for-byte unchanged and the existing assertions pass untouched. A guard
   test pins this: a doc whose only match is in `projectName` must not rank.
   Making project name searchable is deferred.
+
+- **The toggle row is force-mounted, and keeps cmdk's `option` role.** The
+  palette leaves `shouldFilter` on, so a plain `CommandItem` is filtered away
+  the moment the user types — exactly when the toggle has a job. cmdk also
+  hardcodes `role="option"` after spreading caller props, so a supplied
+  `role="menuitemcheckbox"` is silently discarded; state rides on `aria-checked`
+  instead, and only the visual half of DESIGN.md §7's multi-toggle pattern is
+  reused. Both facts were verified against cmdk 1.1.1's source, and the
+  force-mount guard was proven by removing it and watching exactly the two
+  query-typed tests fail. Mechanics:
+  `docs/solutions/integration-issues/cmdk-non-result-rows-in-the-two-palettes.md`.
+
+- **`Eye` on the control, `EyeOff` on the marker.** The toggle _reveals_, so it
+  takes the same glyph as `project-settings.tsx`'s Show action; a checked
+  `EyeOff` row would read as "hiding is on". The marker reports a _state_ — this
+  card's project is hidden — which is the vocabulary the hide actions already
+  use. The marker is not §7.3's project `Box`: that glyph carries the project's
+  color, which a `SearchDoc` does not, and the row is marking hiddenness, not
+  identity.
+
+- **Reset on open, not on close.** `palette.tsx` had several close paths that
+  bypassed the `setOpenState` wrapper. Resetting on the open transition makes
+  the toggle immune to all of them at once, rather than patching each call site.
 
 ## How it works
 
