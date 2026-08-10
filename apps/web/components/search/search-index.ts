@@ -6,7 +6,14 @@
  * this module only scores and ranks them.
  */
 
-/** A flattened, searchable projection of one card. */
+/**
+ * A flattened, searchable projection of one card.
+ *
+ * The `project*` fields are context, not search surface: they let a caller drop
+ * hidden-project cards and mark the ones it keeps, and deliberately carry no
+ * {@link FIELD_WEIGHT} entry — weighting the project name would re-rank every
+ * existing result (UNIT-20, KTD6). Making it searchable is deferred.
+ */
 export interface SearchDoc {
   cardId: string;
   boardTitle: string;
@@ -14,6 +21,12 @@ export interface SearchDoc {
   description: string;
   shortId: string;
   labels: string[];
+  /** The card's project, absent when it has none. */
+  projectId?: string;
+  /** Resolved name of {@link SearchDoc.projectId}, hidden projects included. */
+  projectName?: string;
+  /** True when the card's project is hidden (archived) — the marker's trigger. */
+  projectHidden: boolean;
   updatedAt: number;
 }
 

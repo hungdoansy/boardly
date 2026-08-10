@@ -37,6 +37,17 @@ cards too, and gives search an opt-in way back to them.
 All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   `project-settings.test.tsx`.
 
+### Plan unit U3 — project context in the search index (`apps/web`)
+
+- **`apps/web/components/search/search-index.ts`** — `SearchDoc` gains
+  `projectId?`, `projectName?`, and a required `projectHidden`.
+- **`apps/web/components/search/use-search.ts`** — `useSearchDocs` takes
+  `{ includeHidden = false }` and drops hidden-project docs when it is false, so
+  both surfaces inherit the exclusion from one place. Names resolve from both
+  project lists.
+- Tests in `search.test.tsx`, including a guard that project context never
+  affects ranking.
+
 ## Why
 
 - **One clause, composed once.** `matchesClause` already implements `project` +
@@ -89,6 +100,18 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   The restore path is spelled in words — a `→` breadcrumb separator is a banned
   glyph (DESIGN.md §7.1) and a toast body is a plain string with nowhere to put
   an SVG.
+
+- **The search index resolves project names from both lists.** A hidden project
+  is absent from `listProjects` — the list every other card surface reads — so
+  resolving from it alone would leave the name undefined for exactly the cards
+  that need to be marked with it. `useSearchDocs` merges `listProjects` and
+  `listArchivedProjects` inside its existing memo, adding no second
+  subscription.
+
+- **Project context is display-only.** No `FIELD_WEIGHT` entry, so ranking is
+  byte-for-byte unchanged and the existing assertions pass untouched. A guard
+  test pins this: a doc whose only match is in `projectName` must not rank.
+  Making project name searchable is deferred.
 
 ## How it works
 
