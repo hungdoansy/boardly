@@ -393,6 +393,11 @@ must render it the same way:
   reveal it is gone. Force-mounted items are also excluded from cmdk's registry, so the row never
   props up `filtered.count` and the empty state stays reachable. Mechanics:
   `docs/solutions/integration-issues/cmdk-non-result-rows-in-the-two-palettes.md`.
+- **Place the row where it cannot steal the first selection.** cmdk auto-selects the first row in
+  the list on every keystroke, and Enter fires whatever is selected. In ⌘K an Actions group already
+  sits above the toggle; in `/`, whose primary path is type-then-Enter on the top-ranked card, the
+  row goes **after** the results instead. Position is the only thing the two surfaces may differ on
+  — same label, same group heading ("Search options"), same everything else.
 - **Keep cmdk's own `role="option"` and put the state on `aria-checked`.** A `role` passed to a
   `CommandItem` is silently discarded (cmdk hardcodes its own after spreading props), and a menu
   role inside cmdk's `role="listbox"` would be invalid ARIA. Reuse only the _visual_ half of §7's

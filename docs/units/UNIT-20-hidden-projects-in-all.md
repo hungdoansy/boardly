@@ -61,6 +61,17 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   and the marker, plus a §7 table row. Nothing added to §5's global-keys list.
 - Tests in `palette.test.tsx`.
 
+### Plan unit U5 — the `/` search dialog (`apps/web`)
+
+- **`apps/web/components/search/search.tsx`** — the search body (input, results,
+  toggle) moved into an inner `SearchBody` rendered as a child of
+  `CommandDialog`; `SearchDialog` is now just the dialog shell. `SearchBody`
+  holds `query` and `includeHidden`, renders the same "Include hidden projects"
+  row as ⌘K under the results, and `CardResult` carries the shared marker.
+- **`docs/design/DESIGN.md`** — §7.5 gains one bullet on where the toggle row
+  goes relative to the results, the one thing the two surfaces differ on.
+- Tests in `search.test.tsx` (new `SearchDialog — hidden projects` block).
+
 ## Why
 
 - **One clause, composed once.** `matchesClause` already implements `project` +
@@ -149,6 +160,35 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   bypassed the `setOpenState` wrapper. Resetting on the open transition makes
   the toggle immune to all of them at once, rather than patching each call site.
 
+- **The `/` dialog resets by unmounting, not by mirroring a prop.** Its `open`
+  belongs to `workspace-app.tsx`, so there is no local open transition to hook
+  the way the palette has one. An effect watching the `open` prop and clearing
+  state would be exactly the "synchronize" pattern CLAUDE.md §3 forbids — state
+  copied out of props by an effect. Radix already unmounts dialog content on
+  close, so moving the body into a child component makes the reset a property of
+  the mount: no effect, no parent change, and both `query` and `includeHidden`
+  covered by the same mechanism. `query` was not reset before this unit — it
+  cleared only inside `pick`, so reopening `/` after an Escape restored the
+  previous query; leaving that while the toggle reset would have been an odd
+  asymmetry, and the fix costs nothing extra.
+
+- **The `/` toggle sits below the results, the ⌘K one above them.** cmdk
+  auto-selects the first row in the list, so a toggle at the top of `/` would
+  take Enter away from the top-ranked card — this surface's whole point. ⌘K has
+  an Actions group above the toggle already, so the row can keep its place
+  there. Everything else about the two rows is identical on purpose, including
+  the accessible name: diverging the labels to keep e2e locators apart would
+  trade a real inconsistency for a test-only convenience, so U6 scopes its
+  locators to a container instead.
+
+- **`forceMount` is load-bearing on `/` for the opposite reason.** Under
+  `shouldFilter={false}` cmdk equates `filtered.count` with the number of
+  _registered_ items and renders `CommandEmpty` only at zero, so an ordinary
+  toggle row would suppress "No matching cards." permanently. Proven by removing
+  the prop and watching three tests fail on a missing empty state. Note the item
+  inherits `forceMount` from its group through context — dropping it from the
+  item alone changes nothing, which is why both carry it.
+
 ## How it works
 
 `composeBoardFilter` resolves three cases:
@@ -171,7 +211,9 @@ below it keys on the filter.
 ## How to test / verify
 
 - **Unit:** `pnpm --filter @boardly/domain test` → 146 passed (was 135).
-- **Gates:** `pnpm --filter @boardly/domain typecheck` and `lint` clean.
+- **Unit:** `pnpm --filter @boardly/web test` → 394 passed.
+- **Gates:** `pnpm --filter @boardly/domain typecheck` and `lint` clean;
+  `pnpm --filter @boardly/web typecheck` and `lint` clean.
 - The OR-nesting test catches accidental spreading behaviorally, not just
   structurally: a spread OR would AND its arms, so a `priority is High` card
   with no `bug` label would silently vanish from the board.

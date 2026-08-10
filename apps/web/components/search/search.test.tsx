@@ -11,7 +11,7 @@ import {
 } from "@boardly/commands";
 import { initBoard } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { recentDocs, type SearchDoc, searchDocs } from "./search-index";
@@ -213,5 +213,170 @@ describe("SearchDialog", () => {
       target: { value: "zzzznope" },
     });
     expect(await screen.findByText("No matching cards.")).toBeInTheDocument();
+  });
+
+  it("offers no include-hidden toggle on a board with no hidden projects", () => {
+    seed();
+    expect(
+      screen.queryByRole("option", { name: /include hidden projects/i }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+const searchInput = () => screen.getByPlaceholderText(/search cards/i);
+const typeSearch = (value: string) => fireEvent.change(searchInput(), { target: { value } });
+const hiddenToggle = () => screen.getByRole("option", { name: /include hidden projects/i });
+
+/** Every rendered result row, top-ranked first, with the toggle row dropped. */
+const resultRows = async (): Promise<string[]> =>
+  (await screen.findAllByRole("option"))
+    .map((row) => row.textContent ?? "")
+    .filter((text) => !text.includes("Include hidden projects"));
+
+/**
+ * The `/` dialog reaches the same rule as ⌘K down a different road: it ranks
+ * with `scoreDoc` under `shouldFilter={false}`, and its open state is owned by
+ * `workspace-app`. So each guard below exercises a mechanism the palette's twin
+ * assertion does not, even where the two read alike.
+ */
+describe("SearchDialog — hidden projects (UNIT-20)", () => {
+  /** Web (visible) and Legacy (hidden) with a card each, plus one unassigned. */
+  function seedHidden(): MemoryContext {
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Roadmap", now: 0 });
+    execute(createProject, ctx, { id: "pweb", name: "Web" });
+    execute(createProject, ctx, { id: "plegacy", name: "Legacy" });
+    execute(createCard, ctx, { title: "Ship the picker", projectId: "pweb" });
+    execute(createCard, ctx, { title: "Retire the cron", projectId: "plegacy" });
+    execute(createCard, ctx, { title: "Buy a domain" });
+    execute(archiveProject, ctx, { projectId: "plegacy" });
+    return ctx;
+  }
+
+  /** Three visible cards "auth" scores apart, plus one behind a hidden project. */
+  function seedRanking(): MemoryContext {
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Roadmap", now: 0 });
+    execute(createProject, ctx, { id: "plegacy", name: "Legacy" });
+    execute(createCard, ctx, { title: "Auth service" }); // prefix hit
+    execute(createCard, ctx, { title: "Refresh auth token" }); // word-boundary hit
+    execute(createCard, ctx, { title: "Cauterize truth" }); // scattered subsequence
+    execute(createCard, ctx, { title: "Auth cleanup", projectId: "plegacy" });
+    execute(archiveProject, ctx, { projectId: "plegacy" });
+    return ctx;
+  }
+
+  /**
+   * The dialog's `open` belongs to the parent, so reopening is a prop round-trip
+   * rather than a click — which is exactly the transition the per-open reset has
+   * to survive.
+   */
+  function renderDialog(ctx: MemoryContext) {
+    const onOpenChange = vi.fn();
+    const tree = (open: boolean) => (
+      <BoardlyProvider context={ctx}>
+        <SearchDialog open={open} onOpenChange={onOpenChange} />
+      </BoardlyProvider>
+    );
+    const { rerender } = render(tree(true));
+    return {
+      onOpenChange,
+      reopen: (): void => {
+        rerender(tree(false));
+        rerender(tree(true));
+      },
+    };
+  }
+
+  it("leaves a hidden project's cards out of both recents and results (R4)", async () => {
+    renderDialog(seedHidden());
+    expect(screen.getByText("Ship the picker")).toBeInTheDocument();
+    expect(screen.queryByText("Retire the cron")).not.toBeInTheDocument();
+
+    typeSearch("retire");
+    expect(await screen.findByText("No matching cards.")).toBeInTheDocument();
+  });
+
+  it("reveals the card, marked with its project, when the toggle is on (R5, R7)", async () => {
+    renderDialog(seedHidden());
+    typeSearch("retire");
+    expect(await screen.findByText("No matching cards.")).toBeInTheDocument();
+
+    fireEvent.click(hiddenToggle());
+
+    const row = await screen.findByRole("option", { name: /retire the cron/i });
+    expect(row).toHaveTextContent("Legacy");
+    // The glyph alone would encode the distinction visually (DESIGN.md §9).
+    expect(row).toHaveTextContent("Hidden project");
+  });
+
+  it("keeps the empty state reachable with the toggle row on screen", async () => {
+    renderDialog(seedHidden());
+    typeSearch("zzzznope");
+
+    // This surface sets `shouldFilter={false}`, where cmdk equates
+    // `filtered.count` with the number of *registered* items and `CommandEmpty`
+    // renders only at zero. An ordinary toggle row would pin the count at one
+    // and suppress "No matching cards." forever; force-mounting keeps the row
+    // out of the registry.
+    expect(await screen.findByText("No matching cards.")).toBeInTheDocument();
+    expect(hiddenToggle()).toBeInTheDocument();
+  });
+
+  it("resets both the toggle and the query when the dialog is reopened (R6)", async () => {
+    const { reopen } = renderDialog(seedHidden());
+    fireEvent.click(hiddenToggle());
+    typeSearch("retire");
+    expect(await screen.findByText("Retire the cron")).toBeInTheDocument();
+
+    reopen();
+
+    // Both resets ride on the same mechanism: Radix unmounts the dialog's
+    // content on close, so the state simply does not survive to the next open.
+    expect(searchInput()).toHaveValue("");
+    expect(hiddenToggle()).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText("Retire the cron")).not.toBeInTheDocument();
+  });
+
+  it("exposes the toggle as a checkable option, reachable and flippable by keyboard", () => {
+    const { onOpenChange } = renderDialog(seedHidden());
+    expect(hiddenToggle()).toHaveAttribute("aria-checked", "false");
+
+    // Arrow navigation walks cmdk's DOM item list, which a force-mounted row
+    // joins even though it never enters the filter registry.
+    for (let i = 0; i < 12 && hiddenToggle().getAttribute("data-selected") !== "true"; i++) {
+      fireEvent.keyDown(searchInput(), { key: "ArrowDown" });
+    }
+    expect(hiddenToggle()).toHaveAttribute("data-selected", "true");
+
+    fireEvent.keyDown(searchInput(), { key: "Enter" });
+    expect(hiddenToggle()).toHaveAttribute("aria-checked", "true");
+    // Flipping the switch must not close the dialog — the results it reveals
+    // are the whole point.
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("ranks visible-project results exactly as it did before the toggle existed", async () => {
+    renderDialog(seedRanking());
+    typeSearch("auth");
+
+    const rows = await resultRows();
+    expect(rows[0]).toContain("Auth service");
+    expect(rows[1]).toContain("Refresh auth token");
+    expect(rows[2]).toContain("Cauterize truth");
+    expect(rows.join(" ")).not.toContain("Auth cleanup");
+  });
+
+  it("still opens the top-ranked result on Enter", async () => {
+    renderDialog(seedRanking());
+    typeSearch("auth");
+    await screen.findByText("Auth service");
+
+    // The toggle row must not steal cmdk's auto-selection from the first
+    // result: typing then pressing Enter is this surface's primary path.
+    fireEvent.keyDown(searchInput(), { key: "Enter" });
+    expect(window.location.hash).toBe("#1-auth-service");
   });
 });
