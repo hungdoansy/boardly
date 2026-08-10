@@ -6,6 +6,7 @@ import {
   PRESET_VIEWS,
   type ResolvedView,
   type SavedView,
+  composeBoardFilter,
   countByStatus,
   deriveCardDefaults,
   emptyFilter,
@@ -13,6 +14,7 @@ import {
   groupCards,
   groupLabel,
   isEmptyFilter,
+  isFilterGroup,
   resolveView,
   sortCards,
 } from "./filters";
@@ -265,6 +267,119 @@ describe("evaluateFilter", () => {
     const f = and({ field: "label", condition: "hasAny", values: ["deleted-label-id"] });
     expect(() => evaluateFilter(card({ labelIds: ["real"] }), f, ctx)).not.toThrow();
     expect(evaluateFilter(card({ labelIds: ["real"] }), f, ctx)).toBe(false);
+  });
+});
+
+describe("composeBoardFilter", () => {
+  /** Whether a `project isNot` exclusion appears anywhere in the tree. */
+  const hasProjectExclusion = (node: Filter | undefined): boolean =>
+    node !== undefined &&
+    node.clauses.some((n) =>
+      isFilterGroup(n) ? hasProjectExclusion(n) : n.field === "project" && n.condition === "isNot",
+    );
+
+  const all = (viewFilter: Filter, hiddenProjectIds: string[] = []): Filter | undefined =>
+    composeBoardFilter({ viewFilter, selectedProjectId: null, hiddenProjectIds });
+
+  it("is undefined in All with no hidden projects and no view filter", () => {
+    expect(all(emptyFilter())).toBeUndefined();
+  });
+
+  it("returns the view filter untouched in All with no hidden projects", () => {
+    const viewFilter = and({ field: "priority", condition: "is", values: [Priority.High] });
+    // Identity, not just deep equality — the caller memoizes on this reference.
+    expect(all(viewFilter)).toBe(viewFilter);
+  });
+
+  it("excludes cards of hidden projects in All", () => {
+    const filter = all(emptyFilter(), ["h1", "h2"])!;
+    expect(evaluateFilter(card({ projectId: "h1" }), filter, ctx)).toBe(false);
+    expect(evaluateFilter(card({ projectId: "h2" }), filter, ctx)).toBe(false);
+    expect(evaluateFilter(card({ projectId: "visible" }), filter, ctx)).toBe(true);
+  });
+
+  it("keeps cards with no project in All", () => {
+    const filter = all(emptyFilter(), ["h1", "h2"])!;
+    expect(evaluateFilter(card({}), filter, ctx)).toBe(true);
+  });
+
+  it("applies the view filter and the exclusion together in All", () => {
+    const filter = all(and({ field: "priority", condition: "is", values: [Priority.High] }), [
+      "h1",
+    ])!;
+    expect(evaluateFilter(card({ priority: Priority.High }), filter, ctx)).toBe(true);
+    expect(evaluateFilter(card({ priority: Priority.Low }), filter, ctx)).toBe(false);
+    expect(evaluateFilter(card({ priority: Priority.High, projectId: "h1" }), filter, ctx)).toBe(
+      false,
+    );
+  });
+
+  it("shows a hidden project's cards when it is the selected scope", () => {
+    const filter = composeBoardFilter({
+      viewFilter: emptyFilter(),
+      selectedProjectId: "h1",
+      hiddenProjectIds: ["h1", "h2"],
+    })!;
+    expect(hasProjectExclusion(filter)).toBe(false); // the exclusion would empty the board
+    expect(evaluateFilter(card({ projectId: "h1" }), filter, ctx)).toBe(true);
+    expect(evaluateFilter(card({ projectId: "visible" }), filter, ctx)).toBe(false);
+  });
+
+  it("composes a project scope exactly as before, hidden projects or not", () => {
+    const projectClause = { field: "project", condition: "is", values: ["p1"] };
+    expect(
+      composeBoardFilter({
+        viewFilter: emptyFilter(),
+        selectedProjectId: "p1",
+        hiddenProjectIds: ["h1"],
+      }),
+    ).toEqual({ op: "and", clauses: [projectClause] });
+
+    const viewFilter = and({ field: "priority", condition: "is", values: [Priority.High] });
+    expect(
+      composeBoardFilter({ viewFilter, selectedProjectId: "p1", hiddenProjectIds: ["h1"] }),
+    ).toEqual({ op: "and", clauses: [viewFilter, projectClause] });
+  });
+
+  it("keeps the view filter's priority seed reachable by deriveCardDefaults (Unit 9.5)", () => {
+    const filter = all(and({ field: "priority", condition: "is", values: [Priority.High] }), [
+      "h1",
+    ])!;
+    expect(deriveCardDefaults(filter)).toEqual({ priority: Priority.High });
+  });
+
+  it("keeps the view filter's label seeds reachable by deriveCardDefaults", () => {
+    const filter = all(and({ field: "label", condition: "hasAny", values: ["l1"] }), ["h1"])!;
+    expect(deriveCardDefaults(filter)).toEqual({ labelIds: ["l1"] });
+  });
+
+  it("nests an OR view filter instead of spreading its arms", () => {
+    const viewFilter = or(
+      { field: "priority", condition: "is", values: [Priority.High] },
+      { field: "label", condition: "hasAny", values: ["bug"] },
+    );
+    const filter = all(viewFilter, ["h1"])!;
+    expect(filter.clauses[0]).toEqual(viewFilter);
+    // Spreading would AND the arms: a High card with no "bug" label would drop out.
+    expect(evaluateFilter(card({ priority: Priority.High }), filter, ctx)).toBe(true);
+    expect(evaluateFilter(card({ labelIds: ["bug"] }), filter, ctx)).toBe(true);
+    expect(evaluateFilter(card({ priority: Priority.Low }), filter, ctx)).toBe(false);
+    expect(evaluateFilter(card({ priority: Priority.High, projectId: "h1" }), filter, ctx)).toBe(
+      false,
+    );
+  });
+
+  it("never seeds a projectId from the exclusion, and still seeds one from a scope", () => {
+    expect(deriveCardDefaults(all(emptyFilter(), ["h1", "h2"])!).projectId).toBeUndefined();
+    expect(
+      deriveCardDefaults(
+        composeBoardFilter({
+          viewFilter: emptyFilter(),
+          selectedProjectId: "p1",
+          hiddenProjectIds: ["h1"],
+        })!,
+      ),
+    ).toEqual({ projectId: "p1" });
   });
 });
 

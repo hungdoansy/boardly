@@ -1,0 +1,98 @@
+# UNIT 20: Hidden projects excluded from "All"
+
+- **Plan:** `docs/plans/2026-08-09-001-feat-hidden-projects-excluded-from-all-plan.md`
+- **Status:** in progress
+- **Requirements:** R1–R11 (board visibility, search, preservation)
+- **Dependencies:** UNIT-10.5 (project hide/show), UNIT-6.7 (project scope as a filter clause), UNIT-9.5 (filter-aware card creation)
+
+Hiding a project used to hide only the project row. Its cards kept populating the
+"All" scope and both search surfaces. This unit makes hiding a project hide its
+cards too, and gives search an opt-in way back to them.
+
+## What changed
+
+### Plan unit U1 — `composeBoardFilter` (`packages/domain`)
+
+- **`packages/domain/src/filters.ts`** — new `BoardFilterInput` and
+  `composeBoardFilter({ viewFilter, selectedProjectId, hiddenProjectIds })`,
+  returning `Filter | undefined`. Placed directly after `deriveCardDefaults` so
+  the flattening rule sits beside the function it protects.
+- **`packages/domain/src/filters.test.ts`** — 11 new tests under
+  `describe("composeBoardFilter")`, including a local `hasProjectExclusion`
+  helper that scans recursively so the "explicit scope wins" case proves the
+  exclusion's _absence_ structurally rather than by eyeballing a `toEqual`.
+- No change needed in `packages/domain/src/index.ts` — it already does
+  `export * from "./filters"`.
+
+## Why
+
+- **One clause, composed once.** `matchesClause` already implements `project` +
+  `isNot` as "the card has no project, or its project is not in this list" —
+  exactly the rule this unit needs, including keeping unassigned cards visible.
+  Composing it beside the existing project-scope clause means the board, list
+  view, swimlanes, per-status counts, and the column bulk actions inherit the
+  exclusion with no new plumbing. That is the same reasoning UNIT-6.7 used for
+  project scope, and the invariant UNIT-9.6 / UNIT-14 / UNIT-19 each restated:
+  the header count, the rendered cards, and the bulk-action id set derive from
+  one filter by construction, so they cannot drift.
+
+  Rejected: filtering in `packages/sync`'s card listing (it would also hide
+  cards from the agent/REST/MCP surface, which is not the intent), and
+  filtering per component (it reintroduces exactly the drift UNIT-9.6 removed).
+
+- **A pure function, not an inline memo.** `MainArea` is not exported and has no
+  test coverage. Pushing the composition into `packages/domain` matches what
+  this file already does with `resolveView`, `countByStatus`, and
+  `visibleCardIdsByStatus`, and gives the flattening rule below a tested home.
+
+- **The exclusion is appended to an AND view filter, never wrapped around it.**
+  `deriveCardDefaults` reads only the _direct_ clauses of a top-level AND group
+  and skips nested ones. Wrapping the view filter in a new AND group would have
+  silently stopped a `priority is High` view from seeding new cards — UNIT-9.5's
+  behavior, and the likeliest silent break in this whole unit. An OR view filter
+  still nests, because spreading its arms would AND them.
+
+- **An explicit project scope beats the exclusion.** Applying both would produce
+  `project is X AND project isNot [X, …]` — an empty board — and would remove
+  the only route to a hidden project's cards besides search. So
+  `hiddenProjectIds` is ignored whenever a project is selected, leaving that
+  branch byte-identical to its pre-UNIT-20 behavior.
+
+## How it works
+
+`composeBoardFilter` resolves three cases:
+
+| Selected scope | Hidden projects | Result                                                                               |
+| -------------- | --------------- | ------------------------------------------------------------------------------------ |
+| A project      | any             | `project is [id]` ANDed with the view filter — unchanged from before this unit       |
+| All            | none            | the view filter, by reference; `undefined` when it is empty                          |
+| All            | one or more     | `project isNot [hidden ids]` appended to the view filter's own top-level AND clauses |
+
+Returning `undefined` for the empty case is part of the contract, so callers
+hand the result straight to `countByStatus` / `visibleCardIdsByStatus` /
+`resolveView` without re-checking.
+
+The no-hidden-projects path returns the caller's exact `viewFilter` reference
+(pinned with `toBe` in the tests). The composer therefore introduces no new
+object identity on the most common path — which matters because every memo
+below it keys on the filter.
+
+## How to test / verify
+
+- **Unit:** `pnpm --filter @boardly/domain test` → 146 passed (was 135).
+- **Gates:** `pnpm --filter @boardly/domain typecheck` and `lint` clean.
+- The OR-nesting test catches accidental spreading behaviorally, not just
+  structurally: a spread OR would AND its arms, so a `priority is High` card
+  with no `bug` label would silently vanish from the board.
+
+## Follow-ups / known gaps
+
+Tracked in the plan's Deferred section. The ones worth repeating here:
+
+- The card detail sheet resolves projects from `listProjects` only, so a
+  hidden-project card reads "No project" and can be silently reassigned.
+  Pre-existing since UNIT-10.5, but this unit makes search the normal way those
+  cards get opened.
+- `searchCards` returns no `projectId` and the command catalog has no
+  archived-project listing, so an agent asked to skip hidden projects cannot
+  comply. The agent surface stays global by choice — see the plan's KTD7.
