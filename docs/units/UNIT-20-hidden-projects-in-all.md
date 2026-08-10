@@ -1,7 +1,7 @@
 # UNIT 20: Hidden projects excluded from "All"
 
 - **Plan:** `docs/plans/2026-08-09-001-feat-hidden-projects-excluded-from-all-plan.md`
-- **Status:** in progress
+- **Status:** done
 - **Requirements:** R1–R11 (board visibility, search, preservation)
 - **Dependencies:** UNIT-10.5 (project hide/show), UNIT-6.7 (project scope as a filter clause), UNIT-9.5 (filter-aware card creation)
 
