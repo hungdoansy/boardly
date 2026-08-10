@@ -73,6 +73,51 @@ export async function addCard(page: Page, columnTitle: string, cardTitle: string
   await page.mouse.move(0, 0);
 }
 
+/** The sidebar's project navigation — scope project-row locators to this. */
+export function projectsNav(page: Page) {
+  return page.getByRole("navigation", { name: "Projects" });
+}
+
+/**
+ * Create a project from the sidebar and give it `name`.
+ *
+ * Creating one also *selects* it (the row is a nav destination backed by the URL
+ * hash), so the board is left scoped to the new project — which is how a spec
+ * gets cards into it: a card added under a project scope inherits that project
+ * from the active filter (UNIT-9.5).
+ */
+export async function createProject(page: Page, name: string): Promise<void> {
+  const nav = projectsNav(page);
+  await nav.getByRole("button", { name: "Add project" }).click();
+  // Every new project starts as "New project"; rename it in place (UNIT-10.6).
+  await nav.getByRole("button", { name: "New project", exact: true }).dblclick();
+  const input = nav.getByRole("textbox", { name: "Rename New project" });
+  await input.fill(name);
+  await input.press("Enter");
+  await expect(nav.getByRole("button", { name, exact: true })).toBeVisible();
+}
+
+/** Scope the board back to "All" (the sidebar's first project row). */
+export async function selectAllProjects(page: Page): Promise<void> {
+  await projectsNav(page).getByRole("button", { name: "All", exact: true }).click();
+}
+
+/**
+ * Hide a project from its sidebar right-click menu (UNIT-10.5), which also takes
+ * its cards out of the "All" view (UNIT-20).
+ *
+ * The trigger is scoped to the Projects nav and the menu item is matched exactly:
+ * "Hide" is also a column 3-dots action (UNIT-18), so an unscoped, non-exact
+ * locator collides with it.
+ */
+export async function hideProject(page: Page, name: string): Promise<void> {
+  const nav = projectsNav(page);
+  await nav.getByRole("button", { name, exact: true }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Hide", exact: true }).click();
+  // Hiding removes the row from the sidebar — the signal that the mutation landed.
+  await expect(nav.getByRole("button", { name, exact: true })).toHaveCount(0);
+}
+
 /** The card face wrapper (aria-label "Card: <title>") — used for visibility checks. */
 export function cardButton(page: Page, title: string) {
   return page.getByRole("button", { name: `Card: ${title}` });

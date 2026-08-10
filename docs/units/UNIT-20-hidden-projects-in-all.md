@@ -72,6 +72,22 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   goes relative to the results, the one thing the two surfaces differ on.
 - Tests in `search.test.tsx` (new `SearchDialog — hidden projects` block).
 
+### Plan unit U6 — seed fixture and e2e coverage
+
+- **`packages/sync/scripts/seed-demo-board.ts`** — a `HIDDEN_PROJECT`
+  ("Legacy platform") holding three `HIDDEN_PROJECT_CARDS`, created **last** —
+  after the archived-card block — and then `archiveProject`d. Last, because short
+  ids are handed out in creation order: inserting these cards anywhere earlier
+  would renumber the whole showcase, which the committed visual baselines and the
+  `BRD-…` link refs in the "everything" ticket both assume. It seeds as
+  `BRD-20…22`, leaving `BRD-1…19` exactly where they were.
+- **`apps/e2e/tests/hidden-projects.spec.ts`** (new) — three specs: the All scope
+  drops the cards / the count / the bulk-action count (R1, R2, R3), the hidden
+  project's own URL still renders them (R8), and ⌘K reveals them only with the
+  toggle on, marked (R4, R5, R6, R7).
+- **`apps/e2e/tests/helpers.ts`** — `projectsNav`, `createProject`,
+  `selectAllProjects`, `hideProject`.
+
 ## Why
 
 - **One clause, composed once.** `matchesClause` already implements `project` +
@@ -189,6 +205,35 @@ All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
   inherits `forceMount` from its group through context — dropping it from the
   item alone changes nothing, which is why both carry it.
 
+- **The seed is for hands, the e2e fixture is built in-test.** The demo board
+  needed a hidden project because nothing in it was inspectable by hand: the seed
+  creates archived _cards_, never a hidden _project_, so neither the All-scope
+  exclusion nor the search marker could be seen in a running app. The spec does
+  not read that board, though — every spec in `apps/e2e/tests/` signs up a
+  throwaway account and builds its own data, and borrowing the demo account would
+  couple the specs to the seed's contents and to each other.
+
+- **Behavior, not pixels.** The `board-dark` baseline runs at
+  `maxDiffPixelRatio: 0.03`, which comfortably absorbs two cards vanishing from a
+  column — a passing screenshot would prove nothing here. No baseline was added
+  or updated for this unit. The board assertions are card-face counts, the header
+  count read back as text, and the bulk-action confirmation's count; the ⌘K
+  assertions are `aria-checked` and result presence.
+
+- **The fixture assigns projects through filter-aware creation.** A card added
+  while the board is scoped to a project inherits that project (UNIT-9.5), so the
+  spec creates a project, adds cards under it, and never opens the card detail —
+  which also means the fixture exercises the same seeding path a user does.
+
+- **Every new locator is scoped to a container.** "Include hidden projects" now
+  exists on both search surfaces under one accessible name, so a bare
+  `getByRole("option", …)` is a strict-mode violation waiting to happen; the ⌘K
+  assertions hang off `getByRole("dialog", { name: "Command palette" })`, and the
+  project-row helpers off the Projects `nav`. `hideProject` matches its menu item
+  exactly because "Hide" is also a column 3-dots action (UNIT-18). This is the
+  failure mode `docs/solutions/test-failures/stale-e2e-drift-vs-app-regression.md`
+  was written about.
+
 ## How it works
 
 `composeBoardFilter` resolves three cases:
@@ -213,10 +258,27 @@ below it keys on the filter.
 - **Unit:** `pnpm --filter @boardly/domain test` → 146 passed (was 135).
 - **Unit:** `pnpm --filter @boardly/web test` → 394 passed.
 - **Gates:** `pnpm --filter @boardly/domain typecheck` and `lint` clean;
-  `pnpm --filter @boardly/web typecheck` and `lint` clean.
+  `pnpm --filter @boardly/web typecheck` and `lint` clean;
+  `pnpm --filter @boardly/e2e typecheck` and `lint` clean.
+- **E2E:** `pnpm --filter @boardly/e2e e2e` → 31 passed, including the three new
+  `hidden-projects` specs and both committed dark baselines (unchanged).
+- **The spec fails when the wiring is reverted.** Confirmed, not assumed: with
+  `hiddenProjectIds: []` forced in `MainArea` and the app rebuilt, the All-scope
+  spec fails on the hidden card still being on the board. The R8 spec keeps
+  passing, which is correct — explicit project scope never went through the
+  exclusion.
+- **Seed:** run `scripts/seed-demo-board.ts` with `SEED_RESET=1` (see the script
+  header) → "Legacy platform" hidden with three cards, seeded as `BRD-20…22`, so
+  every earlier fixture keeps the number it had.
 - The OR-nesting test catches accidental spreading behaviorally, not just
   structurally: a spread OR would AND its arms, so a `priority is High` card
   with no `bug` label would silently vanish from the board.
+
+Manual, dark mode, against the seeded demo board: hide a project in Settings and
+watch its cards leave All while unassigned cards stay; check a column header
+count against the faces below it; open that column's 3-dots menu and read the
+count in the confirmation; navigate to the hidden project's URL; ⌘K and `/` a
+hidden card, toggle on, reopen to see the toggle reset; Show the project again.
 
 ## Follow-ups / known gaps
 
