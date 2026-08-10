@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createProject, createMemoryContext, execute, type MemoryContext } from "@boardly/commands";
+import {
+  createCard,
+  createProject,
+  createMemoryContext,
+  execute,
+  type MemoryContext,
+} from "@boardly/commands";
 import { listProjects } from "@boardly/sync";
+import { Toaster } from "@boardly/ui";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -17,6 +24,8 @@ function setup(seed?: (ctx: MemoryContext) => void) {
   render(
     <BoardlyProvider context={ctx}>
       <ProjectList />
+      {/* Hiding a project reports what left the All view (UNIT-20, R11). */}
+      <Toaster />
     </BoardlyProvider>,
   );
   return ctx;
@@ -87,6 +96,29 @@ describe("ProjectList", () => {
     fireEvent.contextMenu(screen.getByRole("button", { name: "Web" }), { clientX: 5, clientY: 5 });
     fireEvent.click(await screen.findByText("Hide"));
     expect(listProjects(ctx.getBoardDoc())).toHaveLength(0);
+  });
+
+  it("says nothing when the hidden project held no cards (R11)", async () => {
+    setup();
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Web" }), { clientX: 5, clientY: 5 });
+    fireEvent.click(await screen.findByText("Hide"));
+    // Nothing left the All view, so there is nothing to report.
+    expect(screen.queryByText(/left the All view/)).not.toBeInTheDocument();
+  });
+
+  it("reports how many cards left the All view, and the way back (AE8, R11)", async () => {
+    setup((ctx) => {
+      execute(createCard, ctx, { title: "One", projectId: "p1" });
+      execute(createCard, ctx, { title: "Two", projectId: "p1" });
+    });
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Web" }), { clientX: 5, clientY: 5 });
+    fireEvent.click(await screen.findByText("Hide"));
+
+    expect(
+      await screen.findByText(
+        "2 cards left the All view. Restore the project from the Hidden list in Settings, under Projects.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows no active row while the Settings view is open", () => {

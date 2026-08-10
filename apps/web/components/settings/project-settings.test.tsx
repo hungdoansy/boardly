@@ -1,20 +1,33 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createProject, createMemoryContext, execute, type MemoryContext } from "@boardly/commands";
+import {
+  createCard,
+  createProject,
+  createMemoryContext,
+  execute,
+  type MemoryContext,
+} from "@boardly/commands";
 import { listProjects } from "@boardly/sync";
+import { Toaster } from "@boardly/ui";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { ProjectSettings } from "./project-settings";
 
-function setup(seed = true) {
+function setup(seed = true, withCards = false) {
   const ctx = createMemoryContext();
   if (seed) execute(createProject, ctx, { id: "p1", name: "Web" });
+  if (withCards) {
+    execute(createCard, ctx, { title: "One", projectId: "p1" });
+    execute(createCard, ctx, { title: "Two", projectId: "p1" });
+  }
   render(
     <BoardlyProvider context={ctx}>
       <ProjectSettings />
+      {/* Hiding a project reports what left the All view (UNIT-20, R11). */}
+      <Toaster />
     </BoardlyProvider>,
   );
   return ctx;
@@ -53,6 +66,16 @@ describe("ProjectSettings", () => {
     // It moves into the Hidden section with a restore control.
     expect(screen.getByText("Hidden")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show Web" })).toBeInTheDocument();
+  });
+
+  it("reports how many cards left the All view when hiding from Settings (AE8, R11)", async () => {
+    setup(true, true);
+    fireEvent.click(screen.getByRole("button", { name: "Hide Web" }));
+    expect(
+      await screen.findByText(
+        "2 cards left the All view. Restore the project from the Hidden list in Settings, under Projects.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("restores a hidden project via Show", () => {

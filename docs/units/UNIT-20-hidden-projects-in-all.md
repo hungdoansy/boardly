@@ -24,6 +24,19 @@ cards too, and gives search an opt-in way back to them.
 - No change needed in `packages/domain/src/index.ts` — it already does
   `export * from "./filters"`.
 
+### Plan unit U2 — wiring the board (`apps/web`)
+
+- **`apps/web/components/app/workspace-app.tsx`** — `MainArea` now reads
+  `useArchivedProjects()` and composes through `composeBoardFilter`; the inline
+  clause construction and the `isEmptyFilter` collapse are gone. `MainArea` is
+  exported so the fan-out can be asserted against the real wiring.
+- **`apps/web/lib/use-projects.ts`** — `useProjectActions().archive` counts the
+  cards leaving the All view before mutating, then toasts the count and the way
+  back. Silent when the project held no cards.
+- Tests in `workspace-app.test.tsx` (new `hidden projects are excluded from the
+All scope` block), `columns-menu.test.tsx`, `project-list.test.tsx`,
+  `project-settings.test.tsx`.
+
 ## Why
 
 - **One clause, composed once.** `matchesClause` already implements `project` +
@@ -57,6 +70,25 @@ cards too, and gives search an opt-in way back to them.
   the only route to a hidden project's cards besides search. So
   `hiddenProjectIds` is ignored whenever a project is selected, leaving that
   branch byte-identical to its pre-UNIT-20 behavior.
+
+- **The hidden-id array is collapsed to a scalar key.** `useArchivedProjects()`
+  returns a fresh array on every deep change to the projects map, so depending
+  on it directly would rebuild the filter — and invalidate every memo below it —
+  on an unrelated project rename or recolor. The ids are derived back _from_ the
+  key, so `react-hooks/exhaustive-deps` stays satisfied honestly rather than
+  suppressed. JSON rather than a joined string, because `createProject` accepts
+  a caller-supplied free-form id and no separator character is safe to split on.
+
+- **The hide toast lives in the action, not the two call sites.** Both the
+  sidebar context menu and the Settings row call the same
+  `useProjectActions().archive`, and the count has to be read from the doc
+  _before_ the mutation. Emitting from each component would have duplicated the
+  message and pushed `allLiveCards` into two components; one implementation
+  covers both entry points, and the count is read non-reactively so sizing a
+  toast does not make either entry point subscribe to every card on the board.
+  The restore path is spelled in words — a `→` breadcrumb separator is a banned
+  glyph (DESIGN.md §7.1) and a toast body is a plain string with nowhere to put
+  an SVG.
 
 ## How it works
 

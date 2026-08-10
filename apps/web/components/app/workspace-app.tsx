@@ -1,7 +1,6 @@
 "use client";
 
-import type { Filter, FilterClause } from "@boardly/domain";
-import { emptyFilter, isEmptyFilter, Status } from "@boardly/domain";
+import { composeBoardFilter, emptyFilter, Status } from "@boardly/domain";
 import { BoardlyMark } from "@boardly/logo";
 import { Button, cn, Popover, PopoverContent, PopoverTrigger, Toaster } from "@boardly/ui";
 import {
@@ -31,7 +30,11 @@ import { useBoardTitle, useSetZoom, useZoom } from "../../lib/use-board";
 import { useZoomHotkeys } from "../../lib/use-zoom-hotkeys";
 import { applyZoom, cacheZoom } from "../../lib/zoom";
 import { useArchiveRoute, useSettingsRoute } from "../../lib/use-boards";
-import { setSelectedProject, useSelectedProject } from "../../lib/use-projects";
+import {
+  setSelectedProject,
+  useArchivedProjects,
+  useSelectedProject,
+} from "../../lib/use-projects";
 import { ArchiveView } from "../archive/archive-view";
 import { ProjectList } from "../board/project-list";
 import { SettingsView } from "../settings/settings-view";
@@ -369,7 +372,13 @@ export function Sidebar({
   );
 }
 
-function MainArea() {
+/**
+ * The board pane: the view toolbar plus whichever lens (board/list) is active.
+ * Exported for tests — it owns the composition of the one effective filter every
+ * card list downstream reads, so asserting the fan-out means rendering the real
+ * thing rather than re-deriving the filter in a fixture.
+ */
+export function MainArea() {
   const title = useBoardTitle();
 
   const [activeView, setActiveView] = useState<ActiveView>({
@@ -380,25 +389,37 @@ function MainArea() {
     layout: "board",
   });
 
-  // The active project scope (Unit 6.7) is ANDed with the saved-view filter and
-  // threaded down as one filter, so every card list (columns, reclaim, swimlanes,
-  // list view) honors it with no extra plumbing.
+  // The active project scope (Unit 6.7) and — in "All" — the hidden-project
+  // exclusion (Unit 20) are ANDed with the saved-view filter and threaded down as
+  // one filter, so every card list (columns, counts, bulk actions, swimlanes,
+  // list view) honors both with no extra plumbing. `activeView.filter` itself
+  // stays untouched: `ViewsMenu` persists *that* object, and `saveView` rejects
+  // the `project` clause this composition adds.
   const [projectId] = useSelectedProject();
-  const effectiveFilter = useMemo<Filter>(() => {
-    if (!projectId) return activeView.filter;
-    const projectClause: FilterClause = {
-      field: "project",
-      condition: "is",
-      values: [projectId],
-    };
-    return {
-      op: "and",
-      clauses: isEmptyFilter(activeView.filter)
-        ? [projectClause]
-        : [activeView.filter, projectClause],
-    };
-  }, [activeView.filter, projectId]);
-  const filter = isEmptyFilter(effectiveFilter) ? undefined : effectiveFilter;
+  // `useArchivedProjects()` returns a fresh array on every deep change to the
+  // projects map, so depending on it directly would rebuild the filter — and
+  // invalidate every memo below it (counts, visible ids, columns, swimlanes,
+  // resolveView) — on an unrelated rename or recolor. Collapse it to a scalar
+  // key and derive the ids back *from that key*, so the identity handed to
+  // `composeBoardFilter` changes only when the hidden *set* does (and the ids
+  // stay an honest dependency of the memo, not a lint suppression). JSON rather
+  // than a joined string: project ids are free-form (`createProject` accepts a
+  // caller-supplied id), so no separator character is safe to split on.
+  const hiddenKey = JSON.stringify(
+    useArchivedProjects()
+      .map((p) => p.id)
+      .sort(),
+  );
+  const hiddenProjectIds = useMemo(() => JSON.parse(hiddenKey) as string[], [hiddenKey]);
+  const filter = useMemo(
+    () =>
+      composeBoardFilter({
+        viewFilter: activeView.filter,
+        selectedProjectId: projectId,
+        hiddenProjectIds,
+      }),
+    [activeView.filter, projectId, hiddenProjectIds],
+  );
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-canvas">
