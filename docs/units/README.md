@@ -62,6 +62,12 @@ reuse a number namespace). The plans, newest last:
 - Interactive, ad hoc (continued):
   - `UNIT-19` — a bulk `setCardsStatus` command and a **Mark all done** item in the column 3-dots
     menu, applying to the column's filter-visible cards only (sibling of UNIT-14's "Archive all").
+- `docs/plans/2026-08-09-001-feat-hidden-projects-excluded-from-all-plan.md` — hiding a project
+  hides its cards:
+  - `UNIT-20` — a pure `composeBoardFilter` in `@boardly/domain` that folds the hidden-project
+    exclusion into the board's one effective filter, project context in the search index, an
+    **Include hidden projects** toggle on both search surfaces, and a toast when hiding a project
+    takes cards out of the All view.
 
 ## Convention
 

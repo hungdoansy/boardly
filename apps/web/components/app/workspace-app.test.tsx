@@ -1,16 +1,41 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createMemoryContext } from "@boardly/commands";
-import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import {
+  archiveProject,
+  createCard,
+  createMemoryContext,
+  createProject,
+  execute,
+  type MemoryContext,
+  saveView,
+  showProject,
+} from "@boardly/commands";
+import { Priority, Status, STATUS_META } from "@boardly/domain";
+import { allLiveCards, getCard, initBoard } from "@boardly/sync";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardlyProvider } from "../../lib/boardly-context";
+import { showAllColumns } from "../../lib/hidden-columns";
 import { getSelectedProject, setSelectedProject } from "../../lib/use-projects";
-import { Sidebar, useGlobalKeyboard } from "./workspace-app";
+import { MainArea, Sidebar, useGlobalKeyboard } from "./workspace-app";
 
 beforeEach(() => setSelectedProject(null)); // reset the module-level scope
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  // Module singletons — a hide or a persisted flag would leak into the next test.
+  showAllColumns();
+  localStorage.clear();
+});
 
 /** True when `a` comes before `b` in document order. */
 function precedes(a: Element, b: Element): boolean {
@@ -311,5 +336,219 @@ describe("Global shortcuts (search / help / new task)", () => {
     press({ code: "KeyC" });
     expect(clickSpy).not.toHaveBeenCalled();
     col.remove();
+  });
+});
+
+/**
+ * The board's one effective filter fans out to the toolbar's Columns menu and to
+ * every card list under it, so these render the real `MainArea` rather than a
+ * fixture that re-derives the filter: a composition bug is exactly the kind of
+ * defect a duplicated composition would hide.
+ */
+describe("hidden projects are excluded from the All scope (UNIT-20)", () => {
+  function renderMain(seed?: (ctx: MemoryContext) => void) {
+    const ctx = createMemoryContext();
+    initBoard(ctx.getBoardDoc(), { title: "Board", now: 0 });
+    seed?.(ctx);
+    render(
+      <BoardlyProvider context={ctx}>
+        <MainArea />
+      </BoardlyProvider>,
+    );
+    return { ctx };
+  }
+
+  /** Web (visible, 1 card), Legacy (2 cards), 1 unassigned card — all in Backlog. */
+  function seedBoard(ctx: MemoryContext): void {
+    execute(createProject, ctx, { id: "pweb", name: "Web" });
+    execute(createProject, ctx, { id: "plegacy", name: "Legacy" });
+    const backlog = Status.Backlog;
+    execute(createCard, ctx, { status: backlog, title: "Ship the picker", projectId: "pweb" });
+    execute(createCard, ctx, { status: backlog, title: "Retire the cron", projectId: "plegacy" });
+    execute(createCard, ctx, { status: backlog, title: "Delete the shim", projectId: "plegacy" });
+    execute(createCard, ctx, { status: backlog, title: "Buy a domain" });
+  }
+
+  /** …with Legacy hidden. */
+  function seedWithHidden(ctx: MemoryContext): void {
+    seedBoard(ctx);
+    execute(archiveProject, ctx, { projectId: "plegacy" });
+  }
+
+  const backlogHeader = (): HTMLElement =>
+    screen
+      .getByRole("region", { name: `Column: ${STATUS_META[Status.Backlog].name}` })
+      .querySelector("header")!;
+
+  /** Radix's dropdown trigger opens on pointerdown/keyboard, not a bare click. */
+  function openColumnsMenu(): void {
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Columns/ }), { key: "Enter" });
+  }
+
+  function openBacklogMenu(): void {
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: `${STATUS_META[Status.Backlog].name} column actions` }),
+      { key: "Enter" },
+    );
+  }
+
+  const liveTitles = (ctx: MemoryContext): string[] =>
+    allLiveCards(ctx.getBoardDoc()).map((c) => c.title);
+
+  it("renders only the visible-project and unassigned cards (AE1, R1, R2)", () => {
+    renderMain(seedWithHidden);
+    expect(screen.getByText("Ship the picker")).toBeInTheDocument();
+    expect(screen.getByText("Buy a domain")).toBeInTheDocument();
+    expect(screen.queryByText("Retire the cron")).not.toBeInTheDocument();
+    expect(screen.queryByText("Delete the shim")).not.toBeInTheDocument();
+  });
+
+  it("excludes hidden-project cards from the column header count (AE2, R3)", () => {
+    renderMain(seedWithHidden);
+    expect(within(backlogHeader()).getByText("2")).toBeInTheDocument();
+  });
+
+  it("keeps the Columns menu counts equal to the header counts", async () => {
+    renderMain(seedWithHidden);
+    openColumnsMenu();
+    await screen.findByRole("menu");
+    const row = screen.getByRole("menuitemcheckbox", {
+      name: new RegExp(`^${STATUS_META[Status.Backlog].name}`),
+    });
+    expect(within(row).getByText("2")).toBeInTheDocument();
+  });
+
+  it("archives only the visible cards from the column menu, and says so (AE2, R3)", async () => {
+    const { ctx } = renderMain(seedWithHidden);
+    openBacklogMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Archive all" }));
+    expect(
+      await screen.findByRole("heading", {
+        name: `Archive all 2 cards in ${STATUS_META[Status.Backlog].name}?`,
+      }),
+    ).toBeVisible();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Archive all" }));
+    });
+
+    expect(liveTitles(ctx)).toEqual(["Retire the cron", "Delete the shim"]);
+  });
+
+  it("marks only the visible cards done from the column menu (R3)", async () => {
+    const { ctx } = renderMain(seedWithHidden);
+    openBacklogMenu();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Mark all done" }));
+    expect(
+      await screen.findByRole("heading", {
+        name: `Mark all 2 cards in ${STATUS_META[Status.Backlog].name} as done?`,
+      }),
+    ).toBeVisible();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Mark all done" }));
+    });
+
+    const doneTitles = allLiveCards(ctx.getBoardDoc())
+      .filter((c) => c.status === Status.Done)
+      .map((c) => c.title);
+    expect(doneTitles).toEqual(["Ship the picker", "Buy a domain"]);
+  });
+
+  it("brings the cards straight back when the project is shown again (AE6, R9)", () => {
+    const { ctx } = renderMain(seedWithHidden);
+    const kept = screen.getByText("Ship the picker");
+
+    act(() => {
+      execute(showProject, ctx, { projectId: "plegacy" });
+    });
+
+    expect(screen.getByText("Retire the cron")).toBeInTheDocument();
+    expect(within(backlogHeader()).getByText("4")).toBeInTheDocument();
+    // No card was mutated, and the board re-derived rather than remounted.
+    expect(screen.getByText("Ship the picker")).toBe(kept);
+    expect(allLiveCards(ctx.getBoardDoc()).every((c) => !c.archived)).toBe(true);
+  });
+
+  it("still shows a hidden project's cards when it is the selected scope (AE3, R8)", () => {
+    renderMain(seedWithHidden);
+    act(() => setSelectedProject("plegacy-legacy"));
+
+    expect(screen.getByText("Retire the cron")).toBeInTheDocument();
+    expect(screen.getByText("Delete the shim")).toBeInTheDocument();
+    expect(screen.queryByText("Ship the picker")).not.toBeInTheDocument();
+    expect(screen.queryByText("Buy a domain")).not.toBeInTheDocument();
+  });
+
+  it("keeps unassigned cards when every project is hidden (R2)", () => {
+    const { ctx } = renderMain(seedWithHidden);
+    act(() => {
+      execute(archiveProject, ctx, { projectId: "pweb" });
+    });
+
+    expect(screen.getByText("Buy a domain")).toBeInTheDocument();
+    expect(screen.queryByText("Ship the picker")).not.toBeInTheDocument();
+    expect(within(backlogHeader()).getByText("1")).toBeInTheDocument();
+  });
+
+  it("keeps the exclusion in the list and swimlane lenses (R1)", async () => {
+    renderMain(seedWithHidden);
+
+    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    expect(screen.getByText("Ship the picker")).toBeInTheDocument();
+    expect(screen.queryByText("Retire the cron")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+    fireEvent.click(screen.getByRole("button", { name: "Group by" }));
+    const menu = await screen.findByRole("dialog", { name: "Group by menu" });
+    fireEvent.click(within(menu).getByRole("button", { name: "Status" }));
+
+    expect(screen.getByText("Ship the picker")).toBeInTheDocument();
+    expect(screen.queryByText("Retire the cron")).not.toBeInTheDocument();
+  });
+
+  it("changes nothing on a board with no hidden projects", () => {
+    renderMain(seedBoard);
+    for (const title of ["Ship the picker", "Retire the cron", "Delete the shim", "Buy a domain"]) {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    }
+    expect(within(backlogHeader()).getByText("4")).toBeInTheDocument();
+  });
+
+  it("still seeds a new card from the view filter while a project is hidden (AE7, R10)", async () => {
+    const { ctx } = renderMain((ctx) => {
+      seedWithHidden(ctx);
+      execute(saveView, ctx, {
+        view: {
+          id: "v1",
+          name: "Urgent only",
+          filter: {
+            op: "and",
+            clauses: [{ field: "priority", condition: "is", values: [Priority.Urgent] }],
+          },
+        },
+      });
+    });
+
+    // Apply the saved view, so `activeView.filter` carries a real seed clause.
+    fireEvent.click(screen.getByRole("button", { name: "Views and filters" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Urgent only" }));
+
+    // Create a card from the Backlog composer (header "+" is its first control).
+    const backlog = screen.getByRole("region", {
+      name: `Column: ${STATUS_META[Status.Backlog].name}`,
+    });
+    fireEvent.click(within(backlog).getAllByRole("button", { name: "Add card" })[0]!);
+    const input = within(backlog).getByRole("textbox", { name: /new card title/i });
+    fireEvent.change(input, { target: { value: "Fix the outage" } });
+    act(() => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+
+    const created = allLiveCards(ctx.getBoardDoc()).find((c) => c.title === "Fix the outage");
+    expect(created).toBeDefined();
+    expect(getCard(ctx.getBoardDoc(), created!.id)?.priority).toBe(Priority.Urgent);
+    // The exclusion clause must never leak into the seeds as a project.
+    expect(created?.projectId).toBeUndefined();
   });
 });

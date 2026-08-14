@@ -158,6 +158,70 @@ export function deriveCardDefaults(filter: Filter): CardDefaults {
   return defaults;
 }
 
+/** The three sources the board's effective filter is composed from (Unit 20). */
+export interface BoardFilterInput {
+  /** The active view's filter; `emptyFilter()` when the user has filtered nothing. */
+  viewFilter: Filter;
+  /** The project scope from the URL — `null` is the "All" scope. */
+  selectedProjectId: string | null;
+  /** Hidden (archived) project ids. Only ever excluded from "All". */
+  hiddenProjectIds: string[];
+}
+
+/**
+ * The board's one effective filter: the active view narrowed by the project
+ * scope, or — in "All" — narrowed to leave out hidden projects (Unit 20).
+ * Composing both here means every card list (columns, per-status counts,
+ * swimlanes, list view, column bulk actions) inherits them with no extra
+ * plumbing, which is the point of expressing scope as a clause (Unit 6.7).
+ * `undefined` means "no filter" and is what the empty result collapses to, so
+ * callers hand the result straight to {@link countByStatus} /
+ * {@link visibleCardIdsByStatus} / {@link resolveView} without re-checking.
+ *
+ * Two rules here look arbitrary and are not:
+ *
+ * - **An explicit project scope beats the hidden-project exclusion.** ANDing
+ *   both would read `project is X AND project isNot [X, …]` — an empty board —
+ *   and navigating to the URL is the only way back to a hidden project's cards
+ *   besides search. So `hiddenProjectIds` is ignored whenever a project is
+ *   selected, leaving that branch exactly as it was before Unit 20.
+ * - **The exclusion is appended to an AND view filter, never wrapped around
+ *   it.** {@link deriveCardDefaults} reads only the *direct* clauses of a
+ *   top-level AND, so pushing the view filter one level down would silently
+ *   stop a `priority is High` view from seeding new cards (Unit 9.5). An OR
+ *   view filter must nest instead — spreading its arms would AND them.
+ *
+ * Exclusion leans on `project` + `isNot` already meaning "no project, or not
+ * one of these", so cards with no project at all stay visible in "All".
+ */
+export function composeBoardFilter({
+  viewFilter,
+  selectedProjectId,
+  hiddenProjectIds,
+}: BoardFilterInput): Filter | undefined {
+  if (selectedProjectId) {
+    const projectClause: FilterClause = {
+      field: "project",
+      condition: "is",
+      values: [selectedProjectId],
+    };
+    return {
+      op: "and",
+      clauses: isEmptyFilter(viewFilter) ? [projectClause] : [viewFilter, projectClause],
+    };
+  }
+  if (hiddenProjectIds.length === 0) return isEmptyFilter(viewFilter) ? undefined : viewFilter;
+  const kept: Array<FilterClause | FilterGroup> = isEmptyFilter(viewFilter)
+    ? [] // also drops an empty OR group, which would just be noise
+    : viewFilter.op === "and"
+      ? viewFilter.clauses
+      : [viewFilter];
+  return {
+    op: "and",
+    clauses: [...kept, { field: "project", condition: "isNot", values: hiddenProjectIds }],
+  };
+}
+
 /**
  * Count cards per status, applying `filter` (absent/empty → count all). Every
  * status is present in the result (0 when none). Used by the board to decide

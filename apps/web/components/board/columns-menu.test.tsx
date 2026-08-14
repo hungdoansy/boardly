@@ -1,9 +1,22 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 
-import { createCard, execute, setCardStatus } from "@boardly/commands";
+import {
+  archiveProject,
+  createCard,
+  createProject,
+  execute,
+  setCardStatus,
+} from "@boardly/commands";
 import { createMemoryContext, type MemoryContext } from "@boardly/commands";
-import { type Filter, Status, STATUS_META, STATUS_ORDER } from "@boardly/domain";
+import {
+  composeBoardFilter,
+  emptyFilter,
+  type Filter,
+  Status,
+  STATUS_META,
+  STATUS_ORDER,
+} from "@boardly/domain";
 import { cardsInStatus, getBoard, initBoard } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -181,6 +194,30 @@ describe("Columns menu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show all columns" }));
     expect(columnNames()).toHaveLength(STATUS_ORDER.length);
+  });
+
+  it("leaves a hidden project's cards out of both the menu count and the column (UNIT-20)", async () => {
+    // The exact filter `MainArea` composes in the "All" scope with one project
+    // hidden — the two surfaces must read it identically, or the "where did my
+    // card go?" story breaks in the one menu meant to answer it.
+    const filter = composeBoardFilter({
+      viewFilter: emptyFilter(),
+      selectedProjectId: null,
+      hiddenProjectIds: ["plegacy"],
+    });
+    setup((ctx) => {
+      execute(createProject, ctx, { id: "plegacy", name: "Legacy" });
+      execute(createCard, ctx, { status: Status.Backlog, title: "Kept" });
+      execute(createCard, ctx, { status: Status.Backlog, title: "Gone", projectId: "plegacy" });
+      execute(archiveProject, ctx, { projectId: "plegacy" });
+    }, filter);
+
+    expect(screen.getByText("Kept")).toBeInTheDocument();
+    expect(screen.queryByText("Gone")).not.toBeInTheDocument();
+
+    openMenu();
+    await screen.findByRole("menu");
+    expect(within(statusRow(Status.Backlog)).getByText("1")).toBeInTheDocument();
   });
 
   it("shows zero counts under a filter that excludes everything, and stays toggleable", async () => {

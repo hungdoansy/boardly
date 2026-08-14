@@ -4,7 +4,8 @@
  * columns (Backlog, Todo, In Progress, Pending, In Review, Done, Canceled,
  * Duplicate), every priority, due dates (overdue/today/this-week/
  * future), multi-labels, links for every provider, checklists (with completed
- * items), markdown descriptions, rich activity logs, projects, and saved views
+ * items), markdown descriptions, rich activity logs, projects (including a
+ * hidden one, whose cards leave the "All" view — Unit 20), and saved views
  * (board + list lenses).
  *
  * Since the board layer was collapsed (plan 2026-07-12-002), a user has exactly
@@ -52,6 +53,7 @@ import {
   addProject,
   allLiveCards,
   archiveCard,
+  archiveProject,
   boardActivity,
   boardCards,
   boardLabels,
@@ -411,6 +413,40 @@ const CARDS: CardSpec[] = [
   },
 ];
 
+// A project that is hidden (archived) once its cards exist, so the demo board
+// can be used to verify Unit 20 by hand: its cards must be absent from the "All"
+// board, list, swimlanes and column counts, present at the project's own URL,
+// and reachable in either search surface only via "Include hidden projects"
+// (where they carry the project-name marker).
+//
+// Its cards are created LAST — after the archived-card block — so every other
+// fixture keeps the ticket number it had before this project existed: short ids
+// are handed out in creation order, and inserting cards earlier would renumber
+// the showcase (which the committed visual baselines and the link refs in the
+// "everything" ticket's description both assume).
+const HIDDEN_PROJECT = { name: "Legacy platform", color: color("slate") };
+
+const HIDDEN_PROJECT_CARDS: CardSpec[] = [
+  {
+    status: Status.Backlog,
+    title: "Retire the cron scheduler",
+    description: "Superseded by the queue worker. Kept until the last job is migrated.",
+    labels: ["infra"],
+  },
+  {
+    status: Status.Backlog,
+    title: "Decommission the legacy queue",
+    priority: Priority.Medium,
+    labels: ["backend", "infra"],
+  },
+  {
+    status: Status.Todo,
+    title: "Archive the v1 admin console",
+    priority: Priority.Low,
+    labels: ["frontend"],
+  },
+];
+
 // --- build -------------------------------------------------------------------
 
 function buildBoard(boardDoc: Y.Doc, userId: string): void {
@@ -514,6 +550,30 @@ function buildBoard(boardDoc: Y.Doc, userId: string): void {
     archiveCard(boardDoc, id, tick(), userId);
   }
 
+  // The hidden project (Unit 20) — built last so it never shifts the ticket
+  // numbers above. Its cards are ordinary live cards; only the *project* is
+  // archived, which is what takes them out of the "All" view.
+  const hiddenProjectId = addProject(boardDoc, {
+    name: HIDDEN_PROJECT.name,
+    color: HIDDEN_PROJECT.color,
+    now: tick(),
+    clientId: CLIENT_ID,
+  });
+  for (const spec of HIDDEN_PROJECT_CARDS) {
+    const id = addCard(boardDoc, {
+      status: spec.status,
+      title: spec.title,
+      projectId: hiddenProjectId,
+      priority: spec.priority,
+      now: tick(),
+      clientId: CLIENT_ID,
+      createdBy: userId,
+    });
+    if (spec.description) setCardDescription(boardDoc, id, spec.description, tick());
+    for (const key of spec.labels ?? []) assignLabel(boardDoc, id, labelId[key]!, tick());
+  }
+  archiveProject(boardDoc, hiddenProjectId, tick());
+
   // Saved views — exercise both lenses, grouping, sorting, and filters.
   saveView(
     boardDoc,
@@ -611,6 +671,9 @@ async function main(): Promise<void> {
   console.log("\n✓ Seeded successfully.");
   console.log(`  Board:    ${BOARD_TITLE} (${documentName})`);
   console.log(`  Cards:    ${CARDS.length} across the 8 fixed status columns`);
+  console.log(
+    `  Hidden:   "${HIDDEN_PROJECT.name}" (${HIDDEN_PROJECT_CARDS.length} cards, absent from All)`,
+  );
   console.log(`  Log in at http://localhost:3000 with:`);
   console.log(`    email:    ${EMAIL}`);
   console.log(`    password: ${PASSWORD}`);
