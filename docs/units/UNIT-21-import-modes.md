@@ -336,3 +336,172 @@ member list and are dropped with one.
 - `board.memberIds` has no caller yet; until one passes it, assignees import as-is.
 - A fusion can collapse two of one card's labels into one. `labelIds` de-duplicates preserving
   first-occurrence order, and both entity-level fusions are still reported, so nothing is silent.
+
+---
+
+## U4. Three apply modes over a staged document
+
+The unit's centre of gravity: the write path stops being a create-once builder and becomes three
+explicit modes. This is where the silent no-op is actually fixed.
+
+### What changed
+
+- **`packages/sync/src/io.ts` (new, ~800 lines).** The whole snapshot **write** path, moved out of
+  `board-doc.ts`. Exports:
+  - `IMPORT_MODES` / `ImportMode` — `"replace" | "merge" | "copy"`, declared as a tuple so U5's
+    command enum cannot drift from the modes that exist.
+  - `applySnapshot(doc, snapshot, opts): ImportResult` — the one entry point.
+  - `ImportResult`, `ImportCounts`, `StaleSkip` — the structured report (R17, KTD6).
+  - `buildBoardFromSnapshot(doc, snapshot, now)` — kept as the pre-UNIT-21 entry point, now a thin
+    call into `applySnapshot` in `replace` mode.
+- **`packages/sync/src/board-doc.ts`** — `buildCard`, `maxTicketNumber` and
+  `buildBoardFromSnapshot` removed; the file re-exports `buildBoardFromSnapshot` from `./io` so the
+  existing import site keeps working. `boardToSnapshot` (the read path) stays: it is a selector like
+  every other selector in that file.
+- **`packages/sync/src/index.ts`** — exports `./io`.
+- **The create-once guard is gone.** `if (meta.has("createdAt")) return;` no longer exists anywhere
+  in the write path.
+
+`packages/commands` and the UI are untouched — that is U5 and U6. `importBoard` still calls
+`buildBoardFromSnapshot`, which now actually writes, in `replace` mode.
+
+### Why
+
+**The guard's precondition had been deleted underneath it.** It assumed import always targeted a
+freshly created doc. Once the board became one doc per user, `ctx.getBoardDoc()` always returns a
+doc carrying `createdAt`, so the guard fired on the first and only call and import did nothing at
+all. Every test still passed because every test but one built into a `new Y.Doc()`. The one test
+that did not — "is idempotent-guarded (won't overwrite an initialized doc)" — asserted the bug as
+if it were the feature, which is why it was **replaced** rather than joined by a second test.
+
+**The apply is staged in a detached `Y.Doc`, not wrapped in a transaction.** `doc.transact` is
+`try`/`finally` with no `catch`: every write made before a throw stays committed _and_ propagates to
+peers. A transaction buys single-update batching, not atomicity. So `applySnapshot` clones the live
+doc into a detached one, runs the entire apply there, and only on clean completion encodes the
+difference and applies it to the live doc. A throw discards the staging doc and the board never
+moves (KTD8, R18, R25). The difference carries the delete set, which is how Replace's clear reaches
+both the board and its peers. Recorded in
+`docs/solutions/architecture-patterns/yjs-transact-has-no-rollback.md`.
+
+**Ticket numbers are allocated, not written verbatim, on collision.** Repair-on-read
+(`repairTicketNumbers`) resolves a duplicated number in favour of the earliest `(createdAt, id)`
+card — which can be the _incoming_ one, renumbering a ticket the user already refers to. So an
+incoming number is kept only when it is positive and free; otherwise a fresh one is allocated past
+the highest in use (KTD5). Replace is exempt in practice because it empties the board first, so a
+well-formed export round-trips its numbers exactly.
+
+**Only Replace writes board identity.** Merge and copy pull content into the board the user is
+already using; renaming it, or swapping its ticket prefix and badge row, is not something either
+mode was asked to do. Replace does all of that, plus the file's saved views — but deliberately
+_not_ `zoom` and `showEmptyColumns`, which are this device's display state rather than board
+content (R6).
+
+**Merge never modifies a matched project or label — only creates.** There is no per-entity
+timestamp to adjudicate staleness the way R12 does for cards, so taking the file's name and colour
+would let a stale export silently rename the user's project. This is the same survivor rule R10
+already states for a name fusion, applied to an id match for the same reason. Cards do have
+timestamps, so cards _are_ updated.
+
+**Replace and copy resolve against the file's own entities, not against an empty board.** Both are
+"create everything" modes, but running them through `resolveImport` with a genuinely empty board
+would let two file projects whose names normalize alike fuse into one — losing a project on what is
+supposed to be a verbatim restore. Passing the file's own entities as the candidate set means every
+file entity id-matches itself: nothing fuses, and a reference to an id nothing in the file defines
+is still detected and dropped (R13). Fusing is a merge rule, not a rebuild rule.
+
+### How it works
+
+```
+applySnapshot(doc, snapshot, opts)
+  ├── staging = new Y.Doc(); applyUpdate(staging, encodeStateAsUpdate(doc))
+  ├── stage(staging, …)                    ← everything that can throw lives here
+  │     ├── replace? clear cards + projects + labels        (KTD7 — the first hard delete)
+  │     ├── resolveImport(file, board | file-as-board)      (U3)
+  │     ├── copy? substitute a fresh id per kind            (R8)
+  │     ├── projects → create | skip, ord generated if absent
+  │     ├── labels   → create | skip, ord generated if absent
+  │     ├── cards    → update | stale-skip | create
+  │     ├── relations written symmetrically, after every card exists
+  │     └── meta: shortIdSeq always; identity + views only on replace
+  ├── update = encodeStateAsUpdate(staging, encodeStateVector(doc))
+  └── doc.transact(() => applyUpdate(doc, update))          ← one update, or none
+```
+
+**Placement (R14).** One `OrdAllocator` per status, seeded with the highest `ord` already in that
+status and advanced monotonically, so a run of new cards lands after existing content and keeps its
+own order. Merge and copy always allocate — the file's keys mean nothing on this board. Replace
+keeps the file's keys verbatim and only allocates for a card that has none (R23), folding each
+verbatim key into the allocator so generated keys still sort after it. New cards are ordered by the
+file's own `ord` where present, array order otherwise.
+
+**Staleness (R12).** `card.updatedAt > 0 && card.updatedAt < board.updatedAt` skips, and records a
+`StaleSkip` carrying the **board's** title plus both timestamps. A zero or absent `updatedAt`
+carries no staleness claim and is applied — a hand-authored snapshot defaults to zero and would
+otherwise never be able to update anything.
+
+**Idempotence (R15).** Every scalar write on the update path goes through `setIfChanged`. A Yjs
+`Map.set` always creates a new item even when the value is identical, so a naive rewrite would churn
+the CRDT on every re-run. `updateCard` returns whether anything actually changed, and only then
+stamps `updatedAt`. A second merge of the same file reports every card skipped and leaves the
+document's content identical.
+
+**Union, never delete (R7).** Labels, checklist items, links and relations are added when missing
+and updated when present; nothing is removed. An empty incoming description never blanks the
+board's. An existing card keeps its `archived` flag and `deletedAt` (R11), its `number` (KTD5), its
+`createdAt`, and its placement unless its status moved — in which case it gets a fresh key in the
+column it moved to.
+
+**Assignees and provenance (R20).** `opts.userId` becomes the single-element `memberIds` list U3
+already accepts, so an assignee who is not the importing user is dropped and reported like any other
+unresolvable reference. `createdBy` is provenance and is carried verbatim.
+
+### How to test / verify
+
+`pnpm --filter @boardly/sync test` — 106 tests, up from 85. `pnpm -r typecheck` and `pnpm -r lint`
+are green; `pnpm -r test` is 807 across the workspace with no other suite moved.
+
+The anti-regression case is the renamed test in `src/io.test.ts`: **"writes into a doc that is
+already initialized and already has cards"**. It seeds a real board, imports over it, and asserts
+the board actually changed. It is the same test that used to assert the opposite.
+
+Also covered: Replace leaves exactly the file's content with nothing pre-existing surviving; Replace
+loads the file's views but preserves the device's `zoom`/`showEmptyColumns`; a v1 file (no views)
+leaves the board's own in place; Replace keeps the board's `createdAt`. Merge adds, updates and
+leaves alone in one pass; keeps the board's newer card and reports the stale skip with both
+timestamps; applies a zero-`updatedAt` card; re-runs to an identical snapshot; fuses `"web app"`
+into `"Web app"` and repoints the card; refuses to match an archived project by name; never flips a
+project's `archived` in either direction; leaves a live card live against a file that archives it;
+drops a dangling `projectId` and still imports the card; appends into each status in the file's
+order against ords that would otherwise sort to the top. Plus: an assignee who is not the importing
+user is dropped and `createdBy` survives; a snapshot with no `ord` anywhere builds in array order;
+add-as-copy doubles the board with no id collisions and no fusions; no pre-existing ticket id
+changes across a merge that collides on number _and_ has an earlier `createdAt`; `shortIdSeq`
+advances so the next card created does not collide.
+
+Two tests carry the atomicity claim. **"leaves the live doc byte-identical when the apply throws
+part-way"** feeds a card with a malformed `ord` followed by one without, so the first is written
+into staging and generating a key for the second throws inside `fractional-indexing` — a genuinely
+half-written staging doc. It compares `Y.encodeStateAsUpdate` before and after rather than a few
+fields, because a partial apply leaves structs a field-level check walks straight past.
+**"lands the whole apply as a single update"** counts `doc.on("update")` firings and asserts one.
+
+### Follow-ups / known gaps
+
+- **Merge and copy do not import saved views.** A view's filter embeds project and label ids, and
+  both modes remap those, so importing a view without rewriting its filter internals would produce
+  a view that silently matches nothing. Only Replace loads views, which is the only case R6
+  mandates. Rewriting filter values through the remap is the follow-up.
+- **Merge never updates a matched project or label.** Deliberate (see Why), but it means a rename
+  on the exporting board does not reach the importing one. A per-entity `updatedAt` in the snapshot
+  would let the R12 staleness rule extend to entities and close this properly.
+- **Import still writes no activity entry.** `appendActivity` exists and nothing on this path calls
+  it, so the structured result stays the only record that an import happened. Replace additionally
+  leaves activity rows pointing at cards it deleted.
+- **The `ord` tie-breaker for generated keys is the constant `"import"`.** An import writes a
+  contiguous run in one shot, so the suffix only has to separate it from a concurrent writer. Two
+  devices importing the same file at the same instant would generate identical keys — they would
+  still converge, just interleaved.
+- Replace does not clear the activity log, and `shortIdSeq` is reset to the file's maximum, so a
+  Replace can hand out numbers a deleted card previously used.
+- U3's follow-up "nothing calls `resolveImport` yet" is closed by this unit; `board.memberIds` now
+  has a caller.

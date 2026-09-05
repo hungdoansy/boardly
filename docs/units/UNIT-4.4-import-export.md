@@ -98,5 +98,9 @@ build`, `pnpm format:check` — all green. Exact deps (`zod 4.4.3`). Docker `boa
   full-fidelity format. Card metadata (priority/labels/due) is not embedded in the markdown outline.
 - **Obsidian imports** don't carry priority/labels/dates (the plugin's `@@`/`#tag` metadata syntax
   isn't parsed yet) — cards import as Todo/Done with title only.
-- **Import always creates a new board**; merging into / replacing an existing board is deferred.
+- ~~**Import always creates a new board**; merging into / replacing an existing board is
+  deferred.~~ **Closed by UNIT-21** (`docs/units/UNIT-21-import-modes.md`). Import now targets
+  the caller's existing board doc in one of three modes — Replace, Merge, Add as copy — and
+  `buildBoardFromSnapshot`'s create-once guard, which had turned import into a silent no-op
+  after the single-doc migration, is gone.
 - **Large-file guardrails** (size cap, streaming) are not added; boards are small in practice.

@@ -14,7 +14,6 @@ import {
   type PriorityValue,
   type Project,
   type SavedView,
-  type SnapshotCard,
   type SnapshotProject,
   type Status,
   DEFAULT_BADGE_CONFIG,
@@ -1196,108 +1195,9 @@ export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
   };
 }
 
-function buildCard(card: SnapshotCard): YCard {
-  const yc = new Y.Map<unknown>();
-  yc.set("id", card.id);
-  yc.set("number", card.number);
-  yc.set("title", card.title);
-  const desc = new Y.Text();
-  if (card.description) desc.insert(0, card.description);
-  yc.set("description", desc);
-  yc.set("ord", card.ord);
-  yc.set("status", card.status);
-  yc.set("priority", card.priority);
-  if (card.dueDate) {
-    const due = new Y.Map<unknown>();
-    due.set("at", card.dueDate.at);
-    due.set("hasTime", card.dueDate.hasTime);
-    yc.set("dueDate", due);
-  } else {
-    yc.set("dueDate", null);
-  }
-  const labels = new Y.Map<unknown>();
-  for (const id of card.labelIds) labels.set(id, true);
-  yc.set("labels", labels);
-  const related = new Y.Map<unknown>();
-  for (const id of card.relatedIds ?? []) related.set(id, true);
-  yc.set("related", related);
-  const checklist = new Y.Map<unknown>();
-  for (const item of card.checklist) {
-    const yi = new Y.Map<unknown>();
-    yi.set("text", item.text);
-    yi.set("done", item.done);
-    yi.set("ord", item.ord);
-    checklist.set(item.id, yi);
-  }
-  yc.set("checklist", checklist);
-  const links = new Y.Map<unknown>();
-  for (const link of card.links) {
-    const yl = new Y.Map<unknown>();
-    yl.set("url", link.url);
-    yl.set("provider", link.provider);
-    if (link.title !== undefined) yl.set("title", link.title);
-    if (link.iconRef !== undefined) yl.set("iconRef", link.iconRef);
-    yl.set("ord", link.ord);
-    links.set(link.id, yl);
-  }
-  yc.set("links", links);
-  yc.set("archived", false);
-  yc.set("createdAt", card.createdAt);
-  yc.set("updatedAt", card.updatedAt);
-  if (card.assigneeId !== undefined) yc.set("assigneeId", card.assigneeId);
-  if (card.createdBy !== undefined) yc.set("createdBy", card.createdBy);
-  return yc;
-}
-
-/** Highest ticket number across the cards (seeds the board's `shortIdSeq`). */
-function maxTicketNumber(cards: SnapshotCard[]): number {
-  let max = 0;
-  for (const c of cards) max = Math.max(max, c.number);
-  return max;
-}
-
 /**
- * Populate a fresh board Y.Doc from a snapshot (import). Writes ids/ords/fields
- * verbatim so a JSON export round-trips exactly. `now` stamps board meta and any
- * card lacking a timestamp (e.g. an Obsidian import). Idempotent-guarded: does
- * nothing if the doc is already initialized.
+ * The snapshot **write** path lives in `./io.ts` (UNIT-21 U4): it grew from one
+ * verbatim builder into three apply modes over a staged document. Re-exported
+ * here so the pre-UNIT-21 import site keeps working.
  */
-export function buildBoardFromSnapshot(doc: Y.Doc, snapshot: BoardSnapshot, now: number): void {
-  doc.transact(() => {
-    const meta = boardMeta(doc);
-    if (meta.has("createdAt")) return;
-    meta.set("title", snapshot.board.title);
-    if (snapshot.board.icon !== undefined) meta.set("icon", snapshot.board.icon);
-    const desc = new Y.Text();
-    if (snapshot.board.description) desc.insert(0, snapshot.board.description);
-    meta.set("description", desc);
-    meta.set("shortIdPrefix", snapshot.board.shortIdPrefix);
-    meta.set("shortIdSeq", maxTicketNumber(snapshot.cards));
-    meta.set(
-      "badgeConfig",
-      snapshot.board.badgeConfig.length
-        ? [...snapshot.board.badgeConfig]
-        : [...DEFAULT_BADGE_CONFIG],
-    );
-    meta.set("createdAt", now);
-    meta.set("updatedAt", now);
-
-    const labels = boardLabels(doc);
-    for (const label of snapshot.labels) {
-      const yl = new Y.Map<unknown>();
-      yl.set("id", label.id);
-      yl.set("name", label.name);
-      yl.set("color", label.color);
-      yl.set("ord", label.ord);
-      labels.set(label.id, yl);
-    }
-
-    const cards = boardCards(doc);
-    for (const card of snapshot.cards) {
-      cards.set(
-        card.id,
-        buildCard({ ...card, createdAt: card.createdAt || now, updatedAt: card.updatedAt || now }),
-      );
-    }
-  });
-}
+export { buildBoardFromSnapshot } from "./io";
