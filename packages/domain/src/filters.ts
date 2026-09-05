@@ -5,18 +5,33 @@ import { PRIORITY_META, Priority, type PriorityValue } from "./enums";
 import { STATUS_META, Status, STATUS_ORDER } from "./status";
 import type { Card } from "./types";
 
-export type FilterField =
-  "status" | "priority" | "label" | "dueDate" | "assignee" | "title" | "project";
+// The filter vocabulary is declared as runtime tuples (the `STATUS_VALUES`
+// pattern) so the zod schemas that validate saved views at the import boundary
+// (`io/snapshot.ts`, UNIT-21) derive from the same list the evaluator switches
+// on. A new field or condition therefore cannot become unrepresentable in the
+// interchange format without someone touching this line.
+export const FILTER_FIELDS = [
+  "status",
+  "priority",
+  "label",
+  "dueDate",
+  "assignee",
+  "title",
+  "project",
+] as const;
+export type FilterField = (typeof FILTER_FIELDS)[number];
 
-export type FilterCondition =
-  | "is" // scalar equals one of `values`
-  | "isNot" // scalar equals none of `values`
-  | "hasAny" // set (labels) intersects `values`
-  | "hasAll" // set (labels) contains all of `values`
-  | "contains" // substring (title), case-insensitive
-  | "isSet" // field present / non-null
-  | "isEmpty" // field absent / null / empty
-  | "isWithin"; // dueDate window: "overdue" | "today" | "week"
+export const FILTER_CONDITIONS = [
+  "is", // scalar equals one of `values`
+  "isNot", // scalar equals none of `values`
+  "hasAny", // set (labels) intersects `values`
+  "hasAll", // set (labels) contains all of `values`
+  "contains", // substring (title), case-insensitive
+  "isSet", // field present / non-null
+  "isEmpty", // field absent / null / empty
+  "isWithin", // dueDate window: "overdue" | "today" | "week"
+] as const;
+export type FilterCondition = (typeof FILTER_CONDITIONS)[number];
 
 export interface FilterClause {
   field: FilterField;
@@ -276,10 +291,22 @@ export function evaluateFilter(card: Card, filter: Filter, ctx: FilterContext): 
 
 // ----- Sort -----
 
-export type SortField = "priority" | "dueDate" | "title" | "createdAt" | "updatedAt" | "status";
+export const SORT_FIELDS = [
+  "priority",
+  "dueDate",
+  "title",
+  "createdAt",
+  "updatedAt",
+  "status",
+] as const;
+export type SortField = (typeof SORT_FIELDS)[number];
+
+export const SORT_DIRECTIONS = ["asc", "desc"] as const;
+export type SortDirection = (typeof SORT_DIRECTIONS)[number];
+
 export interface Sort {
   field: SortField;
-  direction: "asc" | "desc";
+  direction: SortDirection;
 }
 
 const STATUS_RANK: Record<string, number> = {
@@ -322,7 +349,8 @@ export function sortCards(cards: Card[], sort: Sort): Card[] {
 
 // ----- Grouping (swimlanes, Unit 4.2) -----
 
-export type GroupByField = "status" | "priority" | "label" | "assignee";
+export const GROUP_BY_FIELDS = ["status", "priority", "label", "assignee"] as const;
+export type GroupByField = (typeof GROUP_BY_FIELDS)[number];
 
 export interface CardGroup {
   /** Group value; `""` is the ungrouped/missing lane (No priority, Unassigned, …). */
@@ -437,7 +465,8 @@ export function groupLabel(
 // ----- View resolution (one model, two lenses — Unit V1.1) -----
 
 /** How a view renders: the kanban board or the dense list. Absent → "board". */
-export type ViewLayout = "board" | "list";
+export const VIEW_LAYOUTS = ["board", "list"] as const;
+export type ViewLayout = (typeof VIEW_LAYOUTS)[number];
 
 /**
  * The lens applied to a set of cards, independent of how it renders. Board and

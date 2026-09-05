@@ -6,8 +6,14 @@
 import { STATUS_META, STATUS_ORDER, type Status, isTerminalStatus } from "../status";
 import type { BoardSnapshot } from "./snapshot";
 
-const byOrd = <T extends { ord: string }>(a: T, b: T): number =>
-  a.ord < b.ord ? -1 : a.ord > b.ord ? 1 : 0;
+// `ord` is optional on a hand-authored snapshot (R23). Cards without one all
+// compare equal, so a stable sort leaves them in the file's array order — the
+// same order the write path assigns generated ords in.
+const byOrd = <T extends { ord?: string }>(a: T, b: T): number => {
+  const x = a.ord ?? "";
+  const y = b.ord ?? "";
+  return x < y ? -1 : x > y ? 1 : 0;
+};
 
 export function exportMarkdown(snapshot: BoardSnapshot): string {
   const lines: string[] = [`# ${snapshot.board.title}`, ""];

@@ -8,6 +8,7 @@
 import { newId } from "../ids";
 import { keyBetween } from "../ordering";
 import { DEFAULT_STATUS, STATUS_META, STATUS_VALUES, type Status } from "../status";
+import { DEFAULT_ZOOM } from "../zoom";
 import { type BoardSnapshot, ImportError, SNAPSHOT_VERSION } from "./snapshot";
 
 const HEADING = /^#{1,6}\s+(.*)$/;
@@ -89,10 +90,21 @@ export function parseObsidian(text: string, boardTitle = "Imported board"): Boar
     throw new ImportError("No sections found — expected Obsidian-Kanban `## Column` headings.");
   }
 
+  // Markdown is a structural outline: it carries no projects, no saved views and
+  // no display preferences, so the v2 sections are present but empty/default
+  // rather than absent (R5 — the format is not widened to carry them).
   return {
     version: SNAPSHOT_VERSION,
-    board: { title, shortIdPrefix: "", badgeConfig: [] },
+    board: {
+      title,
+      shortIdPrefix: "",
+      badgeConfig: [],
+      showEmptyColumns: true,
+      zoom: DEFAULT_ZOOM,
+    },
+    projects: [],
     labels: [],
+    views: [],
     cards,
   };
 }

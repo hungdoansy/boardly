@@ -18,6 +18,7 @@ import {
   type Status,
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
+  DEFAULT_ZOOM,
   Priority,
   clampZoom,
   SNAPSHOT_VERSION,
@@ -1140,8 +1141,15 @@ export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
       ...(board.description !== undefined ? { description: board.description } : {}),
       shortIdPrefix: board.shortIdPrefix,
       badgeConfig: board.badgeConfig,
+      // The v2 sections below are present so the shape type-checks; emitting
+      // their real values (projects, saved views, display preferences, archived
+      // cards, per-card `projectId`) is the next unit's job — see UNIT-21 U2.
+      showEmptyColumns: true,
+      zoom: DEFAULT_ZOOM,
     },
+    projects: [],
     labels: listLabels(doc),
+    views: [],
     cards: allLiveCards(doc).map((c) => ({ ...c })),
   };
 }
