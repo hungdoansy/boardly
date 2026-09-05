@@ -728,8 +728,14 @@ function stage(doc: Y.Doc, snapshot: BoardSnapshot, opts: ApplySnapshotOptions):
   // board the user is already using and must not rename it (R6, R7).
   if (mode === "replace") {
     meta.set("title", opts.title ?? snapshot.board.title);
-    if (snapshot.board.icon !== undefined) meta.set("icon", snapshot.board.icon);
-    setText(meta, "description", snapshot.board.description ?? "");
+    // Absent means the board had none, so replace removes what is there rather
+    // than leaving the old value or writing an empty one. Both keys are optional
+    // on the read side too (`boardToPlain` omits them when meta has no value),
+    // so anything else makes export → replace → export unequal.
+    if (snapshot.board.icon === undefined) meta.delete("icon");
+    else meta.set("icon", snapshot.board.icon);
+    if (snapshot.board.description === undefined) meta.delete("description");
+    else setText(meta, "description", snapshot.board.description);
     meta.set("shortIdPrefix", snapshot.board.shortIdPrefix);
     meta.set(
       "badgeConfig",

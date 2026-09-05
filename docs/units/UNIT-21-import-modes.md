@@ -505,3 +505,133 @@ fields, because a partial apply leaves structs a field-level check walks straigh
   Replace can hand out numbers a deleted card previously used.
 - U3's follow-up "nothing calls `resolveImport` yet" is closed by this unit; `board.memberIds` now
   has a caller.
+
+---
+
+## U5. Command layer: modes, parity, structured result
+
+### What changed
+
+- **`packages/commands/src/commands/io.ts`** — `importBoard`'s input gains a required, defaultless
+  `mode` enum and an `acknowledgeReplace` literal, and it now returns U4's `ImportResult` instead of
+  the board. `exportBoard`'s description was rewritten to say what the widened v2 format actually
+  carries. `ImportError` is re-exported here so the REST layer can carry an import's own reason
+  without taking a dependency on `@boardly/domain`.
+- **`apps/server/src/routes/commands.ts`** — three changes: the generated catalog switches to
+  `z.toJSONSchema(command.input, { io: "input" })`; a failed `importBoard` returns its own message in
+  the 422 instead of a bare `"command failed"`; and the POST route carries an explicit
+  `bodyLimit` (`COMMAND_BODY_LIMIT_BYTES` = 8 MiB) with a plugin-scoped error handler that turns
+  Fastify's body-too-large error into a shaped 413.
+- **`apps/web/components/board/import-export.tsx`** — passes `mode: "merge"` so the menu keeps
+  compiling and stays non-destructive. The picker is U6.
+- **`packages/sync/src/io.ts`** — Replace now _removes_ `icon` and `description` from board meta when
+  the file carries none, instead of leaving the old value or writing an empty string. Found by U5's
+  agent-path round-trip; see below.
+- Tests: `packages/commands/src/catalog.test.ts` (+10), `apps/server/src/routes/commands.test.ts`
+  (+6).
+
+### Why
+
+**One command with a required mode, not three commands (KTD1).** The validation boundary, the
+atomicity guarantee and the result shape are identical across modes; only the apply branches. Three
+commands would triplicate the largest input schema in the catalog — and that schema is inlined into
+`GET /api/commands` and every MCP `ListTools` response, so the duplication is a recurring token cost
+for no expressiveness.
+
+**`mode` carries no zod default (R22).** `importBoard` already shipped accepting `{snapshot, title?}`
+with no mode at all, so any default would silently reinterpret every existing agent call as a mode it
+never chose — and the available default is the destructive one. Breaking those callers loudly is
+correct: an omitted `mode` is now a 400 with the zod issue, before the doc is opened.
+
+**The per-mode risk language lives in `.describe()`, because JSON Schema cannot hold the rule.**
+`acknowledgeReplace` is `z.literal(true).optional()` plus an object-level `.refine()`. `.refine()` is
+invisible to `z.toJSONSchema` — verified: the emitted schema advertises `acknowledgeReplace` as
+`const: true` and drops the condition entirely. A discriminated union was rejected: it emits a
+top-level `oneOf` with no properties, which the MCP tool builder flattens into a property-less
+object. So the "replace requires acknowledgeReplace" rule is carried in the `mode` enum's
+description, which `z.toJSONSchema` _does_ emit. This is the repo's first use of `.describe()`, and
+it is the only mechanism that carries per-field guidance through the generated pipeline (R24).
+
+**The catalog is generated in input mode.** Zod's default (output) mode lists every _defaulted_ field
+as `required`, which would tell an agent it must supply `version`, `ord`, `priority` and every other
+value the writer generates — inverting the authorable-snapshot promise (R23). With `io: "input"` the
+snapshot's only required field is `board`.
+
+**The body limit is route-scoped.** `apps/server/src/app.ts` builds one Fastify instance for every
+route, so raising `bodyLimit` there would raise the ceiling for auth, tickets and unfurl too. 8 MiB
+is roughly 4,000 richly-populated cards at ~2 KB of JSON each; Fastify's 1 MiB default is crossed in
+the low hundreds, and the failure reaches the caller as an opaque error.
+
+**A destructive call that fails with no reason invites a retry (R21).** An import that refuses now
+says why, and says that nothing was written. The command wraps any non-`ImportError` throw from the
+apply into an `ImportError` naming the mode, so the guarantee travels with the message. Every other
+command's 5xx stays opaque — its message can carry internal detail.
+
+**KTD10 restated, because it is the assumption that bites:** the UI confirmation dialog is not the
+safety boundary. A program never sees it. Every guard that matters — required `mode`,
+`acknowledgeReplace`, staged atomicity, the structured result — lives in the schema and the result.
+And `acknowledgeReplace` is a deliberateness control, not a security one: a caller holding the bearer
+token can already loop `deleteCard`, which is a hard delete exposed ungated.
+
+### How it works
+
+`importBoard.input` is a flat object with an object-level refinement, so validation order is: zod
+parses the snapshot (the same `boardSnapshotSchema` the UI uses), then the refinement checks the
+Replace acknowledgement — both before `ctx.getBoardDoc()` is ever called. The route's `safeParse`
+runs before it opens the Hocuspocus direct connection, so a rejected call never touches the doc.
+
+The return value is U4's `ImportResult` verbatim: `mode`, per-kind `{created, updated, skipped}`,
+`fusions` (both names plus the file-id → board-id pair), `stale` (the board's title and both
+timestamps), and `dropped`. All JSON-serializable, so REST and MCP get it unchanged. `archiveCards`
+returning `{archivedIds, count}` is the existing precedent for a result-bearing command.
+
+### How to test / verify
+
+`pnpm --filter @boardly/commands test` — 61, up from 51. `pnpm --filter @boardly/server test` with
+`DATABASE_URL` pointed at the dev Postgres — **69 passed, 0 skipped**, so the agent-path round-trip
+was observed executing rather than skipped past. `pnpm -r test` is 860; `pnpm -r typecheck`,
+`pnpm -r lint` and `pnpm -r build` are green.
+
+```
+docker compose up -d db
+DATABASE_URL=postgres://boardly:boardly@localhost:5433/boardly \
+  pnpm --filter @boardly/server test
+```
+
+Command-level: each of the three modes is accepted; an unknown mode and an omitted mode are both
+rejected by zod with the board untouched; Replace without `acknowledgeReplace` is rejected before any
+write; a malformed snapshot throws `ZodError`; a mixed create / update / stale-skip / dangling-ref
+file produces counts that match what the doc actually gained; an apply that throws surfaces as
+`ImportError` with the board unchanged. Four schema tests assert the generated contract directly:
+`mode` required with no default and exactly three values, the description carrying
+`acknowledgeReplace: true` and all three mode names, `acknowledgeReplace` as `const: true` and never
+required, and the snapshot requiring only `board` under `io: "input"`.
+
+Route-level: `GET /api/commands` advertises the same contract end to end; **export → mutate →
+replace-import → export is deep-equal**, run against the caller's existing doc through the real
+route — the exact condition the create-once guard turned into a no-op, and one an in-memory test
+building into a fresh `new Y.Doc()` structurally cannot reach. Also: a merge over the live doc
+reports its counts; an omitted mode and an unacknowledged replace are 400 while an acknowledged one
+is 200; a failing import is a 422 carrying its own reason with the board unchanged; a body over the
+limit is a 413 naming the limit.
+
+That round-trip test earned its place immediately: it failed on the first run because Replace wrote
+`description: ""` into a board whose meta had never carried one, so the second export was not equal
+to the first. `boardToPlain` omits `icon` and `description` when meta has no value, so the write side
+now deletes both keys when the file carries none. Nothing but a real round-trip through the route
+would have caught it — the sync-level round-trip test seeds with `initBoard`, which always writes an
+empty description.
+
+### Follow-ups / known gaps
+
+- **No `previewImport`.** Deferred with the plan: R22 already removes the dangerous-default trap that
+  was its strongest argument, and sending the snapshot twice interacts badly with the body ceiling.
+- **Markdown never reaches the command layer.** The UI parses Obsidian markdown client-side and only
+  ever hands the command a parsed snapshot, so an agent cannot do what the UI can. A `format` + `text`
+  variant, or a pure `parseBoardFile` command, closes this and the matching `exportMarkdown` gap.
+- **`z.toJSONSchema(…, { io: "input" })` also drops `additionalProperties: false`.** Harmless here —
+  zod strips unknown keys at parse time either way — but it means the advertised schema no longer
+  tells a caller that extra keys are ignored.
+- **Import still writes no activity entry**, so the structured result stays the only record.
+- The 8 MiB ceiling is a number, not a streaming strategy. A board that outgrows it needs chunked
+  transfer, which is the deferred item in the plan.

@@ -68,7 +68,10 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
       const snapshot = isMarkdown
         ? parseObsidian(text, file.name.replace(/\.[^.]+$/, ""))
         : parseJson(text);
-      execute(importBoard, ctx, { snapshot });
+      // `mode` is required and has no default (R22). Merge until U6 lands the
+      // picker: it is the one mode that cannot destroy or duplicate anything,
+      // so the menu stays safe to click while the choice has nowhere to live.
+      execute(importBoard, ctx, { snapshot, mode: "merge" });
       setOpen(false);
     } catch (err) {
       setError(err instanceof ImportError ? err.message : "Could not import this file.");
@@ -101,7 +104,7 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
           Import board…
         </MenuItem>
         <p className="px-2 pt-1 text-xs text-fg-faint">
-          JSON (full board) or Obsidian-Kanban markdown. Imports into this board.
+          JSON (full board) or Obsidian-Kanban markdown. Merges into this board.
         </p>
         {error ? (
           <p role="alert" className="px-2 pt-1 text-xs text-[var(--danger)]">
