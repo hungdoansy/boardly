@@ -738,3 +738,106 @@ modal, Escape closes it, and focus returns to the export trigger. Focus rings ar
 - The board-side counts are read at confirm time and not re-read if the board changes while the
   dialog is open. A sync from another device during the confirmation would make them stale by the
   time Replace runs.
+
+---
+
+## U7. End-to-end coverage and the dark-mode check
+
+### What changed
+
+- **`apps/e2e/tests/import-export.spec.ts`** (new, 6 tests) — the whole flow in a browser, against a
+  real server and Postgres.
+- **`apps/e2e/fixtures/`** (new) — `board-v2.json`, `board-v1.json`, and a README saying why they are
+  hand-written.
+- **`apps/e2e/global-setup.ts`** (new) — refuses to start the suite when `apps/web/out` was built
+  against a different API origin. See "What this unit found" below; it is not incidental.
+- **`apps/e2e/playwright.config.ts`** — wires that global setup.
+- **`docs/units/screenshots/UNIT-21-import-modes-dark.png`**, **`UNIT-21-replace-confirm-dark.png`**.
+- **`apps/web/components/board/import-export.tsx`** — the Replace confirmation is two short sentences
+  instead of one long one; the dark capture showed the old one wrapping badly around the file title.
+- **`packages/sync/src/board-doc.ts`** — `boardToSnapshot` now sorts its `cards` array, like it
+  already sorted `projects` and `labels`. Found by the U5 round-trip test failing intermittently:
+  a `Y.Map`'s iteration order is its internal key order, and a Replace clears the map and writes
+  every card back, which permutes it. Two exports of the same board could differ, and
+  `export → replace → export` could come back unequal, for no reason but key layout. Sorted by
+  `(ord, id)` — `id` breaks the tie two replicas can produce concurrently. `io.test.ts` gained the
+  regression case.
+
+### Why
+
+**The fixtures are hand-written and stay hand-written.** They are the interchange contract. A
+fixture regenerated from `exportBoard` would silently track whatever the exporter currently emits,
+so the v1 file would stop being a v1 file the moment the format moved again — which is the exact
+regression `board-v1.json` exists to catch (R2, AE6).
+
+**Export → merge-the-file-straight-back is the sharpest available proof of R15.** It needs no
+fixture, no arranged staleness, and no knowledge of the board's contents: whatever the board is, the
+file describes it exactly, so a correct merge must report every card left alone and change nothing.
+
+**The baselines are scoped to the dialog, not the page.** The repo's usual full-page
+`maxDiffPixelRatio: 0.03` cannot see a rewritten sentence inside a 400px dialog — the changed pixels
+stay far under the threshold, so a stale baseline keeps passing. That is not hypothetical: the first
+capture of the confirmation kept passing after its copy was rewritten. A dialog-scoped baseline at
+0.01 catches it, and the dialog is what `DESIGN.md` §7.6 actually describes.
+
+### How it works
+
+The spec drives the real component: it opens the export popover and hands the hidden `input[type=file]`
+a path, exactly as the browser would — `setInputFiles` works through `class="hidden"`, so no click on
+"Import board…" (which would open the OS picker) is needed.
+
+Two locator facts are worth keeping, because both produced confusing failures:
+
+- **A Radix `Popover` is also `role="dialog"`,** and `dnd-kit` renders its own `role="status"` live
+  region on every board page. Both the report and the picker have to be located with that in mind —
+  the report is `getByRole("dialog").getByRole("status")`.
+- **A modal removes the board from the accessibility tree.** Radix marks the dialog's siblings
+  `aria-hidden`, so "cancelling left the board alone" can only be asserted with the dialog closed —
+  `getByRole` finds zero cards while it is open, which reads exactly like the cards being gone.
+
+### What this unit found
+
+**The e2e suite had been running against the production stack.** `NEXT_PUBLIC_API_URL` is inlined at
+build time, and `apps/web/.env.production` — auto-loaded by `next build` — points it at
+`http://localhost:8788`, the Dockerized production backend. So any ordinary `pnpm -r build` before an
+e2e run produces an `out/` that talks to production while Playwright starts an unused e2e server on 8787. Nothing looks wrong: the server boots, the browser connects, tests sign up and pass. This
+session created 38 accounts and 17 board documents in the production database before a rate-limit
+mismatch exposed it (the e2e server lifts the login limit to 1000; production keeps 5, and
+`api-client.ts` renders every non-ok auth response as "invalid email or password", 429 included).
+
+Those rows were deleted. `apps/e2e/global-setup.ts` now scans the emitted chunks and refuses to start
+when `out/` names a `:87xx` origin other than 8787, printing the rebuild command. Full write-up:
+`docs/solutions/test-failures/e2e-ran-against-the-production-stack.md`.
+
+### How to test / verify
+
+```
+docker compose up -d db
+NEXT_PUBLIC_API_URL=http://localhost:8787 pnpm --filter @boardly/web build
+pnpm --filter @boardly/server build
+pnpm --filter @boardly/e2e e2e
+```
+
+The new spec is 6 tests, all green; `pnpm -r test` is 870. The whole suite is **37 tests, 36 passing**; the one failure is
+`sync.spec.ts` "a card created on one client appears on another", which passes on its own — a
+second-client websocket timing out at the tail of a 37-test single-worker run, unrelated to this
+unit.
+
+Covered: export then merge the file straight back reports every card left alone and adds nothing;
+merging `board-v2.json` into a board holding "Web app" creates "Mobile", fuses "web app" into the
+board's project, and leaves exactly one "Web app" in the sidebar; Replace shows a confirmation naming
+both sides and the file's title, cancel returns to the picker and leaves the board intact, confirming
+loads the file and leaves the device's zoom alone even though the file asks for 1.5; `board-v1.json`
+imports with no project in the sidebar, and the flow raises no console error and no failed request.
+Both dialogs are captured in dark mode.
+
+### Follow-ups / known gaps
+
+- **The suite is still one shared server and one database with `workers: 1`,** so a spec's cost is
+  the whole suite's. The 36/37 flake above is that shape showing through.
+- **No e2e for Add as copy.** It is covered at the unit and component level; the browser adds nothing
+  the other two modes do not already prove about the dialog.
+- **No e2e for the markdown-disabled Merge row** (R9) — component-level only, because the flow needs
+  a markdown file and the assertion is a disabled attribute, which the browser does not make more
+  convincing.
+- `apps/e2e` remains outside `pnpm -r test`, so nothing runs it on the way to a commit.

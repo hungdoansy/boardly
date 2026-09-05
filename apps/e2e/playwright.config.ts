@@ -20,6 +20,10 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   reporter: [["list"]],
+  // Refuses to start when `apps/web/out` was built against another API origin
+  // — `next build` bakes it in, and `.env.production` points at the Docker
+  // production stack. See the file for why this is a hard stop.
+  globalSetup: "./global-setup.ts",
   outputDir: "./test-results",
   snapshotDir: "./snapshots",
   use: {

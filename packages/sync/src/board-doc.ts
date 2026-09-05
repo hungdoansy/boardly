@@ -1136,9 +1136,18 @@ export function listArchivedCards(doc: Y.Doc): Card[] {
 function allCardsForSnapshot(doc: Y.Doc): Card[] {
   const prefix = boardPrefix(doc);
   const overrides = ticketNumberOverrides(doc);
-  return [...boardCards(doc).values()]
-    .filter((c): c is YCard => c instanceof Y.Map)
-    .map((c) => toPlain(c, prefix, overrides));
+  return (
+    [...boardCards(doc).values()]
+      .filter((c): c is YCard => c instanceof Y.Map)
+      .map((c) => toPlain(c, prefix, overrides))
+      // Sorted, like `projects` and `labels` are. A `Y.Map`'s iteration order is
+      // its internal key order, which a clear-and-rebuild (import in `replace`
+      // mode) can permute — so an unsorted export makes two exports of the same
+      // board differ, and `export → replace → export` unequal, for no reason
+      // beyond how the keys happen to be laid out. `id` breaks a tie, because two
+      // replicas can concurrently produce equal `ord`s.
+      .sort((a, b) => compareOrd(a.ord, b.ord) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  );
 }
 
 /**

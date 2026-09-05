@@ -674,3 +674,19 @@ describe("atomicity (KTD8, R18, R25)", () => {
     expect(updates).toBe(1);
   });
 });
+
+describe("export order is stable (UNIT-21)", () => {
+  it("is unchanged by a replace that rebuilds every card", () => {
+    const { doc } = seededDoc();
+    for (const title of ["A", "B", "C", "D"]) {
+      addCard(doc, { status: Status.Todo, title, now: NOW, clientId: "1" });
+    }
+    const before = boardToSnapshot(doc, USER_ID);
+
+    // Replace clears the cards map and writes every card back, which permutes
+    // the map's internal key order — the whole reason the export sorts.
+    applySnapshot(doc, before, { mode: "replace", now: NOW + 1 });
+
+    expect(boardToSnapshot(doc, USER_ID)).toEqual(before);
+  });
+});

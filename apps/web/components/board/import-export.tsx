@@ -344,7 +344,10 @@ function ReplaceConfirmation({
                 )
               : "everything on this board"}
           </span>{" "}
-          — archived items included — and loads{" "}
+          from this board, archived items included.
+        </p>
+        <p>
+          It then loads{" "}
           <span className="text-fg">
             {incoming
               ? contentSummary(
@@ -354,7 +357,7 @@ function ReplaceConfirmation({
                 )
               : "the file"}
           </span>{" "}
-          from <span className="text-fg">{incoming?.board.title || "the file"}</span> instead. It
+          from <span className="text-fg">{incoming?.board.title || "the file"}</span>. This
           can&rsquo;t be undone.
         </p>
         <p className="flex items-start gap-2 text-xs">
