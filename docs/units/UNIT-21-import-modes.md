@@ -180,3 +180,77 @@ Tests added in `packages/domain/src/io/io.test.ts`:
   new format decision, not a widening of this one.
 - **Board `createdAt`/`updatedAt`/`createdBy` are not interchange data.** If a future unit wants
   provenance in the file, it has to add the fields _and_ drop them from the guard's allowlist.
+
+---
+
+## U2. Read the widened snapshot out of the doc
+
+### What changed
+
+- `packages/sync/src/board-doc.ts`
+  - `boardToSnapshot` now emits everything the v2 format can represent: `board.showEmptyColumns`
+    and `board.zoom`, the full `projects` array, the board's saved `views`, per-card `projectId`,
+    and **archived cards** (each carrying `archived: true` and its `deletedAt`). U1's placeholders
+    are gone, and with them the now-unused `DEFAULT_ZOOM` import.
+  - Two module-private helpers: `allCardsForSnapshot(doc)` (every card, archived included,
+    ticket-number-repaired) and `allProjectsForSnapshot(doc)` (every project in `ord` order,
+    archived included, with `deletedAt`).
+- `packages/sync/src/io.test.ts` — new `board snapshot carries the whole doc (R1)` block, 6 tests.
+
+No public API changed; `boardToSnapshot`'s signature is untouched. The write side
+(`buildBoardFromSnapshot`) is deliberately unchanged — that is U4.
+
+### Why
+
+- **R1 — an export is a backup of the whole doc**, not a snapshot of what the board happens to
+  render. Filtering archived cards is precisely how "carry my board to the new machine" silently
+  dropped the Archive view, and dropping projects left every card's grouping behind.
+- **A private `allCardsForSnapshot` rather than a new exported selector.** `allLiveCards` and
+  `listArchivedCards` stay the app-facing selectors and keep their filters. Including archived cards
+  is an export-only widening, so it should not become a public accessor a component later reaches
+  for by accident.
+- **`deletedAt` is read off the Y.Map, not added to `projectToPlain`.** The plain domain `Project`
+  has no `deletedAt` and no UI reads one. Widening a type the whole app depends on to serve one
+  serializer would push the field into every `listProjects` result for no consumer.
+- **`showEmptyColumns` / `zoom` come from `boardToPlain`, not from `boardMeta` directly**, so an
+  untouched board exports the same read-time defaults it renders with (and the same defensive zoom
+  clamp) instead of a second copy of the default logic that could drift.
+- **Views are shallow-copied.** `listViews` returns the very array stored on board meta; the
+  snapshot is a value a caller may edit. Matches the existing `cards.map((c) => ({ ...c }))` style.
+
+### How it works
+
+`boardToSnapshot` reads the board through `boardToPlain` (getting `showEmptyColumns` and the
+clamped `zoom` for free), then assembles four collections: `projects` (no archived filter, each
+through `projectToPlain` plus `deletedAt` when present, sorted by `ord`), `labels` (unchanged),
+`views` (shallow-copied), and `cards` (no archived filter, through the same
+`boardPrefix` + `ticketNumberOverrides` + `cardToPlain` path the live selectors use, so `projectId`,
+`deletedAt` and the repaired ticket number all come along).
+
+Because every v2 addition carries a zod default (U1) and `buildBoardFromSnapshot` is untouched, the
+pre-existing `doc → snapshot → JSON → new doc → snapshot` round-trip still passes: a board with no
+projects, no views and default preferences produces identical snapshots on both sides.
+
+### How to test / verify
+
+`pnpm --filter @boardly/sync test` (85 tests), `pnpm --filter @boardly/domain test` (157),
+`pnpm --filter @boardly/commands test` (51), `pnpm -r typecheck`.
+
+The six new tests cover: two projects one archived, both exported with the right flags in `ord`
+order; an archived project carrying `deletedAt` while a live one has none; a board with no projects
+exporting `projects: []` as a present key; a card exporting its `projectId` while an unassigned one
+has no such key; an archived card present with `archived: true` alongside the live card while
+`allLiveCards` still hides it; and `showEmptyColumns: false` / `zoom: 1.25` / a populated saved view
+surviving the read, against a board that set none of them exporting the defaults.
+
+Not a UI change — no screenshot check.
+
+### Follow-ups / known gaps
+
+- The write side is untouched: `buildBoardFromSnapshot` still ignores `projects`, `views`,
+  `showEmptyColumns` and `zoom`, and hardcodes `archived: false` on every card it builds.
+  Round-tripping the new sections back into a doc is **U4**.
+- Exported cards are in document iteration order, not sorted by `ord`. Sorting would make exports
+  diff-friendly and replica-deterministic; deferred as a behavior change R1 does not ask for.
+- Exported cards still carry the derived, display-only `shortId` (pre-existing; `parseJson` strips
+  it on import).

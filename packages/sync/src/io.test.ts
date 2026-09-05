@@ -1,18 +1,33 @@
-import { exportJson, parseJson, parseObsidian, Priority, Status } from "@boardly/domain";
+import {
+  DEFAULT_ZOOM,
+  exportJson,
+  parseJson,
+  parseObsidian,
+  Priority,
+  type SavedView,
+  Status,
+} from "@boardly/domain";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
 import {
   addCard,
   addLabel,
+  addProject,
   allLiveCards,
+  archiveCard,
+  archiveProject,
   assignLabel,
   boardToSnapshot,
   buildBoardFromSnapshot,
   cardsInStatus,
   initBoard,
+  saveView,
   setCardDueDate,
   setCardPriority,
+  setCardProject,
+  setShowEmptyColumns,
+  setZoom,
 } from "./board-doc";
 
 const NOW = 1_700_000_000_000;
@@ -88,5 +103,101 @@ describe("board snapshot round-trip", () => {
     buildBoardFromSnapshot(doc, parseObsidian("## X\n- [ ] Y"), NOW + 5);
     // Original board untouched.
     expect(boardToSnapshot(doc, USER_ID).board.title).toBe("Roadmap");
+  });
+});
+
+// The read side of the widened v2 format (UNIT-21 U2 / R1): the export is a
+// backup of the whole doc, not just the part the board renders today. Every
+// assertion here reads `boardToSnapshot` only — writing these sections back into
+// a doc is `buildBoardFromSnapshot`'s job and lands in U4, so nothing below
+// round-trips through it.
+describe("board snapshot carries the whole doc (R1)", () => {
+  it("exports every project, archived ones included, with their archived flag", () => {
+    const { doc } = seededDoc();
+    const live = addProject(doc, { name: "Web", color: "#5e6ad2", now: NOW, clientId: "1" });
+    const hidden = addProject(doc, { name: "Legacy", color: "#eb5757", now: NOW, clientId: "1" });
+    archiveProject(doc, hidden, NOW + 1);
+
+    const snap = boardToSnapshot(doc, USER_ID);
+    expect(snap.projects.map((p) => [p.id, p.name, p.archived])).toEqual([
+      [live, "Web", false],
+      [hidden, "Legacy", true],
+    ]);
+  });
+
+  it("carries an archived project's deletedAt, and omits it on a live one", () => {
+    const { doc } = seededDoc();
+    const live = addProject(doc, { name: "Web", color: "#5e6ad2", now: NOW, clientId: "1" });
+    const hidden = addProject(doc, { name: "Legacy", color: "#eb5757", now: NOW, clientId: "1" });
+    archiveProject(doc, hidden, NOW + 7);
+
+    const snap = boardToSnapshot(doc, USER_ID);
+    expect(snap.projects.find((p) => p.id === hidden)).toMatchObject({
+      archived: true,
+      deletedAt: NOW + 7,
+    });
+    expect(snap.projects.find((p) => p.id === live)).not.toHaveProperty("deletedAt");
+  });
+
+  it("exports an empty projects array — never a missing key — when there are none", () => {
+    const { doc } = seededDoc();
+    expect(boardToSnapshot(doc, USER_ID)).toHaveProperty("projects", []);
+  });
+
+  it("carries a card's project assignment (and leaves an unassigned card without one)", () => {
+    const { doc, a } = seededDoc();
+    const project = addProject(doc, { name: "Web", color: "#5e6ad2", now: NOW, clientId: "1" });
+    setCardProject(doc, a, project, NOW + 1);
+
+    const snap = boardToSnapshot(doc, USER_ID);
+    expect(snap.cards.find((c) => c.id === a)?.projectId).toBe(project);
+    expect(snap.cards.find((c) => c.id !== a)).not.toHaveProperty("projectId");
+  });
+
+  it("includes archived cards, flagged and carrying deletedAt", () => {
+    const { doc, a } = seededDoc();
+    archiveCard(doc, a, NOW + 3);
+
+    const snap = boardToSnapshot(doc, USER_ID);
+    // Both cards are present — the export is the whole board, not the live view.
+    expect(snap.cards).toHaveLength(2);
+    expect(snap.cards.find((c) => c.id === a)).toMatchObject({
+      archived: true,
+      deletedAt: NOW + 3,
+    });
+    expect(snap.cards.find((c) => c.id !== a)?.archived).toBe(false);
+    // The live selector still hides it — including it is an export-only widening.
+    expect(allLiveCards(doc).map((c) => c.id)).not.toContain(a);
+  });
+
+  it("carries board display preferences and saved views", () => {
+    const { doc } = seededDoc();
+    setShowEmptyColumns(doc, false, NOW + 1);
+    setZoom(doc, 1.25, NOW + 2);
+    const view: SavedView = {
+      id: "v1",
+      name: "Urgent work",
+      filter: {
+        op: "and",
+        clauses: [{ field: "priority", condition: "is", values: [Priority.Urgent] }],
+      },
+      sort: { field: "dueDate", direction: "asc" },
+      groupBy: "status",
+      layout: "list",
+      visibleBadges: ["priority"],
+    };
+    saveView(doc, view, NOW + 3);
+
+    const snap = boardToSnapshot(doc, USER_ID);
+    expect(snap.board.showEmptyColumns).toBe(false);
+    expect(snap.board.zoom).toBe(1.25);
+    expect(snap.views).toEqual([view]);
+  });
+
+  it("falls back to the read-time defaults when the board never set them", () => {
+    const { doc } = seededDoc();
+    const snap = boardToSnapshot(doc, USER_ID);
+    expect(snap.board).toMatchObject({ showEmptyColumns: true, zoom: DEFAULT_ZOOM });
+    expect(snap.views).toEqual([]);
   });
 });

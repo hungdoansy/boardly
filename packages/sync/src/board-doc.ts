@@ -15,10 +15,10 @@ import {
   type Project,
   type SavedView,
   type SnapshotCard,
+  type SnapshotProject,
   type Status,
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
-  DEFAULT_ZOOM,
   Priority,
   clampZoom,
   SNAPSHOT_VERSION,
@@ -1124,12 +1124,55 @@ export function listArchivedCards(doc: Y.Doc): Card[] {
     .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 }
 
-// ----- import / export (Unit 4.4) -----
+// ----- import / export (Unit 4.4; widened to the whole doc in UNIT-21) -----
 
 /**
- * Read a full-fidelity snapshot of a board (cards + labels + meta) for export.
- * Card placement is its `status`; there is no columns array. Archived items are
- * excluded — a clean export.
+ * Every card on the board, archived ones included, number-repaired. Deliberately
+ * NOT {@link allLiveCards}: an export is a backup of the whole doc (UNIT-21 R1),
+ * and dropping archived cards is exactly how a "carry my board to the new
+ * machine" export silently lost the Archive view. An archived card arrives
+ * carrying `archived: true` and its `deletedAt`, so a restore can put it back
+ * where it was.
+ */
+function allCardsForSnapshot(doc: Y.Doc): Card[] {
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
+  return [...boardCards(doc).values()]
+    .filter((c): c is YCard => c instanceof Y.Map)
+    .map((c) => toPlain(c, prefix, overrides));
+}
+
+/**
+ * Every project in `ord` order, archived ones included (the complement of
+ * {@link listProjects} + {@link listArchivedProjects} in one pass, so a hidden
+ * project survives the export exactly as a hidden project).
+ *
+ * `deletedAt` is read straight off the Y.Map rather than through
+ * {@link projectToPlain}: the plain domain `Project` has no `deletedAt` (no UI
+ * reads one), and widening a type the whole app depends on for a single
+ * serializer would be the wrong trade. `cardToPlain` carries the card's
+ * `deletedAt` only because the Archive view needs it for sorting.
+ */
+function allProjectsForSnapshot(doc: Y.Doc): SnapshotProject[] {
+  return [...boardProjects(doc).values()]
+    .filter((p): p is Y.Map<unknown> => p instanceof Y.Map)
+    .map((p): Project & { deletedAt?: number } => {
+      const project = projectToPlain(p);
+      const deletedAt = p.get("deletedAt");
+      return typeof deletedAt === "number" ? { ...project, deletedAt } : project;
+    })
+    .sort(byOrd);
+}
+
+/**
+ * Read a full-fidelity snapshot of a board for export (v2): board meta *and* its
+ * display preferences, every project, the label palette, the saved views, and
+ * every card — archived ones too, each carrying its `projectId`. Card placement
+ * is its `status`; there is no columns array.
+ *
+ * The board's `showEmptyColumns` / `zoom` come from `boardToPlain`, so an
+ * untouched board exports the same read-time defaults it renders with rather
+ * than a second, drifting copy of them.
  */
 export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
   const board = boardToPlain(doc, userId);
@@ -1141,16 +1184,15 @@ export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
       ...(board.description !== undefined ? { description: board.description } : {}),
       shortIdPrefix: board.shortIdPrefix,
       badgeConfig: board.badgeConfig,
-      // The v2 sections below are present so the shape type-checks; emitting
-      // their real values (projects, saved views, display preferences, archived
-      // cards, per-card `projectId`) is the next unit's job — see UNIT-21 U2.
-      showEmptyColumns: true,
-      zoom: DEFAULT_ZOOM,
+      showEmptyColumns: board.showEmptyColumns,
+      zoom: board.zoom,
     },
-    projects: [],
+    projects: allProjectsForSnapshot(doc),
     labels: listLabels(doc),
-    views: [],
-    cards: allLiveCards(doc).map((c) => ({ ...c })),
+    // Copied, not handed out by reference: `listViews` returns the very array
+    // stored on board meta, and the snapshot is a value the caller may edit.
+    views: listViews(doc).map((v) => ({ ...v })),
+    cards: allCardsForSnapshot(doc).map((c) => ({ ...c })),
   };
 }
 
