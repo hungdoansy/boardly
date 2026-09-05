@@ -422,6 +422,39 @@ bound to the project's own color, which a search doc doesn't carry, and this mar
 hiddenness rather than identity. **The marker's text must stay out of the item's cmdk `value`**, or
 typing a hidden project's name would match every card it holds.
 
+### 7.6 Import: mode choice & the destructive confirm (binding — UNIT-21)
+
+Import is the one flow in the app that can delete a whole board, so the choice and its consequence
+are both first-class UI rather than menu items.
+
+- **The mode choice is a `Dialog`, not the export popover.** The popover (`w-56`) is sized for a
+  static menu of one-line actions; three modes each needing a sentence of consequence do not fit,
+  and shrinking the sentences is the wrong trade — the sentence is the point. `DialogContent` at
+  `max-w-md` for the picker, `max-w-sm` for the confirm and the report, matching the
+  irreversible-delete dialog's width elsewhere.
+- **Every mode is always visible.** A mode that does not apply is rendered **disabled with its
+  reason in place of its effect line** — never omitted. A silently absent option reads as a bug, and
+  the reason ("markdown has no stable ids") teaches the model. Today only Merge is ever disabled,
+  for a markdown source.
+- **Each mode carries a one-line effect on _existing_ board content**, not a description of itself:
+  "Never deletes", "Nothing already on the board changes", "Deletes everything on this board". The
+  same sentences reach agent callers through the command schema, so they are written once.
+- **The destructive mode is the last option, tinted, and never acts directly.** Its icon and label
+  take `var(--danger)`; picking it opens the §7-standard irreversible-confirm — question title,
+  muted consequence text, ghost **Cancel**, `variant="danger"` action with a lucide icon. Cancel
+  returns to the picker rather than closing the flow: the user rejected one mode, not the import.
+- **The confirmation names both sides in real numbers** — what is being removed and what is
+  arriving, plus the file's title — because both are already known before the dialog opens. It also
+  states that the change reaches every signed-in device, next to a `TriangleAlert`.
+- **The result is a panel that persists until dismissed, never a toast.** It is the only record that
+  an import happened, and it carries lists (names joined by name, cards whose board version was
+  kept, dropped references) that an auto-dismissing line cannot hold. `role="status"`, an explicit
+  **Done** button, and **entities are named, never id'd** — an id in this panel is a defect.
+- Icons: `GitMerge` (merge), `CopyPlus` (add as copy), `Replace` (replace, and its confirm action),
+  `TriangleAlert` (the multi-device warning). SVG only, per §7.1.
+
+---
+
 ---
 
 ## 8. Key screens (layout intent)

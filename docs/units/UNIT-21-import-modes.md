@@ -635,3 +635,106 @@ empty description.
 - **Import still writes no activity entry**, so the structured result stays the only record.
 - The 8 MiB ceiling is a number, not a streaming strategy. A board that outgrows it needs chunked
   transfer, which is the deferred item in the plan.
+
+---
+
+## U6. Import UI: mode picker, confirmation, result
+
+### What changed
+
+- **`apps/web/components/board/import-export.tsx`** — the Import menu item now parses the file and
+  then opens a `Dialog` with three steps: the mode picker, the Replace confirmation, and the result
+  panel. Three new sub-components (`ModePicker`, `ReplaceConfirmation`, `ImportReport`) live in the
+  same file, as the rest of this component's helpers do.
+- **`apps/web/components/board/import-export.test.tsx`** (new, 9 tests).
+- **`docs/design/DESIGN.md` §7.6** — the mode choice, the destructive confirm, and the persistent
+  result panel, as a binding pattern.
+
+### Why
+
+**The choice needs a dialog, not the popover.** The export popover is `w-56`, sized for a static
+menu of one-line actions. Three modes each carrying a sentence of consequence do not fit, and
+shortening the sentences is the wrong trade — the sentence _is_ the affordance (R24). The dialog is
+the same primitive the confirmation uses, which `DESIGN.md` already maps modals to.
+
+**Merge is shown disabled for markdown, not omitted (R9).** `parseObsidian` calls `newId()` for
+every card on every parse, so merging the same markdown file twice adds a second copy of everything.
+Omitting the option would read as a bug; the disabled row carries the reason in place of its effect
+line, which is also the only place a user learns why their file is different.
+
+**The result is a panel, not a toast (KTD6, R17).** `@boardly/ui`'s `toast` is a single
+auto-dismissing string. The result carries lists — names joined by name, cards whose board version
+was kept, dropped references — and it is the _only_ record that an import happened, since import
+writes no activity entry. An auto-dismissing line cannot hold it, and a user who imports and sees
+nothing move cannot tell success from the old no-op.
+
+**Cancelling the Replace confirmation returns to the picker**, not out of the flow. The user
+rejected one mode; they did not withdraw the file they just chose.
+
+**All three steps share one `Dialog` with a step state**, rather than nesting a confirmation dialog
+inside the picker dialog. Radix handles nesting, but focus restoration across two overlapping
+modals is fiddly for no gain here: the steps are strictly sequential, and the confirm step still
+renders the repo's exact irreversible-confirm markup at `max-w-sm`.
+
+**KTD10 holds:** none of this is the safety boundary. A program never sees the dialog. The required
+`mode`, `acknowledgeReplace`, the staged atomicity and the structured result — all in U5's schema —
+are what actually protect the board.
+
+### How it works
+
+```
+Import board…  →  parse (ImportError → inline alert in the popover, flow ends)
+                       │
+                       ▼
+                  Dialog · ModePicker           file title + "N cards, N projects, N labels"
+                       ├── Merge ───────────┐   (disabled + reason when the source is markdown)
+                       ├── Add as copy ─────┤
+                       └── Replace ──► Dialog · ReplaceConfirmation
+                                            │   names both sides + the every-device warning
+                                            ├── Cancel → back to the picker
+                                            └── Replace board ──┐
+                                                                ▼
+                                                     Dialog · ImportReport (until Done)
+```
+
+The board-side counts in the confirmation come from `execute(exportBoard, …)`, run only when the
+confirm step opens — the same snapshot the export menu produces, so the numbers cannot disagree with
+what a Replace would actually remove. The file-side counts are read off the already-parsed snapshot,
+which is why R16's "both sides, in real numbers" is affordable at all: nothing is written until the
+mode is chosen, so the parse has already happened.
+
+A parse failure keeps the existing inline `role="alert"` in the popover and never opens the dialog.
+An _apply_ failure (a rejected snapshot, a malformed key) renders its message inside the picker,
+because that is where the user is standing.
+
+### How to test / verify
+
+`pnpm --filter @boardly/web test` — 403, up from 394.
+
+Covered: a JSON file offers three enabled modes, each showing its effect on existing content, above
+the file's title and counts; a markdown file shows Merge **disabled with a visible reason** and the
+other two enabled; a malformed file shows the inline alert and no picker; picking Replace opens a
+confirmation naming both sides, the file's title and the every-device warning, and cancelling leaves
+the board's cards untouched _and returns to the picker_; confirming runs the import and shows the
+report; Merge and Add as copy run with no confirmation step, and Add as copy of a file whose card id
+already exists on the board adds a third card rather than overwriting; the report names the cards
+whose board version was kept, survives a tick (it is not a toast) and disappears on **Done**; a name
+fusion is reported with both names and no id anywhere in the panel.
+
+Keyboard: every step is buttons in DOM order inside a Radix `Dialog`, so Tab cycles within the
+modal, Escape closes it, and focus returns to the export trigger. Focus rings are the §5
+`focus-visible:ring-2 ring-[var(--accent)]` used on the existing menu items.
+
+### Follow-ups / known gaps
+
+- **No dark-mode screenshots yet** — U7 captures the picker and the confirmation.
+- **The result panel does not name dropped references individually**, only their count. The records
+  carry the card id and the field, so naming them means a lookup the panel does not do today.
+- **The picker acts on click rather than being a radio group with a confirm.** One click per
+  non-destructive mode is the cheaper path, and Replace still has its own gate. If a fourth mode
+  ever lands, revisit.
+- **Markdown import still goes through the client-side parser only**, so the mode choice exists in
+  the UI and not for an agent importing markdown. That gap is U5's `parseBoardFile` follow-up.
+- The board-side counts are read at confirm time and not re-read if the board changes while the
+  dialog is open. A sync from another device during the confirmation would make them stale by the
+  time Replace runs.
