@@ -48,19 +48,27 @@ export function normalizeTicketPrefix(input: string): string {
     .slice(0, 5);
 }
 
+/** Length cap on a decorative slug. Cosmetic only — nothing resolves by slug. */
+export const SLUG_MAX_LENGTH = 60;
+
 /**
  * Kebab-case a title for a decorative URL slug: fold diacritics, lowercase,
  * collapse non-alphanumerics to single hyphens, trim, and cap length. The slug
  * is cosmetic — ticket URLs resolve by their integer, never by the slug.
+ *
+ * `maxLength` defaults to {@link SLUG_MAX_LENGTH}. Callers that *compare*
+ * normalized names rather than display them pass `Number.POSITIVE_INFINITY`, so
+ * that two long names sharing a 60-character prefix do not fold together — see
+ * `io/resolve.ts`, which reuses this function as its one notion of "same name".
  */
-export function slugify(title: string): string {
+export function slugify(title: string, maxLength: number = SLUG_MAX_LENGTH): string {
   return title
     .normalize("NFKD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+/, "")
-    .slice(0, 60)
+    .slice(0, maxLength)
     .replace(/-+$/, "");
 }
 

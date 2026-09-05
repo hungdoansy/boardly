@@ -254,3 +254,85 @@ Not a UI change — no screenshot check.
   diff-friendly and replica-deterministic; deferred as a behavior change R1 does not ask for.
 - Exported cards still carry the derived, display-only `shortId` (pre-existing; `parseJson` strips
   it on import).
+
+---
+
+## U3. Pure entity resolution
+
+### What changed
+
+- `packages/domain/src/io/resolve.ts` (new), re-exported from `io/index.ts`. It answers one
+  question — _given the file's entities and the board's, what maps to what_ — and answers it with
+  data, never a write. Public surface: `normalizeEntityName`, `resolveEntities`, `resolveImport`,
+  and the types `ResolvableEntity`, `EntityFusion`, `EntityResolution`, `CardRefs`,
+  `ResolvedCardRefs`, `DroppedRef`, `ImportResolutionInput`, `ImportResolution`.
+- `packages/domain/src/io/resolve.test.ts` (new) — 47 tests.
+- `packages/domain/src/ids.ts` — `slugify` gains an optional `maxLength` (default
+  `SLUG_MAX_LENGTH = 60`, now exported). No existing caller changes.
+
+### Why
+
+- **Pure, in `domain`, not on the Yjs layer (KTD3).** The name rules are the part of import most
+  likely to be wrong and hardest to eyeball, so they are provable without constructing a `Y.Doc`.
+  This also keeps the `io/` split where `packages/domain` never imports `packages/sync`.
+- **Structural input types, not snapshot types.** The board side is read out of Yjs by the caller
+  and has no snapshot type; the file side does. Depending on neither lets `SnapshotProject` /
+  `SnapshotLabel` / `SnapshotCard` be passed in unchanged, with generics preserving the concrete
+  type on `create` so the caller still sees `color` and `ord`.
+- **`slugify` reused with the cap lifted (KTD4).** A second normalization routine would be the
+  second, divergent definition of "same name" that KTD4 exists to prevent. But `slugify` is built
+  for decorative URLs and truncates at 60 characters, which would fuse two long names sharing a
+  prefix. Parameterizing the cap — default unchanged — reuses the folding and drops the truncation
+  only where names are _compared_.
+- **Assignees are the caller's call.** R13 names labels, projects and related cards and pointedly
+  omits assignees, and a pure function cannot know the board's member set. `board.memberIds` is
+  optional: omitted, assignees pass through; supplied, an unknown assignee is dropped and reported.
+
+### How it works
+
+Per kind, in file order: **by id** (archived or not — an id match is an identity, not a revival, so
+nothing about the board entity changes, R11); then **by normalized name** among non-archived board
+entities only, where the board's entity survives with its own id, name, color and archived state
+and the file's cards are repointed to it (R10), with the collapse pushed onto `fusions`; otherwise
+**create**. `remap` is total over the file's ids, so one lookup answers any file id.
+
+The candidate set **grows**: a created entity joins both indexes, so a second file entity
+normalizing alike fuses into the first rather than reproducing the duplicate the rule exists to
+prevent.
+
+Two guards keep the fold honest. **Empty key** — `normalizeEntityName` returns `""` for names with
+no Latin alphanumerics (non-Latin script, emoji, punctuation), and an empty key never enters the
+name-match arm; otherwise every such name would read as "the same name" as every other. **No
+truncation** — matching compares the whole normalized name, so two names sharing a 60-character
+slug but differing after it stay distinct. Ties break deterministically on lowest `ord`, then `id`,
+so the same file resolves identically on every replica.
+
+Card references (R13) resolve through the remap first, then against ids already on the board
+(archived included — relocating a card off an archived project would be the lifecycle change R11
+forbids). Unresolvable references are dropped and reported; the card still imports. `labelIds`
+de-duplicates, because a fusion can send two of a card's labels to one survivor. `ResolvedCardRefs`
+deliberately carries no `archived` field: resolution decides ids, never lifecycle.
+
+### How to test / verify
+
+`pnpm --filter @boardly/domain test` — 204 tests, 47 of them in `src/io/resolve.test.ts`, with no
+`Y.Doc` constructed anywhere in the unit's files. Every structural entity case runs twice, once per
+kind, so "labels follow the project rules identically" is enforced rather than asserted.
+
+Covered: id match leaves the board entity untouched and beats a name match; `"web  app"` fuses into
+`"Web App"` and is reported; an archived-only name match creates instead; a still-archived file
+entity may fuse into an active board entity; multi-way ties resolve to lowest `ord` then lowest
+`id`, stable across repeated calls and a reversed board array; empty-normalizing names never fuse;
+long names sharing a 60-character prefix do not fuse; two file entities normalizing alike fuse into
+one target with both fusions reported; card refs repoint and de-duplicate; refs to archived board
+entities survive; unresolvable refs are dropped and counted; assignees pass through without a
+member list and are dropped with one.
+
+### Follow-ups / known gaps
+
+- Nothing calls `resolveImport` yet — **U4** owns the apply/write side.
+- Whether the UI surfaces `fusions` and `dropped`, and in what words, is U5/U6's. The records carry
+  both names and the shared normalized key, so a message can be written without re-deriving.
+- `board.memberIds` has no caller yet; until one passes it, assignees import as-is.
+- A fusion can collapse two of one card's labels into one. `labelIds` de-duplicates preserving
+  first-occurrence order, and both entity-level fusions are still reported, so nothing is silent.

@@ -2,5 +2,6 @@
 // plain BoardSnapshot; the sync layer reads/writes Y.Docs to/from a snapshot.
 export * from "./snapshot";
 export * from "./json";
+export * from "./resolve";
 export * from "./markdown";
 export * from "./obsidian";
