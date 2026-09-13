@@ -14,7 +14,7 @@ import {
   type PriorityValue,
   type Project,
   type SavedView,
-  type SnapshotCard,
+  type SnapshotProject,
   type Status,
   DEFAULT_BADGE_CONFIG,
   DEFAULT_STATUS,
@@ -1123,12 +1123,64 @@ export function listArchivedCards(doc: Y.Doc): Card[] {
     .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
 }
 
-// ----- import / export (Unit 4.4) -----
+// ----- import / export (Unit 4.4; widened to the whole doc in UNIT-21) -----
 
 /**
- * Read a full-fidelity snapshot of a board (cards + labels + meta) for export.
- * Card placement is its `status`; there is no columns array. Archived items are
- * excluded — a clean export.
+ * Every card on the board, archived ones included, number-repaired. Deliberately
+ * NOT {@link allLiveCards}: an export is a backup of the whole doc (UNIT-21 R1),
+ * and dropping archived cards is exactly how a "carry my board to the new
+ * machine" export silently lost the Archive view. An archived card arrives
+ * carrying `archived: true` and its `deletedAt`, so a restore can put it back
+ * where it was.
+ */
+function allCardsForSnapshot(doc: Y.Doc): Card[] {
+  const prefix = boardPrefix(doc);
+  const overrides = ticketNumberOverrides(doc);
+  return (
+    [...boardCards(doc).values()]
+      .filter((c): c is YCard => c instanceof Y.Map)
+      .map((c) => toPlain(c, prefix, overrides))
+      // Sorted, like `projects` and `labels` are. A `Y.Map`'s iteration order is
+      // its internal key order, which a clear-and-rebuild (import in `replace`
+      // mode) can permute — so an unsorted export makes two exports of the same
+      // board differ, and `export → replace → export` unequal, for no reason
+      // beyond how the keys happen to be laid out. `id` breaks a tie, because two
+      // replicas can concurrently produce equal `ord`s.
+      .sort((a, b) => compareOrd(a.ord, b.ord) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  );
+}
+
+/**
+ * Every project in `ord` order, archived ones included (the complement of
+ * {@link listProjects} + {@link listArchivedProjects} in one pass, so a hidden
+ * project survives the export exactly as a hidden project).
+ *
+ * `deletedAt` is read straight off the Y.Map rather than through
+ * {@link projectToPlain}: the plain domain `Project` has no `deletedAt` (no UI
+ * reads one), and widening a type the whole app depends on for a single
+ * serializer would be the wrong trade. `cardToPlain` carries the card's
+ * `deletedAt` only because the Archive view needs it for sorting.
+ */
+function allProjectsForSnapshot(doc: Y.Doc): SnapshotProject[] {
+  return [...boardProjects(doc).values()]
+    .filter((p): p is Y.Map<unknown> => p instanceof Y.Map)
+    .map((p): Project & { deletedAt?: number } => {
+      const project = projectToPlain(p);
+      const deletedAt = p.get("deletedAt");
+      return typeof deletedAt === "number" ? { ...project, deletedAt } : project;
+    })
+    .sort(byOrd);
+}
+
+/**
+ * Read a full-fidelity snapshot of a board for export (v2): board meta *and* its
+ * display preferences, every project, the label palette, the saved views, and
+ * every card — archived ones too, each carrying its `projectId`. Card placement
+ * is its `status`; there is no columns array.
+ *
+ * The board's `showEmptyColumns` / `zoom` come from `boardToPlain`, so an
+ * untouched board exports the same read-time defaults it renders with rather
+ * than a second, drifting copy of them.
  */
 export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
   const board = boardToPlain(doc, userId);
@@ -1140,114 +1192,21 @@ export function boardToSnapshot(doc: Y.Doc, userId: string): BoardSnapshot {
       ...(board.description !== undefined ? { description: board.description } : {}),
       shortIdPrefix: board.shortIdPrefix,
       badgeConfig: board.badgeConfig,
+      showEmptyColumns: board.showEmptyColumns,
+      zoom: board.zoom,
     },
+    projects: allProjectsForSnapshot(doc),
     labels: listLabels(doc),
-    cards: allLiveCards(doc).map((c) => ({ ...c })),
+    // Copied, not handed out by reference: `listViews` returns the very array
+    // stored on board meta, and the snapshot is a value the caller may edit.
+    views: listViews(doc).map((v) => ({ ...v })),
+    cards: allCardsForSnapshot(doc).map((c) => ({ ...c })),
   };
 }
 
-function buildCard(card: SnapshotCard): YCard {
-  const yc = new Y.Map<unknown>();
-  yc.set("id", card.id);
-  yc.set("number", card.number);
-  yc.set("title", card.title);
-  const desc = new Y.Text();
-  if (card.description) desc.insert(0, card.description);
-  yc.set("description", desc);
-  yc.set("ord", card.ord);
-  yc.set("status", card.status);
-  yc.set("priority", card.priority);
-  if (card.dueDate) {
-    const due = new Y.Map<unknown>();
-    due.set("at", card.dueDate.at);
-    due.set("hasTime", card.dueDate.hasTime);
-    yc.set("dueDate", due);
-  } else {
-    yc.set("dueDate", null);
-  }
-  const labels = new Y.Map<unknown>();
-  for (const id of card.labelIds) labels.set(id, true);
-  yc.set("labels", labels);
-  const related = new Y.Map<unknown>();
-  for (const id of card.relatedIds ?? []) related.set(id, true);
-  yc.set("related", related);
-  const checklist = new Y.Map<unknown>();
-  for (const item of card.checklist) {
-    const yi = new Y.Map<unknown>();
-    yi.set("text", item.text);
-    yi.set("done", item.done);
-    yi.set("ord", item.ord);
-    checklist.set(item.id, yi);
-  }
-  yc.set("checklist", checklist);
-  const links = new Y.Map<unknown>();
-  for (const link of card.links) {
-    const yl = new Y.Map<unknown>();
-    yl.set("url", link.url);
-    yl.set("provider", link.provider);
-    if (link.title !== undefined) yl.set("title", link.title);
-    if (link.iconRef !== undefined) yl.set("iconRef", link.iconRef);
-    yl.set("ord", link.ord);
-    links.set(link.id, yl);
-  }
-  yc.set("links", links);
-  yc.set("archived", false);
-  yc.set("createdAt", card.createdAt);
-  yc.set("updatedAt", card.updatedAt);
-  if (card.assigneeId !== undefined) yc.set("assigneeId", card.assigneeId);
-  if (card.createdBy !== undefined) yc.set("createdBy", card.createdBy);
-  return yc;
-}
-
-/** Highest ticket number across the cards (seeds the board's `shortIdSeq`). */
-function maxTicketNumber(cards: SnapshotCard[]): number {
-  let max = 0;
-  for (const c of cards) max = Math.max(max, c.number);
-  return max;
-}
-
 /**
- * Populate a fresh board Y.Doc from a snapshot (import). Writes ids/ords/fields
- * verbatim so a JSON export round-trips exactly. `now` stamps board meta and any
- * card lacking a timestamp (e.g. an Obsidian import). Idempotent-guarded: does
- * nothing if the doc is already initialized.
+ * The snapshot **write** path lives in `./io.ts` (UNIT-21 U4): it grew from one
+ * verbatim builder into three apply modes over a staged document. Re-exported
+ * here so the pre-UNIT-21 import site keeps working.
  */
-export function buildBoardFromSnapshot(doc: Y.Doc, snapshot: BoardSnapshot, now: number): void {
-  doc.transact(() => {
-    const meta = boardMeta(doc);
-    if (meta.has("createdAt")) return;
-    meta.set("title", snapshot.board.title);
-    if (snapshot.board.icon !== undefined) meta.set("icon", snapshot.board.icon);
-    const desc = new Y.Text();
-    if (snapshot.board.description) desc.insert(0, snapshot.board.description);
-    meta.set("description", desc);
-    meta.set("shortIdPrefix", snapshot.board.shortIdPrefix);
-    meta.set("shortIdSeq", maxTicketNumber(snapshot.cards));
-    meta.set(
-      "badgeConfig",
-      snapshot.board.badgeConfig.length
-        ? [...snapshot.board.badgeConfig]
-        : [...DEFAULT_BADGE_CONFIG],
-    );
-    meta.set("createdAt", now);
-    meta.set("updatedAt", now);
-
-    const labels = boardLabels(doc);
-    for (const label of snapshot.labels) {
-      const yl = new Y.Map<unknown>();
-      yl.set("id", label.id);
-      yl.set("name", label.name);
-      yl.set("color", label.color);
-      yl.set("ord", label.ord);
-      labels.set(label.id, yl);
-    }
-
-    const cards = boardCards(doc);
-    for (const card of snapshot.cards) {
-      cards.set(
-        card.id,
-        buildCard({ ...card, createdAt: card.createdAt || now, updatedAt: card.updatedAt || now }),
-      );
-    }
-  });
-}
+export { buildBoardFromSnapshot } from "./io";

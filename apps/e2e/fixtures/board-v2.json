@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "board": {
+    "title": "Imported board",
+    "shortIdPrefix": "IMP",
+    "badgeConfig": ["priority", "dueDate"],
+    "showEmptyColumns": false,
+    "zoom": 1.5
+  },
+  "projects": [
+    { "id": "fix-p-web", "name": "web app", "color": "#eb5757", "ord": "a0-fix" },
+    { "id": "fix-p-mobile", "name": "Mobile", "color": "#26b5ce", "ord": "a1-fix" }
+  ],
+  "labels": [{ "id": "fix-l-chore", "name": "chore", "color": "#5e6ad2", "ord": "a0-fix" }],
+  "views": [
+    {
+      "id": "fix-v-urgent",
+      "name": "Urgent only",
+      "filter": {
+        "op": "and",
+        "clauses": [{ "field": "priority", "condition": "is", "values": [1] }]
+      },
+      "layout": "board"
+    }
+  ],
+  "cards": [
+    {
+      "id": "fix-c-web",
+      "number": 1,
+      "title": "Fixture web card",
+      "projectId": "fix-p-web",
+      "ord": "a0-fix",
+      "status": "todo",
+      "labelIds": ["fix-l-chore"],
+      "createdAt": 1750000000000,
+      "updatedAt": 1750000000000
+    },
+    {
+      "id": "fix-c-mobile",
+      "number": 2,
+      "title": "Fixture mobile card",
+      "projectId": "fix-p-mobile",
+      "ord": "a1-fix",
+      "status": "todo",
+      "createdAt": 1750000000000,
+      "updatedAt": 1750000000000
+    },
+    {
+      "id": "fix-c-orphan",
+      "number": 3,
+      "title": "Fixture card with a dead project link",
+      "projectId": "fix-p-deleted",
+      "ord": "a2-fix",
+      "status": "in_progress",
+      "createdAt": 1750000000000,
+      "updatedAt": 1750000000000
+    }
+  ]
+}

@@ -30,14 +30,63 @@ export type YLabel = Y.Map<unknown>;
 
 // ----- Top-level document sections -----
 
-export const boardMeta = (doc: Y.Doc): Y.Map<unknown> => doc.getMap<unknown>("meta");
-export const boardCards = (doc: Y.Doc): Y.Map<YCard> => doc.getMap<YCard>("cards");
-export const boardLabels = (doc: Y.Doc): Y.Map<YLabel> => doc.getMap<YLabel>("labels");
+/**
+ * Every top-level Yjs root the board doc uses. Declared rather than discovered:
+ * a `Y.Doc` keeps no registry of its roots (`doc.getMap("anything")` conjures
+ * one on demand), so nothing but this list can tell a reader what a board is
+ * made of. The accessors below go through `rootMap`/`rootArray`, which means a
+ * new section cannot be added without extending this list — and that is what
+ * lets `schema-coverage.test.ts` notice a section the export format is missing
+ * (UNIT-21; `packages/domain` never imports this package, so no type error
+ * would otherwise be raised).
+ */
+export const BOARD_ROOTS = ["meta", "cards", "labels", "projects", "activity"] as const;
+export type BoardRoot = (typeof BOARD_ROOTS)[number];
+
+const rootMap = <T>(doc: Y.Doc, root: BoardRoot): Y.Map<T> => doc.getMap<T>(root);
+const rootArray = <T>(doc: Y.Doc, root: BoardRoot): Y.Array<T> => doc.getArray<T>(root);
+
+/**
+ * Every key written to board `meta`. Same purpose as `BOARD_ROOTS`, one level
+ * down: meta is a bag of ad-hoc scalars, so the drift guard needs a declared
+ * list to check the snapshot against. `BoardMetaMap` narrows `set` to this
+ * union, so a new preference cannot be persisted without being declared here.
+ */
+export const BOARD_META_KEYS = [
+  "title",
+  "icon",
+  "description",
+  "shortIdPrefix",
+  "shortIdSeq",
+  "badgeConfig",
+  "showEmptyColumns",
+  "zoom",
+  "views",
+  "createdAt",
+  "updatedAt",
+  "createdBy",
+] as const;
+export type BoardMetaKey = (typeof BOARD_META_KEYS)[number];
+
+/**
+ * The `meta` map with `set` narrowed to declared keys. Reads stay `string`-keyed
+ * (the `getString`/`getNumber`/`getBool` helpers are deliberately defensive and
+ * take a plain `Y.Map`); it is the *write* side that has to be pinned down,
+ * because an undeclared write is how a doc section becomes invisible to export.
+ */
+export interface BoardMetaMap extends Y.Map<unknown> {
+  set<VAL>(key: BoardMetaKey, value: VAL): VAL;
+}
+
+export const boardMeta = (doc: Y.Doc): BoardMetaMap =>
+  rootMap<unknown>(doc, "meta") as BoardMetaMap;
+export const boardCards = (doc: Y.Doc): Y.Map<YCard> => rootMap<YCard>(doc, "cards");
+export const boardLabels = (doc: Y.Doc): Y.Map<YLabel> => rootMap<YLabel>(doc, "labels");
 export const boardProjects = (doc: Y.Doc): Y.Map<Y.Map<unknown>> =>
-  doc.getMap<Y.Map<unknown>>("projects");
+  rootMap<Y.Map<unknown>>(doc, "projects");
 /** Append-only activity log (Unit 2.12; expanded in U4.3). */
 export const boardActivity = (doc: Y.Doc): Y.Array<Y.Map<unknown>> =>
-  doc.getArray<Y.Map<unknown>>("activity");
+  rootArray<Y.Map<unknown>>(doc, "activity");
 
 // ----- Scalar readers (defensive: wrong/absent types fall back to default) -----
 

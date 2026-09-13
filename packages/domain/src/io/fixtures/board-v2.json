@@ -1,0 +1,90 @@
+{
+  "version": 2,
+  "board": {
+    "title": "Current board",
+    "icon": "🗺️",
+    "description": "Exported by the v2 exporter",
+    "shortIdPrefix": "CUR",
+    "badgeConfig": ["priority", "status"],
+    "showEmptyColumns": false,
+    "zoom": 1.25
+  },
+  "projects": [
+    { "id": "p-web", "name": "Web", "color": "#4EA7FC", "ord": "a0", "archived": false },
+    {
+      "id": "p-old",
+      "name": "Sunset",
+      "color": "#8A8F98",
+      "ord": "a1",
+      "archived": true,
+      "deletedAt": 1700000900000
+    }
+  ],
+  "labels": [{ "id": "l-bug", "name": "bug", "color": "#EB5757", "ord": "a0" }],
+  "views": [
+    {
+      "id": "v-mine",
+      "name": "Web bugs",
+      "filter": {
+        "op": "and",
+        "clauses": [
+          { "field": "project", "condition": "is", "values": ["p-web"] },
+          { "field": "label", "condition": "hasAny", "values": ["l-bug"] }
+        ]
+      },
+      "sort": { "field": "priority", "direction": "desc" },
+      "groupBy": "status",
+      "layout": "board",
+      "visibleBadges": ["priority"]
+    }
+  ],
+  "cards": [
+    {
+      "id": "c-1",
+      "number": 1,
+      "title": "Fix login",
+      "description": "steps",
+      "projectId": "p-web",
+      "ord": "a0",
+      "status": "in_progress",
+      "priority": 3,
+      "dueDate": { "at": 1700000000000, "hasTime": false },
+      "assigneeId": "u1",
+      "labelIds": ["l-bug"],
+      "relatedIds": [],
+      "checklist": [{ "id": "ci-1", "text": "repro", "done": true, "ord": "a0" }],
+      "links": [
+        {
+          "id": "ln-1",
+          "url": "https://example.com",
+          "provider": "generic",
+          "title": "Example",
+          "ord": "a0"
+        }
+      ],
+      "archived": false,
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000010,
+      "createdBy": "u1"
+    },
+    {
+      "id": "c-2",
+      "number": 2,
+      "title": "Retired idea",
+      "description": "",
+      "projectId": "p-old",
+      "ord": "a1",
+      "status": "canceled",
+      "priority": 0,
+      "dueDate": null,
+      "labelIds": [],
+      "relatedIds": [],
+      "checklist": [],
+      "links": [],
+      "archived": true,
+      "deletedAt": 1700000900000,
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000020
+    }
+  ]
+}

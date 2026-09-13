@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "board": {
+    "title": "Legacy board",
+    "icon": "📦",
+    "description": "Exported before projects existed",
+    "shortIdPrefix": "LEG",
+    "badgeConfig": ["priority", "dueDate"]
+  },
+  "labels": [{ "id": "l-chore", "name": "chore", "color": "#8A8F98", "ord": "a0" }],
+  "cards": [
+    {
+      "id": "c-old-1",
+      "number": 1,
+      "title": "Old card",
+      "description": "written by the v1 exporter",
+      "ord": "a0",
+      "status": "todo",
+      "priority": 2,
+      "dueDate": null,
+      "labelIds": ["l-chore"],
+      "relatedIds": [],
+      "checklist": [],
+      "links": [],
+      "archived": false,
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000001
+    },
+    {
+      "id": "c-old-2",
+      "number": 2,
+      "title": "Older card",
+      "description": "",
+      "ord": "a1",
+      "status": "done",
+      "priority": 0,
+      "dueDate": { "at": 1700000500000, "hasTime": true },
+      "labelIds": [],
+      "relatedIds": ["c-old-1"],
+      "checklist": [{ "id": "ci-1", "text": "ship", "done": true, "ord": "a0" }],
+      "links": [],
+      "archived": false,
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000002
+    }
+  ]
+}

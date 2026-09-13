@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "board": {
+    "title": "Legacy export",
+    "shortIdPrefix": "OLD",
+    "badgeConfig": ["priority"]
+  },
+  "labels": [{ "id": "old-l-bug", "name": "bug", "color": "#eb5757", "ord": "a0-old" }],
+  "cards": [
+    {
+      "id": "old-c-1",
+      "number": 1,
+      "title": "Card from before projects existed",
+      "ord": "a0-old",
+      "status": "todo",
+      "labelIds": ["old-l-bug"],
+      "createdAt": 1740000000000,
+      "updatedAt": 1740000000000
+    },
+    {
+      "id": "old-c-2",
+      "number": 2,
+      "title": "Second legacy card",
+      "ord": "a1-old",
+      "status": "done",
+      "createdAt": 1740000000000,
+      "updatedAt": 1740000000000
+    }
+  ]
+}

@@ -69,6 +69,12 @@ reuse a number namespace). The plans, newest last:
     **Include hidden projects** toggle on both search surfaces, and a toast when hiding a project
     takes cards out of the All view.
 
+- `docs/plans/2026-09-04-1815-feat-board-import-modes-plan.md` — full-fidelity export and three
+  import modes (Replace / Merge / Add as copy):
+  - `UNIT-21` — one doc covering the plan's sub-units U1–U7; U1 widens the interchange snapshot to
+    v2 (projects, per-card project, archived cards, board display preferences, saved views), gates
+    a newer file's version, and adds the doc-schema → snapshot drift guard.
+
 ## Convention
 
 - **Filename:** `UNIT-<id>-<slug>.md` — e.g. `UNIT-1.1-yjs-schema.md`, `UNIT-3.10-mcp-server.md`.
