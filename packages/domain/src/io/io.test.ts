@@ -5,8 +5,6 @@ import { describe, expect, it } from "vitest";
 import { Priority } from "../enums";
 import { Status } from "../status";
 import { exportJson, parseJson } from "./json";
-import { exportMarkdown } from "./markdown";
-import { parseObsidian } from "./obsidian";
 import { type BoardSnapshot, ImportError, SNAPSHOT_VERSION } from "./snapshot";
 
 /** Read a committed interchange file verbatim (v1 = pre-projects, v2 = current). */
@@ -150,83 +148,6 @@ describe("malformed import is atomic", () => {
       cards: [{ id: "k1", title: "Card", ord: "a0", priority: 9 }],
     });
     expect(() => parseJson(bad)).toThrow(ImportError);
-  });
-});
-
-describe("Markdown export", () => {
-  it("renders a readable outline grouped by status, checking terminal cards", () => {
-    const md = exportMarkdown(snapshot);
-    expect(md).toContain("# Roadmap");
-    expect(md).toContain("## Todo");
-    expect(md).toContain("- [ ] Fix login");
-    expect(md).toContain("## Done");
-    expect(md).toContain("- [x] Ship it"); // Done → checked
-    // Empty status sections are omitted.
-    expect(md).not.toContain("## Backlog");
-  });
-
-  it("stays a structural outline: archived cards and the new v2 sections are absent", () => {
-    const md = exportMarkdown(snapshot);
-    expect(md).not.toContain("Retired idea"); // archived
-    expect(md).not.toContain("Web"); // projects are not represented
-    expect(md).not.toContain("Web bugs"); // neither are saved views
-  });
-});
-
-describe("Obsidian-Kanban import", () => {
-  const sample = [
-    "---",
-    "kanban-plugin: basic",
-    "---",
-    "",
-    "# My Board",
-    "",
-    "## Backlog",
-    "",
-    "- [ ] Research options",
-    "- [ ] Draft spec",
-    "",
-    "## In Progress",
-    "",
-    "- [ ] Build prototype",
-    "",
-    "## Done",
-    "",
-    "- [x] Kickoff meeting",
-    "",
-    "%% kanban:settings",
-    '{"kanban-plugin":"basic"}',
-    "%%",
-  ].join("\n");
-
-  it("maps ## headings to statuses (by name) and unchecked tasks to that status", () => {
-    const snap = parseObsidian(sample);
-    expect(snap.board.title).toBe("My Board");
-    const statusOf = (title: string) => snap.cards.find((c) => c.title === title)!.status;
-    expect(statusOf("Research options")).toBe(Status.Backlog);
-    expect(statusOf("Draft spec")).toBe(Status.Backlog);
-    expect(statusOf("Build prototype")).toBe(Status.InProgress);
-  });
-
-  it("checked tasks become Done status regardless of section", () => {
-    const snap = parseObsidian(sample);
-    expect(snap.cards.find((c) => c.title === "Kickoff meeting")!.status).toBe(Status.Done);
-    expect(snap.cards.find((c) => c.title === "Research options")!.status).toBe(Status.Backlog);
-  });
-
-  it("cards under an unknown heading default to Todo", () => {
-    const snap = parseObsidian(["## Icebox", "- [ ] Someday"].join("\n"));
-    expect(snap.cards[0]!.status).toBe(Status.Todo);
-  });
-
-  it("keeps cards ordered within a status", () => {
-    const snap = parseObsidian(sample);
-    const ords = snap.cards.filter((k) => k.status === Status.Backlog).map((k) => k.ord);
-    expect([...ords].sort()).toEqual(ords); // already ascending
-  });
-
-  it("throws ImportError when there are no sections", () => {
-    expect(() => parseObsidian("just some text\nno headings")).toThrow(ImportError);
   });
 });
 

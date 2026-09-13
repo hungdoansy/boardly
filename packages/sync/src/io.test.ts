@@ -4,7 +4,6 @@ import {
   boardSnapshotSchema,
   exportJson,
   parseJson,
-  parseObsidian,
   Priority,
   type SavedView,
   Status,
@@ -91,14 +90,26 @@ describe("board snapshot round-trip", () => {
     expect(snap.labels.map((l) => l.name)).toEqual(["bug"]);
   });
 
-  it("builds a board from an Obsidian import, placing cards by status", () => {
-    const md = ["## Backlog", "- [ ] A", "- [x] B", "## Done", "- [x] C"].join("\n");
+  it("places cards by status and defaults absent timestamps to now", () => {
     const fresh = new Y.Doc();
-    buildBoardFromSnapshot(fresh, parseObsidian(md, "Imported"), NOW);
+    buildBoardFromSnapshot(
+      fresh,
+      parseJson(
+        JSON.stringify({
+          version: 2,
+          board: { title: "Imported" },
+          cards: [
+            { id: "a", title: "A", status: Status.Backlog },
+            { id: "b", title: "B", status: Status.Done },
+            { id: "c", title: "C", status: Status.Done },
+          ],
+        }),
+      ),
+      NOW,
+    );
     const snap = boardToSnapshot(fresh, USER_ID);
     expect(snap.board.title).toBe("Imported");
     expect(snap.cards.map((c) => c.title).sort()).toEqual(["A", "B", "C"]);
-    // A is unchecked under Backlog → backlog; B and C are checked → done.
     expect(cardsInStatus(fresh, Status.Backlog).map((c) => c.title)).toEqual(["A"]);
     expect(
       cardsInStatus(fresh, Status.Done)
@@ -120,7 +131,17 @@ describe("board snapshot round-trip", () => {
     const { doc } = seededDoc();
     expect(boardToSnapshot(doc, USER_ID).cards).toHaveLength(2);
 
-    buildBoardFromSnapshot(doc, parseObsidian("## X\n- [ ] Y", "Imported"), NOW + 5);
+    buildBoardFromSnapshot(
+      doc,
+      parseJson(
+        JSON.stringify({
+          version: 2,
+          board: { title: "Imported" },
+          cards: [{ id: "y", title: "Y", status: Status.Todo }],
+        }),
+      ),
+      NOW + 5,
+    );
 
     const snap = boardToSnapshot(doc, USER_ID);
     expect(snap.board.title).toBe("Imported");

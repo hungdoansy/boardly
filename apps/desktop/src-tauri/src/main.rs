@@ -120,6 +120,8 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             // Tauri's default macOS menu bound Cmd+W to the native `close_window`,
             // which — with our single window — destroyed it and quit the app. We

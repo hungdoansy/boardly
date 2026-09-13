@@ -24,8 +24,8 @@ const fixture = (name: string): string => path.join(FIXTURES, name);
  * "Import board…" is needed (that click only opens the OS picker).
  */
 async function pickFile(page: Page, filePath: string): Promise<void> {
-  // `exact` — once the popover is open, "Export as JSON" and "Export as
-  // Markdown" both match a non-exact "Export".
+  // `exact` — once the popover is open, "Export as JSON" also matches a
+  // non-exact "Export".
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await page.locator('input[type="file"]').setInputFiles(filePath);
   await expect(page.getByText("Import into this board")).toBeVisible();

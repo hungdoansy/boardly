@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  type BoardSnapshot,
-  ImportError,
-  exportJson,
-  exportMarkdown,
-  parseJson,
-  parseObsidian,
-} from "@boardly/domain";
+import { type BoardSnapshot, ImportError, exportJson, parseJson } from "@boardly/domain";
 import { execute, exportBoard, importBoard } from "@boardly/commands";
 import type { ImportMode, ImportResult } from "@boardly/sync";
 import {
@@ -20,12 +13,12 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  toast,
 } from "@boardly/ui";
 import {
   CopyPlus,
   Download,
   FileJson,
-  FileText,
   GitMerge,
   Replace,
   TriangleAlert,
@@ -34,6 +27,7 @@ import {
 import { useRef, useState } from "react";
 
 import { useBoardlyContext } from "../../lib/boardly-context";
+import { saveFile } from "../../lib/save-file";
 
 /** Slug a board title for a download filename. */
 function slug(title: string): string {
@@ -46,32 +40,15 @@ function slug(title: string): string {
   );
 }
 
-function download(filename: string, text: string, mime: string): void {
-  const blob = new Blob([text], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
 
 /** The three counts a person needs to judge an import, in one phrase. */
 const contentSummary = (cards: number, projects: number, labels: number): string =>
   [plural(cards, "card"), plural(projects, "project"), plural(labels, "label")].join(", ");
 
-/**
- * A parsed file waiting for a mode. `hasStableIds` is false for markdown:
- * `parseObsidian` generates a fresh id for every card on every parse, so merging
- * the same file twice would add a second copy of everything (R9).
- */
+/** A parsed file waiting for a mode. */
 interface PendingImport {
   snapshot: BoardSnapshot;
-  hasStableIds: boolean;
 }
 
 interface ModeOption {
@@ -119,33 +96,30 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
     return (execute(exportBoard, ctx, {}) as BoardSnapshot) ?? null;
   };
 
-  const doExportJson = (): void => {
+  const doExportJson = async (): Promise<void> => {
     const snapshot = execExport();
-    if (snapshot) download(`${slug(boardTitle)}.json`, exportJson(snapshot), "application/json");
     setOpen(false);
-  };
-
-  const doExportMarkdown = (): void => {
-    const snapshot = execExport();
-    if (snapshot) download(`${slug(boardTitle)}.md`, exportMarkdown(snapshot), "text/markdown");
-    setOpen(false);
+    if (!snapshot) return;
+    const filename = `${slug(boardTitle)}.json`;
+    const outcome = await saveFile(filename, exportJson(snapshot), "application/json");
+    // Cancelling the native save sheet is a choice, not an error — stay silent.
+    // A failure must never be a dead click again (UNIT-22).
+    if (outcome.status === "saved") toast(`Saved ${filename}`);
+    else if (outcome.status === "failed") toast("Couldn't save the file");
   };
 
   const onFile = async (file: File): Promise<void> => {
     setError(null);
     const text = await file.text();
     try {
-      const isMarkdown = /\.(md|markdown)$/i.test(file.name) || !text.trimStart().startsWith("{");
-      const snapshot = isMarkdown
-        ? parseObsidian(text, file.name.replace(/\.[^.]+$/, ""))
-        : parseJson(text);
+      const snapshot = parseJson(text);
       // Parsing succeeded, so the destructive choice can be described with real
       // numbers before it is offered (R16). Nothing is written yet.
       setOpen(false);
       setApplyError(null);
       setResult(null);
       setConfirming(false);
-      setPending({ snapshot, hasStableIds: !isMarkdown });
+      setPending({ snapshot });
     } catch (err) {
       setError(err instanceof ImportError ? err.message : "Could not import this file.");
     }
@@ -197,15 +171,12 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
           <MenuItem icon={<FileJson className="size-3.5" />} onClick={doExportJson}>
             Export as JSON
           </MenuItem>
-          <MenuItem icon={<FileText className="size-3.5" />} onClick={doExportMarkdown}>
-            Export as Markdown
-          </MenuItem>
           <div className="my-1 border-t border-line-subtle" />
           <MenuItem icon={<Upload className="size-3.5" />} onClick={() => fileRef.current?.click()}>
             Import board…
           </MenuItem>
           <p className="px-2 pt-1 text-xs text-fg-faint">
-            JSON (full board) or Obsidian-Kanban markdown. You choose what happens next.
+            A JSON board file. You choose what happens next.
           </p>
           {error ? (
             <p role="alert" className="px-2 pt-1 text-xs text-[var(--danger)]">
@@ -215,7 +186,7 @@ export function ImportExportMenu({ boardTitle }: { boardTitle: string }) {
           <input
             ref={fileRef}
             type="file"
-            accept=".json,.md,.markdown,application/json,text/markdown"
+            accept=".json,application/json"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -277,14 +248,12 @@ function ModePicker({
       <div className="flex flex-col gap-1">
         {MODE_OPTIONS.map((option) => {
           // Always shown, never omitted: a silently absent option reads as a bug.
-          const blocked = option.mode === "merge" && pending?.hasStableIds === false;
           return (
             <button
               key={option.mode}
               type="button"
-              disabled={blocked}
               onClick={() => onPick(option.mode)}
-              className="flex items-start gap-2.5 rounded-[var(--radius-sm)] border border-line-subtle px-3 py-2.5 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+              className="flex items-start gap-2.5 rounded-[var(--radius-sm)] border border-line-subtle px-3 py-2.5 text-left transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <span
                 className={option.danger ? "mt-0.5 text-[var(--danger)]" : "mt-0.5 text-fg-faint"}
@@ -297,11 +266,7 @@ function ModePicker({
                 >
                   {option.label}
                 </span>
-                <span className="text-xs text-fg-muted">
-                  {blocked
-                    ? "Markdown has no stable ids, so merging would add a second copy every time."
-                    : option.effect}
-                </span>
+                <span className="text-xs text-fg-muted">{option.effect}</span>
               </span>
             </button>
           );

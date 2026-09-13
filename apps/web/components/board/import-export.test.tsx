@@ -5,14 +5,27 @@ import { createMemoryContext, type MemoryContext } from "@boardly/commands";
 import { Status } from "@boardly/domain";
 import { addCard, addLabel, cardsInStatus, initBoard, setCardTitle } from "@boardly/sync";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const { saveFileMock, toastMock } = vi.hoisted(() => ({
+  saveFileMock: vi.fn(),
+  toastMock: vi.fn(),
+}));
+vi.mock("../../lib/save-file", () => ({ saveFile: saveFileMock }));
+vi.mock("@boardly/ui", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@boardly/ui")>()),
+  toast: toastMock,
+}));
 
 import { BoardlyProvider } from "../../lib/boardly-context";
 import { ImportExportMenu } from "./import-export";
 
 const NOW = 1_700_000_000_000;
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 function setup(seed?: (ctx: MemoryContext) => void): MemoryContext {
   const ctx = createMemoryContext({ now: () => NOW + 5000 });
@@ -83,16 +96,16 @@ describe("import — choosing a mode (R4, R9, R24)", () => {
     }
   });
 
-  it("shows Merge disabled with a reason for markdown, rather than omitting it (R9)", async () => {
+  it("rejects a markdown file rather than offering modes for it (UNIT-22)", async () => {
     setup(twoCards);
+    // Markdown import was removed with the Obsidian parser: JSON is the only
+    // format. A .md file is now just an unparseable file, not a second path.
     await choose("board.md", "## Todo\n- [ ] A\n- [ ] B");
 
-    await screen.findByRole("dialog");
-    const merge = modeButton(/^Merge/);
-    expect(merge).toBeDisabled();
-    expect(merge).toHaveTextContent(/no stable ids/i);
-    expect(modeButton(/^Replace/)).toBeEnabled();
-    expect(modeButton(/^Add as copy/)).toBeEnabled();
+    // The popover itself carries role="dialog", so assert on the mode picker's
+    // own heading rather than the role.
+    expect(screen.queryByText("Import into this board")).toBeNull();
+    expect(screen.getByRole("alert")).toHaveTextContent(/not valid JSON/i);
   });
 
   it("shows the inline alert and no mode picker for a malformed file", async () => {
@@ -209,5 +222,82 @@ describe("import — result panel (R17, KTD6)", () => {
     expect(report).toHaveTextContent("bug");
     expect(report).toHaveTextContent("Bug");
     expect(report.textContent).not.toContain("file-label");
+  });
+});
+
+describe("export (UNIT-22)", () => {
+  const clickExportJson = async (): Promise<void> => {
+    openMenu();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Export as JSON" }));
+    });
+  };
+
+  it("hands the snapshot to the platform save helper, not straight to a browser download", async () => {
+    // The bug this covers: the component used to build a blob URL and click a
+    // synthetic <a download>, which the Tauri webview silently ignores. Going
+    // through saveFile is what makes the desktop path exist at all.
+    saveFileMock.mockResolvedValueOnce({ status: "saved", path: "/tmp/roadmap.json" });
+    setup(twoCards);
+
+    await clickExportJson();
+
+    expect(saveFileMock).toHaveBeenCalledTimes(1);
+    const [filename, text, mime] = saveFileMock.mock.calls[0]!;
+    expect(filename).toBe("roadmap.json");
+    expect(mime).toBe("application/json");
+    // Real content, not a placeholder: the seeded cards round-trip through it.
+    const parsed = JSON.parse(text as string);
+    expect(parsed.cards.map((c: { title: string }) => c.title)).toEqual(
+      expect.arrayContaining(["Board version", "Board only"]),
+    );
+  });
+
+  it("confirms a successful save by naming the file", async () => {
+    saveFileMock.mockResolvedValueOnce({ status: "saved", path: "/tmp/roadmap.json" });
+    setup(twoCards);
+
+    await clickExportJson();
+
+    expect(toastMock).toHaveBeenCalledWith("Saved roadmap.json");
+  });
+
+  it("says so when the save fails, rather than closing the menu on a dead click", async () => {
+    saveFileMock.mockResolvedValueOnce({ status: "failed" });
+    setup(twoCards);
+
+    await clickExportJson();
+
+    expect(toastMock).toHaveBeenCalledWith("Couldn't save the file");
+  });
+
+  it("stays silent when the save sheet is cancelled", async () => {
+    saveFileMock.mockResolvedValueOnce({ status: "cancelled" });
+    setup(twoCards);
+
+    await clickExportJson();
+
+    // Dismissing the dialog is a choice; a toast would report it as a problem.
+    expect(toastMock).not.toHaveBeenCalled();
+  });
+
+  it("offers JSON as the only export format", async () => {
+    setup(twoCards);
+    openMenu();
+
+    expect(screen.getByRole("button", { name: "Export as JSON" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /markdown/i })).toBeNull();
+  });
+
+  it("accepts only .json on the import picker", async () => {
+    setup(twoCards);
+    openMenu();
+
+    const input = await waitFor(() => {
+      const el = document.querySelector('input[type="file"]');
+      if (!el) throw new Error("no file input");
+      return el;
+    });
+    expect(input.getAttribute("accept")).toBe(".json,application/json");
   });
 });

@@ -434,8 +434,8 @@ are both first-class UI rather than menu items.
   irreversible-delete dialog's width elsewhere.
 - **Every mode is always visible.** A mode that does not apply is rendered **disabled with its
   reason in place of its effect line** — never omitted. A silently absent option reads as a bug, and
-  the reason ("markdown has no stable ids") teaches the model. Today only Merge is ever disabled,
-  for a markdown source.
+  the reason teaches the model. Since UNIT-22 made JSON the only import format, every source has
+  stable ids and no mode is disabled in practice; the rule stands for whenever one is.
 - **Each mode carries a one-line effect on _existing_ board content**, not a description of itself:
   "Never deletes", "Nothing already on the board changes", "Deletes everything on this board". The
   same sentences reach agent callers through the command schema, so they are written once.
@@ -452,6 +452,24 @@ are both first-class UI rather than menu items.
   **Done** button, and **entities are named, never id'd** — an id in this panel is a defect.
 - Icons: `GitMerge` (merge), `CopyPlus` (add as copy), `Replace` (replace, and its confirm action),
   `TriangleAlert` (the multi-device warning). SVG only, per §7.1.
+
+### 7.7 Export: saving a file, and what a cancel means (binding — UNIT-22)
+
+Export is the app's escape hatch, so it must never fail quietly — and must never cry wolf either.
+
+- **The save is a platform branch, never a bare browser download.** A blob `<a download>` click is
+  silently ignored by the Tauri webview, which has no download manager, so the desktop gets the OS
+  save sheet and the browser keeps the download. Everything that writes a file goes through
+  `lib/save-file.ts`; components never branch on platform themselves.
+- **Three outcomes, and cancel is not failure.** `saved` confirms with a toast naming the file
+  ("Saved roadmap.json") — on the desktop there is no download shelf to glance at, so the
+  confirmation _is_ the receipt. `failed` says so ("Couldn't save the file"). **`cancelled` is
+  silent**: someone who dismissed the save sheet made a choice, and an error toast would report
+  their decision as a defect.
+- **Never a dead click.** A native bridge call that fails must reach the user. Swallowing it is what
+  let the desktop export ship permanently broken and unnoticed (UNIT-9.4 and UNIT-22 are the same
+  failure twice) — see `docs/solutions/integration-issues/`.
+- **One format in the menu.** JSON only, `FileJson` icon, per §7.1.
 
 ---
 

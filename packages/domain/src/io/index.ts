@@ -3,5 +3,3 @@
 export * from "./snapshot";
 export * from "./json";
 export * from "./resolve";
-export * from "./markdown";
-export * from "./obsidian";

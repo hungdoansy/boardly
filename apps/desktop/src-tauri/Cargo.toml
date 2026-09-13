@@ -27,6 +27,10 @@ tauri-plugin-deep-link = "2"
 # Open external links in the OS default browser (UNIT-9.4) — the webview won't
 # hand a `target="_blank"` navigation to the browser on its own.
 tauri-plugin-opener = "2"
+# Native save sheet + file write for board export (UNIT-22) — the webview has no
+# download manager, so a blob `<a download>` click is silently ignored here.
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 
 # Refresh-token storage is a 0600 file under the app data dir (serde_json above),
 # not the OS keychain — an unsigned laptop build otherwise re-prompts for
