@@ -4,6 +4,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  sharp: false
 
 # sharp (pulled transitively by Next) is not required: the web app is a static
 # export with images.unoptimized=true. esbuild is allowed because `tsx` and
