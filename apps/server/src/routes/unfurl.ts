@@ -55,7 +55,7 @@ export class UnfurlBlockedError extends Error {
 
 export type DnsLookup = (hostname: string) => Promise<Array<{ address: string; family: number }>>;
 
-const defaultLookup: DnsLookup = (hostname) => dnsLookup(hostname, { all: true });
+export const defaultLookup: DnsLookup = (hostname) => dnsLookup(hostname, { all: true });
 
 /** Drop the fragment; canonicalize. Throws for non-http(s) or invalid URLs. */
 export function normalizeUrl(raw: string): URL {
@@ -210,9 +210,18 @@ async function readCapped(res: Response, maxBytes: number): Promise<string> {
   return text + decoder.decode();
 }
 
-async function fetchHtml(
+/** What the route identifies itself as. Some hosts answer only a browser-like UA. */
+export const UNFURL_USER_AGENT = "BoardlyBot/1.0";
+
+/**
+ * Fetch `url` and parse its title/icon, following up to `MAX_REDIRECTS` hops
+ * and re-running the SSRF guard on every one. `null` for a non-2xx answer or
+ * too many redirects; throws `UnfurlBlockedError` for a blocked target.
+ * Exported for the title backfill (`src/scripts/backfill-link-titles.ts`).
+ */
+export async function fetchHtml(
   url: URL,
-  deps: { fetchImpl: FetchImpl; lookup: DnsLookup },
+  deps: { fetchImpl: FetchImpl; lookup: DnsLookup; userAgent?: string },
 ): Promise<Unfurled | null> {
   let current = url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -224,7 +233,10 @@ async function fetchHtml(
       res = await deps.fetchImpl(current.href, {
         redirect: "manual",
         signal: controller.signal,
-        headers: { accept: "text/html,application/xhtml+xml", "user-agent": "BoardlyBot/1.0" },
+        headers: {
+          accept: "text/html,application/xhtml+xml",
+          "user-agent": deps.userAgent ?? UNFURL_USER_AGENT,
+        },
       });
     } finally {
       clearTimeout(timer);

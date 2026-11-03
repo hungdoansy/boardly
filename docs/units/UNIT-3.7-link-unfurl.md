@@ -131,13 +131,52 @@ now answers `200 {}`; `unfurlViaServer` passes that through with no `title`, `up
 skipped, and the chip keeps its label. Tests: `unfurl.test.ts` "returns no title when the fetch
 fails" (was "falls back to the hostname") and "returns no title for a non-2xx answer".
 
+**Backfill script for links stored before the fix (`apps/server/src/scripts/backfill-link-titles.ts`).**
+Fixing the gate only helps links pasted afterwards. The script re-unfurls the ones already on a
+board:
+
+```bash
+BOARDLY_API_URL=http://localhost:8788 BOARDLY_TOKEN=<access token> \
+  pnpm --filter @boardly/server backfill:link-titles            # dry run: prints the plan
+# ...then the same command with `-- --apply` to write
+```
+
+- **Reads and writes through the command API**, the same path as the MCP server (`BOARDLY_API_URL` /
+  `BOARDLY_TOKEN`, a 15-minute access token from `POST /auth/login`): `exportBoard` to read,
+  `updateLinkTitle` per link to write. The write goes through the command layer against the live
+  Hocuspocus doc, so it persists and broadcasts to open clients like a UI edit. Writing the Yjs
+  `bytea` directly was rejected: a doc the server holds in memory would overwrite it on its next
+  store.
+- **Targets:** links where `wantsUnfurl(url)` is true and the stored title is missing, rejected or
+  rewritten by `usableTitle` (raw entities, interstitials, the bare brand word), or equal to the
+  hostname the route used to return on failure. `--all` re-checks every unfurlable link instead.
+- **Fetch:** the route's own `fetchHtml` (now exported, with an optional `userAgent`), so SSRF
+  re-validation per hop, the `</head>` stop and `usableTitle` all apply. It tries `BoardlyBot/1.0`
+  first and retries with a browser user agent only when that yields nothing usable (the audit found
+  LinkedIn answering the bot with the bare word "LinkedIn"). Each attempt is capped at 20 s, since
+  `fetchHtml`'s 5 s abort covers only the headers.
+- **Unreachable keeps what it has.** Non-2xx, dead host, or no usable title: the link is left as it
+  is. The one exception is a stored title that only needed entity decoding
+  (`CH&#x1ee2;` → `CHỢ`), which is repaired locally.
+- **Verified:** 9 unit tests (`backfill-link-titles.test.ts`: target selection, the outcome rules,
+  the local entity repair). End-to-end against the dev server on a seeded 7-link card: the YouTube
+  link fetched its real title, the entity title was repaired, the LinkedIn/Behance/dead-host links
+  were kept, the GitHub and already-titled links were not touched, and a second run found nothing to
+  do. A read-only preview over the production link dump targets 44 links: 29 get a title (YouTube,
+  LinkedIn posts and jobs, Facebook, Wellfound) and 15 are kept (8 LinkedIn job pages and 3
+  Wellfound pages refuse both user agents, plus Binance, micro1 and dittowords pages with no usable
+  title).
+- **Known gaps:** a stored title that is junk _and_ unreachable (an old hostname fallback, a bare
+  "LinkedIn") can't be cleared, since no command removes a title. Every write bumps the card's
+  `updatedAt`, as a paste-time unfurl does, so an "updated" sort moves those cards up. LinkedIn
+  rate-limits unpredictably, so a later rerun may resolve some of the kept job pages.
+
 **Still open after this change:**
 
-- **No re-unfurl, ever.** `updateLinkTitle` has one call site, inside `add`, so the title is fetched
-  exactly once at paste time. A transient failure is permanent, and the 45 links already stored
-  without a title stay that way — this fix only affects newly added links. A backfill command or a
-  "refetch title" affordance is the natural follow-up, and is what the 10 bare-host links in the
-  audit actually need.
+- **No re-unfurl in the app.** `updateLinkTitle` has one in-app call site, inside `add`, so the title
+  is fetched exactly once at paste time and a transient failure is permanent. Already-stored links
+  are covered by the one-shot backfill script below; an in-app "refetch title" affordance is still
+  open.
 - **Providers with a _derived_ label that sometimes collapses** still skip the round-trip: an
   id-only Notion page renders its 32-hex id, `figma.com/file/<id>` with no slug renders the id,
   `stackoverflow.com/q/<n>` renders `"Stack Overflow"`, and a Linear _project_ URL renders
