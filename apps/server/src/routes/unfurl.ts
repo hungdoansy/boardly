@@ -301,8 +301,11 @@ export async function unfurlRoutes(app: FastifyInstance, opts: UnfurlRoutesOptio
     }
 
     if (!result) {
-      // Graceful fallback: the hostname, never a 500 (keeps the card usable).
-      return reply.send({ title: url.hostname });
+      // Graceful fallback: no title, never a 500 — the chip keeps its own short
+      // label. Not the hostname: for a brand-only provider that would replace
+      // "LinkedIn" with "www.linkedin.com", and for a generic link the short
+      // label already is the hostname.
+      return reply.send({});
     }
 
     const fetchedAt = new Date(now());

@@ -43,8 +43,7 @@ this worth writing down.
 2. **The server's 512 KB read cap lands before YouTube's `<head>`.** `MAX_BYTES = 512 * 1024` in
    `apps/server/src/routes/unfurl.ts`. YouTube's watch page is ~1.39 MB and its metadata sits at
    **760–770 KB** (`<title>` at 778,351; `og:title` at 780,228; `</head>` at 788,389) — the entire
-   head is past the cap, so `parseMetadata` sees nothing and the route falls through to its graceful
-   `reply.send({ title: url.hostname })`. The surprise is that `<head>` is not near the top of a
+   head is past the cap, so `parseMetadata` sees nothing and the route answers with no title. The surprise is that `<head>` is not near the top of a
    modern SPA document; do not assume a byte cap that "obviously covers the head" does.
 
    This one is **web-only**. `unfurlViaTauri` in `apps/web/lib/unfurl-client.ts` reads the whole

@@ -199,7 +199,7 @@ describe.skipIf(!DATABASE_URL)("GET /api/unfurl (integration, real db)", () => {
     }
   });
 
-  it("falls back to the hostname when the fetch fails (no 500)", async () => {
+  it("returns no title when the fetch fails (no 500, no hostname)", async () => {
     const url = `https://down.example.com/${randomUUID()}`;
     const fetchImpl = vi.fn(async () => {
       throw new Error("ECONNREFUSED");
@@ -211,7 +211,25 @@ describe.skipIf(!DATABASE_URL)("GET /api/unfurl (integration, real db)", () => {
         url: `/api/unfurl?url=${encodeURIComponent(url)}`,
       });
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ title: "down.example.com" });
+      // Not the hostname: a brand-only chip would read "www.linkedin.com"
+      // instead of "LinkedIn". The client keeps the short label instead.
+      expect(res.json()).toEqual({});
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("returns no title for a non-2xx answer (a bot-blocked brand-only page)", async () => {
+    const url = `https://www.behance.net/gallery/${randomUUID()}`;
+    const fetchImpl = vi.fn(async () => new Response("", { status: 403 }));
+    const app = await appWith(fetchImpl as unknown as typeof fetch);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/unfurl?url=${encodeURIComponent(url)}`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({});
     } finally {
       await app.close();
     }

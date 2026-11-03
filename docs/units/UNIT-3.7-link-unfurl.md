@@ -21,7 +21,8 @@ against SSRF, and caches by URL — plus wiring so generic link chips populate t
   - `parseMetadata`: OpenGraph `og:title` → `<title>`; `og:image` → `<link rel=icon>` →
     `/favicon.ico`, ignoring `data:`/non-http icon hrefs.
   - Caches in `link_metadata_cache` (upsert, 7-day freshness); a cache hit skips the network.
-  - Graceful fallback: on fetch failure/timeout returns `200 {title: hostname}` (never a 500);
+  - Graceful fallback: on fetch failure/timeout/non-2xx returns `200 {}` — no title, never a 500 —
+    so the chip keeps its short label (originally `{title: hostname}`; see the 2026-11-03 follow-up).
     SSRF/invalid → `400`.
 - `apps/server/src/app.ts` — mounts `/api/unfurl` when `database` is present.
 - `apps/web/lib/unfurl-client.ts` — points at `${API_BASE_URL}/api/unfurl` (split-origin dev).
@@ -38,7 +39,7 @@ against SSRF, and caches by URL — plus wiring so generic link chips populate t
 - **Timeout + size cap + html-only.** Bounds the work an attacker/large page can cause; the body is
   read through a capped reader (never buffering an unbounded response).
 - **Graceful fallback, never 500.** An unreachable link must not break the card — the endpoint
-  returns the hostname as a title, and the client falls back to the short label on any error.
+  returns no title, and the chip renders its short label (for a generic link, that is the hostname).
 - **Cache by normalized URL.** Cheap repeat loads and fewer outbound fetches; 7-day freshness so
   titles aren't frozen forever. Failures are not cached.
 - **Regex parsing, no cheerio.** Title/favicon extraction is small and well-scoped; a full HTML
@@ -118,6 +119,17 @@ three URLs into a card's Links gives:
 
 The provider icon still renders beside each label, so replacing the brand word costs no brand
 signal.
+
+**Follow-up fix (same day): the failure fallback no longer stores the hostname.** Reviewing the
+change above found a web-only regression. On a failed fetch or non-2xx answer the route sent
+`{title: url.hostname}`. That was harmless while only generic links were unfurled (their short
+label is the hostname anyway), but once brand-only providers were routed through it, a bot-blocked
+page — LinkedIn's 999, Behance's 403, a timeout — stored `"www.linkedin.com"` as the title, and
+`linkLabel` prefers a title, so the chip went from `LinkedIn` to `www.linkedin.com`. Desktop never
+had this (`unfurlViaTauri` returns `null` on `!res.ok`), so the platforms also disagreed. The route
+now answers `200 {}`; `unfurlViaServer` passes that through with no `title`, `updateLinkTitle` is
+skipped, and the chip keeps its label. Tests: `unfurl.test.ts` "returns no title when the fetch
+fails" (was "falls back to the hostname") and "returns no title for a non-2xx answer".
 
 **Still open after this change:**
 

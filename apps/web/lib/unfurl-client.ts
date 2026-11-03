@@ -2,7 +2,7 @@
 // server's `/api/unfurl` (Unit 3.7, which owns the SSRF defenses). On desktop
 // (Unit 5.2) it fetches the page directly with Tauri's native HTTP plugin —
 // CORS-free, no server round-trip — and parses the title/icon locally. Any
-// failure returns null so the card falls back to the hostname; never breaks.
+// failure yields no title, so the chip keeps its short label; never breaks.
 import { decodeHtmlEntities, isPublicHttpUrl, shortLabelFor, usableTitle } from "@boardly/domain";
 
 import { API_BASE_URL } from "./api-client";
