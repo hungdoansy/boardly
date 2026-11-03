@@ -37,6 +37,19 @@ export interface LinkProviderDef {
   match(url: URL): boolean;
   /** Compact, scannable chip label. */
   shortLabel(url: URL): string;
+  /**
+   * Set when `shortLabel` names only the brand, never the linked resource —
+   * every `staticProvider(...)` below, plus Confluence. Such a chip reads
+   * `YouTube` for every YouTube link in existence, so these providers need a
+   * fetched page title to say anything at all: {@link wantsUnfurl} returns true
+   * for them. Providers whose label is derived from the URL (`ABC-123`,
+   * `owner/repo#12`) leave it unset and skip the round-trip.
+   *
+   * Deliberately NOT set on `claude`: `claude.ai` is behind a Cloudflare
+   * interstitial, so unfurling it can only ever return "Just a moment..." —
+   * its hand-written `session →` label is the better answer.
+   */
+  labelIsBrandOnly?: true;
 }
 
 /** Ordered; `generic` is last so it never shadows a specific provider. */
@@ -111,6 +124,24 @@ function providerFor(parsed: URL): LinkProviderDef {
 export function detectProvider(url: string): LinkProvider {
   const parsed = safeUrl(url);
   return parsed ? providerFor(parsed).id : LP.Generic;
+}
+
+/**
+ * True when a link needs a fetched page title to be identifiable: either it has
+ * no specific provider (generic — the chip would be a bare hostname) or its
+ * provider's label is brand-only (see {@link LinkProviderDef.labelIsBrandOnly}).
+ *
+ * This is the gate for the unfurl round-trip. It used to be `provider ===
+ * Generic`, which silently excluded the 30-odd brand-only providers and left a
+ * pasted YouTube link rendering the single word "YouTube".
+ */
+export function wantsUnfurl(url: string): boolean {
+  const parsed = safeUrl(url);
+  // Only http(s) is fetchable. `javascript:`/`data:` parse fine and would
+  // otherwise fall through to `generic` and report true.
+  if (!parsed || (parsed.protocol !== "http:" && parsed.protocol !== "https:")) return false;
+  const provider = providerFor(parsed);
+  return provider.id === LP.Generic || provider.labelIsBrandOnly === true;
 }
 
 /** Compact label for a URL (Linear `ABC-123`, GitHub `o/r#123`, generic hostname, …). */

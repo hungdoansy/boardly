@@ -1,4 +1,5 @@
 export * from "./registry";
+export * from "./title";
 export {
   parseClaudeResume,
   formatClaudeResumeUrl,

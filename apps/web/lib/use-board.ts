@@ -15,6 +15,7 @@ import {
   isStorableLinkUrl,
   LinkProvider,
   STATUS_ORDER,
+  wantsUnfurl,
 } from "@boardly/domain";
 
 import { fetchGithubRepoDescription, unfurl } from "./unfurl-client";
@@ -479,14 +480,17 @@ export function useLinkActions(): LinkActions {
         // silently drop it. `execute(addLink)` runs synchronously here, before the
         // first `await` below (the add previously ran only *after* the unfurl).
         const { linkId } = execute(addLink, ctx, { cardId, url });
-        // Then enrich the title in the background: generic links get a page-title
-        // unfurl; a bare GitHub repo link gets its description (stored in the same
+        // Then enrich the title in the background: anything whose chip label
+        // can't identify the resource on its own gets a page-title unfurl —
+        // generic links (bare hostname) and the brand-only providers, whose
+        // label is a fixed word like "YouTube" (see `wantsUnfurl`). A bare
+        // GitHub repo link instead gets its description (stored in the same
         // `title` field — rendered as a secondary line, see `linkLabel`/
-        // `linkSubtitle`). Known providers already render a good short label, so
-        // they skip the round-trip. `updateLinkTitle` no-ops if the link was
-        // removed meanwhile.
+        // `linkSubtitle`). Providers with a URL-derived label (`ABC-123`,
+        // `owner/repo#12`) skip the round-trip. `updateLinkTitle` no-ops if the
+        // link was removed meanwhile.
         let title: string | undefined;
-        if (provider === LinkProvider.Generic) {
+        if (wantsUnfurl(url)) {
           title = (await unfurl(url))?.title;
         } else if (provider === LinkProvider.GitHub && isGithubRepoUrl(url)) {
           title = await fetchGithubRepoDescription(url);

@@ -30,6 +30,33 @@ describe("parseUnfurl", () => {
     expect(u.title).toBe("OG Title");
     expect(u.iconUrl).toBe("https://x.io/favicon.ico");
   });
+
+  it("decodes numeric entities, which the old local table passed through raw", () => {
+    const u = parseUnfurl("<title>CH&#x1ee2; GAMING GEAR</title>", "https://example.com/");
+    expect(u.title).toBe("CHỢ GAMING GEAR");
+  });
+
+  it("drops an interstitial title so the chip keeps its short label", () => {
+    expect(
+      parseUnfurl("<title>Just a moment...</title>", "https://claude.ai/chat/x").title,
+    ).toBeUndefined();
+    expect(
+      parseUnfurl("<title>Not Found</title>", "https://example.com/gone").title,
+    ).toBeUndefined();
+  });
+
+  it("entity-decodes the favicon href", () => {
+    const u = parseUnfurl(
+      '<link rel="icon" href="/i.png?a=1&amp;b=2"><title>T</title>',
+      "https://example.com/",
+    );
+    expect(u.iconUrl).toBe("https://example.com/i.png?a=1&b=2");
+  });
+
+  it("drops a title that only repeats the provider's short label", () => {
+    const u = parseUnfurl("<title>YouTube</title>", "https://www.youtube.com/watch?v=abc");
+    expect(u.title).toBeUndefined();
+  });
 });
 
 describe("unfurl platform switch", () => {

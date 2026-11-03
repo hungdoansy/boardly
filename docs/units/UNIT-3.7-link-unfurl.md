@@ -71,6 +71,74 @@ against SSRF, and caches by URL — plus wiring so generic link chips populate t
 
 ## Follow-ups / known gaps
 
+### 2026-11-03 — unfurl no longer skips the brand-only providers (four fixes)
+
+Found by auditing a real board: of 116 stored links, **45 showed no page title**. Four separate
+defects, fixed together; `docs/solutions/ui-bugs/link-chips-show-a-brand-word-instead-of-a-page-title.md`
+has the investigation.
+
+1. **The round-trip was gated on `provider === Generic`.** Every recognised provider skipped the
+   unfurl, including the ~33 whose `shortLabel` is a constant that ignores the URL — so a pasted
+   YouTube link could only ever render the word `YouTube`. The registry now carries an explicit
+   `labelIsBrandOnly` flag (set by `staticProvider(...)` and by `confluence`), and
+   `wantsUnfurl(url)` is the single gate the call site in `apps/web/lib/use-board.ts` consults.
+   A `registry.test.ts` case asserts the flag matches `shortLabel.length === 0` for every provider,
+   so a new `staticProvider` entry cannot silently miss it.
+   `claude` is a deliberate opt-out: `claude.ai` is behind a Cloudflare interstitial, so its
+   hand-written `session →` is strictly better than anything a fetch returns.
+2. **The 512 KB read cap truncated large SPA shells.** YouTube's watch page is ~1.39 MB with its
+   `<head>` starting around byte 760,000, so the body was cut before any `og:title`. `readCapped`
+   now stops at `</head>` (decoding incrementally, advancing the search offset so the scan stays
+   linear) with a 2 MB backstop. Verified live through the route: the YouTube URL now returns
+   `"Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)"`.
+3. **Numeric HTML entities were never decoded.** Both unfurl paths kept their own six-entry entity
+   table, so any non-ASCII title rendered as raw markup (`CH&#x1ee2; GAMING GEAR`). Decoding and the
+   title guard now live once in `packages/domain/src/links/title.ts`
+   (`decodeHtmlEntities`, `usableTitle`), used by the server route and the desktop-native parse —
+   `apps/server` gained a `@boardly/domain` dependency for this. The same decode applies to icon
+   hrefs, which were storing a literal `&amp;` for any `og:image` with query parameters.
+4. **A fetched title is not automatically better than the short label.** Real responses include
+   Cloudflare's `"Just a moment..."`, `"Security Check | Wellfound"`, `"Not Found"`,
+   `"404: Page not found"`, and LinkedIn job pages answering with the bare string `"LinkedIn"`.
+   `usableTitle` drops those — matching the whole title and its first `|`-delimited segment against
+   a table of interstitials, an anchored status-code/reason pattern, and the provider's own short
+   label — and falls back to `shortLabel`. It also strips separator debris from half-empty title
+   templates (`"| Vishwas Gopinath"` → `"Vishwas Gopinath"`).
+
+**Verified** with `pnpm -r test` (905 passing: domain 215, server 75, web 421, sync 107, commands
+61, ui 14, mcp 7, logo 5), `pnpm -r typecheck`, `pnpm -r lint`, `pnpm -r build` — all green — and in
+the running app (dev server on 8787 against `boardly-dev-db`, web on 3000, dark mode). Pasting the
+three URLs into a card's Links gives:
+
+![brand-only providers now unfurl](screenshots/UNIT-3.7-brand-only-unfurl-dark.png)
+
+- `youtube.com/watch?v=dQw4w9WgXcQ` → _Rick Astley - Never Gonna Give You Up (Official Video) (4…_
+- `open.spotify.com/track/…` → _Never Gonna Give You Up_
+- `claude.ai/chat/…` → _session_ — the opt-out holding; the Cloudflare interstitial never lands.
+
+The provider icon still renders beside each label, so replacing the brand word costs no brand
+signal.
+
+**Still open after this change:**
+
+- **No re-unfurl, ever.** `updateLinkTitle` has one call site, inside `add`, so the title is fetched
+  exactly once at paste time. A transient failure is permanent, and the 45 links already stored
+  without a title stay that way — this fix only affects newly added links. A backfill command or a
+  "refetch title" affordance is the natural follow-up, and is what the 10 bare-host links in the
+  audit actually need.
+- **Providers with a _derived_ label that sometimes collapses** still skip the round-trip: an
+  id-only Notion page renders its 32-hex id, `figma.com/file/<id>` with no slug renders the id,
+  `stackoverflow.com/q/<n>` renders `"Stack Overflow"`, and a Linear _project_ URL renders
+  `"Linear"`. The per-provider fix is to let those opt into `labelIsBrandOnly` per URL rather than
+  per provider.
+- **Hosts that block the bot UA.** `tiktok.com` returns a 1.4 KB stub and `behance.net` a 403 to
+  `BoardlyBot/1.0`; 7 LinkedIn job pages answer only a browser-like UA. These need oEmbed or a UA
+  change, not a bigger buffer.
+- **The desktop path still never populates `link_metadata_cache`** (the production cache table is
+  empty despite dozens of fetched titles), so desktop re-fetches on every add.
+- **Multiple URLs pasted as one string** are stored verbatim; `new URL()` accepts the
+  space-separated run, percent-encodes the spaces, and the fetch 404s.
+
 - **DNS-rebinding TOCTOU:** the host is validated then fetched (a name could re-resolve between the
   check and connect). Full mitigation needs an agent that pins the validated IP on connect; deferred
   and noted. Redirect hops are re-validated, which covers the common vector.

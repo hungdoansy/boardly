@@ -1,6 +1,7 @@
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
+import { decodeHtmlEntities, shortLabelFor, usableTitle } from "@boardly/domain";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -98,19 +99,6 @@ export async function assertFetchableUrl(url: URL, lookup: DnsLookup): Promise<v
 // HTML metadata parsing
 // ---------------------------------------------------------------------------
 
-const ENTITIES: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&#x27;": "'",
-};
-
-function decodeEntities(s: string): string {
-  return s.replace(/&(amp|lt|gt|quot|#39|#x27);/g, (m) => ENTITIES[m] ?? m);
-}
-
 function metaContent(html: string, property: string): string | undefined {
   const attr = `(?:property|name)=["']${property}["']`;
   const a = new RegExp(`<meta[^>]+${attr}[^>]+content=["']([^"']*)["']`, "i").exec(html);
@@ -124,10 +112,15 @@ export interface Unfurled {
   iconUrl?: string;
 }
 
-/** Extract a display title + icon URL from HTML (OpenGraph first, then title/favicon). */
+/**
+ * Extract a display title + icon URL from HTML (OpenGraph first, then
+ * title/favicon). Entity decoding and the interstitial/error-page guard live in
+ * `@boardly/domain` (`usableTitle`) so this route and the desktop-native parse
+ * in `apps/web/lib/unfurl-client.ts` agree on what counts as a title.
+ */
 export function parseMetadata(html: string, baseUrl: string): Unfurled {
   const rawTitle = metaContent(html, "og:title") ?? /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1];
-  const title = rawTitle ? decodeEntities(rawTitle).trim() || undefined : undefined;
+  const title = usableTitle(rawTitle, shortLabelFor(baseUrl));
 
   const iconHref =
     metaContent(html, "og:image") ??
@@ -138,9 +131,17 @@ export function parseMetadata(html: string, baseUrl: string): Unfurled {
   return { title, iconUrl };
 }
 
-/** Resolve an icon href to an http(s) URL, ignoring `data:`/invalid ones. */
+/**
+ * Resolve an icon href to an http(s) URL, ignoring `data:`/invalid ones. The
+ * href is entity-decoded first: an `og:image` with query parameters arrives as
+ * `...?f=webp&amp;region=us`, and passing that through left a literal `&amp;`
+ * in the stored URL.
+ */
 function resolveIcon(href: string | undefined, baseUrl: string): string | undefined {
-  for (const candidate of [href, "/favicon.ico"]) {
+  for (const candidate of [
+    href === undefined ? undefined : decodeHtmlEntities(href),
+    "/favicon.ico",
+  ]) {
     if (!candidate) continue;
     try {
       const resolved = new URL(candidate, baseUrl);
@@ -157,30 +158,56 @@ function resolveIcon(href: string | undefined, baseUrl: string): string | undefi
 // ---------------------------------------------------------------------------
 
 const TIMEOUT_MS = 5_000;
-const MAX_BYTES = 512 * 1024;
+/**
+ * Hard ceiling on how much of a response body we buffer. `readCapped` normally
+ * stops at `</head>` long before this, so the cap only bites on a page with no
+ * closing head tag in the first 2 MB.
+ *
+ * It was 512 KB, which silently broke large single-page apps: YouTube's watch
+ * page is ~1.39 MB and its `<head>` does not start until byte ~760,000, so the
+ * cap truncated the body before any `og:title`/`<title>` and every YouTube link
+ * fell through to the hostname fallback.
+ */
+const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
 const CACHE_TTL_MS = 7 * 86_400_000;
 
 type FetchImpl = typeof fetch;
 
+/** Everything `parseMetadata` reads lives above this, so it ends the read. */
+const HEAD_END = "</head>";
+
+/**
+ * Buffer the response body until `</head>` (everything we parse lives there),
+ * `maxBytes`, or EOF — whichever comes first. Decodes incrementally so a
+ * multi-byte character straddling a chunk boundary survives, and advances the
+ * search offset so the scan stays linear over a multi-megabyte page.
+ */
 async function readCapped(res: Response, maxBytes: number): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return "";
-  const chunks: Uint8Array[] = [];
+  const decoder = new TextDecoder("utf-8");
+  let text = "";
   let total = 0;
+  let searchFrom = 0;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    if (value) {
-      chunks.push(value);
-      total += value.byteLength;
-      if (total >= maxBytes) {
-        await reader.cancel();
-        break;
-      }
+    if (!value) continue;
+    total += value.byteLength;
+    text += decoder.decode(value, { stream: true });
+    if (text.indexOf(HEAD_END, searchFrom) !== -1) {
+      await reader.cancel();
+      break;
+    }
+    // Rewind by needle-length-1 so a tag split across two chunks is still seen.
+    searchFrom = Math.max(0, text.length - (HEAD_END.length - 1));
+    if (total >= maxBytes) {
+      await reader.cancel();
+      break;
     }
   }
-  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
+  return text + decoder.decode();
 }
 
 async function fetchHtml(

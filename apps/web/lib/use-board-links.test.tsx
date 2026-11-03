@@ -81,7 +81,7 @@ describe("useLinkActions.add (optimistic)", () => {
     expect(links()[0]!.title).toBeUndefined();
   });
 
-  it("does not unfurl a known provider (adds immediately with its short label)", async () => {
+  it("does not unfurl a provider whose label is derived from the URL", async () => {
     const { result } = setup();
 
     await act(async () => {
@@ -90,5 +90,32 @@ describe("useLinkActions.add (optimistic)", () => {
 
     expect(links()).toHaveLength(1);
     expect(mockUnfurl).not.toHaveBeenCalled();
+  });
+
+  it("DOES unfurl a brand-only provider — its label is a fixed word", async () => {
+    // Regression: gated on `provider === Generic`, so a YouTube link never got
+    // a title and the chip read the single word "YouTube".
+    mockUnfurl.mockResolvedValue({ title: "Never Gonna Give You Up" });
+    const { result } = setup();
+
+    await act(async () => {
+      await result.current.add(cardId, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    });
+
+    expect(mockUnfurl).toHaveBeenCalledWith("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    expect(links()[0]?.title).toBe("Never Gonna Give You Up");
+  });
+
+  it("keeps the brand label when the brand-only unfurl yields nothing", async () => {
+    mockUnfurl.mockResolvedValue({ title: undefined });
+    const { result } = setup();
+
+    await act(async () => {
+      await result.current.add(cardId, "https://www.linkedin.com/jobs/view/1/");
+    });
+
+    expect(mockUnfurl).toHaveBeenCalled();
+    expect(links()).toHaveLength(1);
+    expect(links()[0]?.title).toBeUndefined();
   });
 });

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LinkProvider } from "../enums";
 import {
   detectProvider,
+  PROVIDERS,
   isPublicHttpUrl,
   isSafeHttpUrl,
   linkLabel,
@@ -10,6 +11,7 @@ import {
   normalizeUrl,
   shortLabelFor,
   stripDeepLinkMarker,
+  wantsUnfurl,
 } from "./registry";
 
 describe("detectProvider", () => {
@@ -49,9 +51,9 @@ describe("detectProvider", () => {
     expect(detectProvider("https://twitter.com/acme/status/1")).toBe(LinkProvider.Twitter);
     expect(detectProvider("https://www.instagram.com/p/abc")).toBe(LinkProvider.Instagram);
     expect(detectProvider("https://www.linkedin.com/in/acme")).toBe(LinkProvider.LinkedIn);
-    expect(
-      detectProvider("https://www.reddit.com/r/programming/comments/1/title"),
-    ).toBe(LinkProvider.Reddit);
+    expect(detectProvider("https://www.reddit.com/r/programming/comments/1/title")).toBe(
+      LinkProvider.Reddit,
+    );
     expect(detectProvider("https://discord.com/channels/1/2")).toBe(LinkProvider.Discord);
     expect(detectProvider("https://www.tiktok.com/@acme/video/1")).toBe(LinkProvider.TikTok);
     expect(detectProvider("https://www.pinterest.com/pin/1")).toBe(LinkProvider.Pinterest);
@@ -60,15 +62,15 @@ describe("detectProvider", () => {
     expect(detectProvider("https://medium.com/@acme/my-post-title-abc123def456")).toBe(
       LinkProvider.Medium,
     );
-    expect(
-      detectProvider("https://stackoverflow.com/questions/123/how-do-i-x"),
-    ).toBe(LinkProvider.StackOverflow);
-    expect(
-      detectProvider("https://gitlab.com/group/project/-/merge_requests/45"),
-    ).toBe(LinkProvider.GitLab);
-    expect(
-      detectProvider("https://gitlab.com/group/project/-/issues/123"),
-    ).toBe(LinkProvider.GitLab);
+    expect(detectProvider("https://stackoverflow.com/questions/123/how-do-i-x")).toBe(
+      LinkProvider.StackOverflow,
+    );
+    expect(detectProvider("https://gitlab.com/group/project/-/merge_requests/45")).toBe(
+      LinkProvider.GitLab,
+    );
+    expect(detectProvider("https://gitlab.com/group/project/-/issues/123")).toBe(
+      LinkProvider.GitLab,
+    );
     expect(detectProvider("https://gitlab.com/group/project")).toBe(LinkProvider.GitLab);
     expect(detectProvider("https://bitbucket.org/acme/repo")).toBe(LinkProvider.Bitbucket);
     expect(detectProvider("https://www.npmjs.com/package/react")).toBe(LinkProvider.Npm);
@@ -114,9 +116,7 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://github.com/facebook/react/issues/99")).toBe("facebook/react#99");
     expect(shortLabelFor("https://github.com/facebook/react")).toBe("facebook/react");
     expect(shortLabelFor("https://claude.ai/code/session_x")).toBe("session →");
-    expect(shortLabelFor("https://www.figma.com/file/abc/My-Design-Name")).toBe(
-      "My Design Name",
-    );
+    expect(shortLabelFor("https://www.figma.com/file/abc/My-Design-Name")).toBe("My Design Name");
     expect(
       shortLabelFor("https://www.notion.so/My-Page-Title-abcdef1234567890abcdef1234567890"),
     ).toBe("My Page Title");
@@ -126,17 +126,15 @@ describe("shortLabelFor", () => {
     expect(shortLabelFor("https://docs.google.com/document/d/abc")).toBe("Google Doc");
     expect(shortLabelFor("https://x.com/acme/status/1")).toBe("@acme");
     expect(shortLabelFor("https://x.com/i/lists/1")).toBe("X");
-    expect(
-      shortLabelFor("https://www.reddit.com/r/programming/comments/1/hello-world"),
-    ).toBe("hello world");
+    expect(shortLabelFor("https://www.reddit.com/r/programming/comments/1/hello-world")).toBe(
+      "hello world",
+    );
     expect(shortLabelFor("https://www.reddit.com/r/programming")).toBe("r/programming");
     expect(shortLabelFor("https://medium.com/@acme/my-post-title-abc123def456")).toBe(
       "my post title",
     );
     expect(shortLabelFor("https://medium.com/@acme")).toBe("Medium");
-    expect(shortLabelFor("https://stackoverflow.com/questions/123/how-do-i-x")).toBe(
-      "how do i x",
-    );
+    expect(shortLabelFor("https://stackoverflow.com/questions/123/how-do-i-x")).toBe("how do i x");
     expect(shortLabelFor("https://gitlab.com/group/project/-/merge_requests/45")).toBe(
       "group/project!45",
     );
@@ -145,9 +143,7 @@ describe("shortLabelFor", () => {
     );
     expect(shortLabelFor("https://gitlab.com/group/project")).toBe("GitLab");
     expect(shortLabelFor("https://www.npmjs.com/package/react")).toBe("react");
-    expect(shortLabelFor("https://www.npmjs.com/package/@boardly/domain")).toBe(
-      "@boardly/domain",
-    );
+    expect(shortLabelFor("https://www.npmjs.com/package/@boardly/domain")).toBe("@boardly/domain");
     expect(shortLabelFor("https://en.wikipedia.org/wiki/Kanban_board")).toBe("Kanban board");
     expect(shortLabelFor("https://www.example.com/page")).toBe("example.com");
   });
@@ -244,7 +240,11 @@ describe("isPublicHttpUrl (desktop SSRF pre-filter)", () => {
 
 describe("linkLabel / linkSubtitle", () => {
   it("prefers a fetched title for non-GitHub links", () => {
-    const link = { provider: LinkProvider.Generic, url: "https://example.com/page", title: "Example Page" };
+    const link = {
+      provider: LinkProvider.Generic,
+      url: "https://example.com/page",
+      title: "Example Page",
+    };
     expect(linkLabel(link)).toBe("Example Page");
     expect(linkSubtitle(link)).toBeUndefined();
   });
@@ -263,5 +263,59 @@ describe("linkLabel / linkSubtitle", () => {
     const link = { provider: LinkProvider.GitHub, url: "https://github.com/o/r/pull/1" };
     expect(linkLabel(link)).toBe("o/r#1");
     expect(linkSubtitle(link)).toBeUndefined();
+  });
+});
+
+describe("wantsUnfurl", () => {
+  it("is true for generic links, whose only label is a bare hostname", () => {
+    expect(wantsUnfurl("https://arstechnica.com/some/article/")).toBe(true);
+    expect(wantsUnfurl("https://news.ycombinator.com/item?id=1")).toBe(true);
+  });
+
+  it("is true for every brand-only provider — the chip is otherwise a fixed word", () => {
+    // Regression: these all returned false, so a pasted YouTube link stayed "YouTube".
+    for (const url of [
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "https://youtu.be/dQw4w9WgXcQ",
+      "https://www.linkedin.com/jobs/view/4451594415/",
+      "https://www.facebook.com/groups/x/posts/1/",
+      "https://open.spotify.com/track/abc",
+      "https://vimeo.com/123456",
+      "https://www.loom.com/share/abc",
+      "https://docs.google.com/document/d/abc/edit",
+      "https://acme.atlassian.net/wiki/spaces/ENG/pages/1/Title",
+    ]) {
+      expect(wantsUnfurl(url), url).toBe(true);
+    }
+  });
+
+  it("is false when the provider derives a label from the URL", () => {
+    for (const url of [
+      "https://linear.app/acme/issue/ABC-123/x",
+      "https://github.com/o/r/pull/1",
+      "https://www.npmjs.com/package/react",
+      "https://en.wikipedia.org/wiki/Yjs",
+      "https://acme.slack.com/archives/C0/p1",
+    ]) {
+      expect(wantsUnfurl(url), url).toBe(false);
+    }
+  });
+
+  it("is false for claude.ai, which only ever answers with a Cloudflare interstitial", () => {
+    expect(wantsUnfurl("https://claude.ai/chat/abc-123")).toBe(false);
+  });
+
+  it("is false for a malformed URL", () => {
+    expect(wantsUnfurl("not a url")).toBe(false);
+    expect(wantsUnfurl("javascript:alert(1)")).toBe(false);
+  });
+});
+
+describe("brand-only providers", () => {
+  it("marks exactly the providers whose shortLabel ignores the URL", () => {
+    for (const p of PROVIDERS) {
+      if (p.id === LinkProvider.Claude) continue; // deliberate opt-out, see the registry
+      expect(p.labelIsBrandOnly === true, p.id).toBe(p.shortLabel.length === 0);
+    }
   });
 });

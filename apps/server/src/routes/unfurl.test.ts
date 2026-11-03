@@ -106,6 +106,32 @@ describe("parseMetadata", () => {
       iconUrl: "https://example.com/favicon.ico",
     });
   });
+
+  it("decodes numeric HTML entities in the title", () => {
+    // Regression: the old six-entry entity table left these raw on the card.
+    const html = `<html><head><title>CH&#x1ee2; GAMING GEAR: PH&#xcd;M C&#x1a0;</title></head></html>`;
+    expect(parseMetadata(html, "https://example.com/").title).toBe("CHỢ GAMING GEAR: PHÍM CƠ");
+  });
+
+  it("drops an interstitial or error-page title so the chip keeps its short label", () => {
+    for (const bad of ["Just a moment...", "Security Check | Wellfound", "404: Page not found"]) {
+      const html = `<html><head><title>${bad}</title></head></html>`;
+      expect(parseMetadata(html, "https://example.com/x").title, bad).toBeUndefined();
+    }
+  });
+
+  it("entity-decodes the icon href, so a query-string og:image stays usable", () => {
+    // Regression: Vimeo's og:image came back with a literal `&amp;amp;`.
+    const html = `<meta property="og:image" content="https://cdn.example.com/i.webp?f=webp&amp;region=us">`;
+    expect(parseMetadata(html, "https://example.com/").iconUrl).toBe(
+      "https://cdn.example.com/i.webp?f=webp&region=us",
+    );
+  });
+
+  it("drops a title that only repeats the provider's own short label", () => {
+    const html = `<html><head><title>LinkedIn</title></head></html>`;
+    expect(parseMetadata(html, "https://www.linkedin.com/jobs/view/1/").title).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -220,6 +246,70 @@ describe.skipIf(!DATABASE_URL)("GET /api/unfurl (integration, real db)", () => {
       });
       expect(res.statusCode).toBe(400);
       expect(fetchImpl).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("finds metadata past the old 512 KB read cap (large SPA shells)", async () => {
+    // YouTube's watch page is ~1.39 MB with its <head> at ~760 KB; the previous
+    // 512 KB cap truncated the body first and every such link fell back to the
+    // hostname.
+    const url = `https://big.example.com/${randomUUID()}`;
+    const padding = `<!--${"x".repeat(700 * 1024)}-->`;
+    const fetchImpl = vi.fn(async () =>
+      htmlResponse(`<html>${padding}<head><title>Deep Title</title></head><body></body></html>`),
+    );
+    const app = await appWith(fetchImpl as unknown as typeof fetch);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/unfurl?url=${encodeURIComponent(url)}`,
+      });
+      expect(res.json()).toMatchObject({ title: "Deep Title" });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("stops reading at </head> instead of buffering the whole body", async () => {
+    const url = `https://early.example.com/${randomUUID()}`;
+    let pulls = 0;
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        if (pulls === 1) {
+          controller.enqueue(new TextEncoder().encode("<html><head><title>Early</title></head>"));
+          return;
+        }
+        // Pulled only if the reader kept going past </head>.
+        controller.enqueue(new TextEncoder().encode("<body>never read</body>"));
+        controller.close();
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+    );
+    const app = await appWith(fetchImpl as unknown as typeof fetch);
+    try {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/unfurl?url=${encodeURIComponent(url)}`,
+      });
+      expect(res.json()).toMatchObject({ title: "Early" });
+      // Cancellation is the proof: a read that ran to EOF would never cancel.
+      // (`pulls` is 2, not 1 — a ReadableStream pre-pulls one chunk ahead of
+      // the reader, so it is not a usable signal here.)
+      expect(cancelled).toBe(true);
+      expect(pulls).toBeLessThanOrEqual(2);
     } finally {
       await app.close();
     }

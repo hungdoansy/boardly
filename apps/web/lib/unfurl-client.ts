@@ -3,7 +3,7 @@
 // (Unit 5.2) it fetches the page directly with Tauri's native HTTP plugin —
 // CORS-free, no server round-trip — and parses the title/icon locally. Any
 // failure returns null so the card falls back to the hostname; never breaks.
-import { isPublicHttpUrl } from "@boardly/domain";
+import { decodeHtmlEntities, isPublicHttpUrl, shortLabelFor, usableTitle } from "@boardly/domain";
 
 import { API_BASE_URL } from "./api-client";
 import { isTauri } from "./platform";
@@ -67,30 +67,23 @@ export async function fetchGithubRepoDescription(url: string): Promise<string | 
   }
 }
 
-const decodeEntities = (s: string): string =>
-  s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0*39;|&apos;/g, "'")
-    .trim();
-
 /**
  * Extract a page title and favicon from raw HTML (pure, testable). Prefers
  * `og:title` then `<title>`; resolves the first `<link rel~="icon">` (or the
  * default `/favicon.ico`) against the page URL.
+ *
+ * Entity decoding and the interstitial/error-page guard come from
+ * `@boardly/domain` (`usableTitle`), shared with the server route so the web
+ * and desktop paths cannot drift apart — they previously carried two separate
+ * entity tables that both mishandled numeric references.
  */
 export function parseUnfurl(html: string, pageUrl: string): Unfurled {
   const result: Unfurled = {};
 
   const og = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html);
   const titleTag = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
-  const title = og?.[1] ?? titleTag?.[1];
-  if (title) {
-    const clean = decodeEntities(title.replace(/\s+/g, " "));
-    if (clean) result.title = clean;
-  }
+  const title = usableTitle(og?.[1] ?? titleTag?.[1], shortLabelFor(pageUrl));
+  if (title) result.title = title;
 
   let iconHref: string | undefined;
   for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
@@ -101,7 +94,10 @@ export function parseUnfurl(html: string, pageUrl: string): Unfurled {
     }
   }
   try {
-    result.iconUrl = new URL(iconHref ?? "/favicon.ico", pageUrl).href;
+    // Entity-decoded: an og:image/favicon href with query parameters arrives as
+    // `...?f=webp&amp;region=us` and would otherwise keep the literal `&amp;`.
+    const href = iconHref === undefined ? "/favicon.ico" : decodeHtmlEntities(iconHref);
+    result.iconUrl = new URL(href, pageUrl).href;
   } catch {
     // leave iconUrl unset on a malformed URL
   }
