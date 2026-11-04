@@ -6,7 +6,7 @@
 // Env:
 //   TAG                  e.g. v2.3.0 (required for summary header)
 //   GEMINI_API_KEY       optional; falls back to the raw git log when missing
-//   GEMINI_MODEL         optional; defaults to gemini-3.8-flash
+//   GEMINI_MODEL         optional; defaults to gemini-3.5-flash
 //   GITHUB_OUTPUT        provided by the runner
 //   GITHUB_STEP_SUMMARY  provided by the runner
 import { execSync } from "node:child_process";
@@ -15,7 +15,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 const TAG = process.env.TAG || "";
 const GITHUB_OUTPUT = process.env.GITHUB_OUTPUT || "";
 const GITHUB_STEP_SUMMARY = process.env.GITHUB_STEP_SUMMARY || "";
@@ -61,7 +61,7 @@ async function polishWithGemini(raw) {
     raw,
   ].join("\n");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
