@@ -71,6 +71,13 @@ throws if a pattern stops matching, so a build can never ship with a stale versi
 - Changelog also filters `test`, `chore`, `ci`, `build`, `style` and `refactor`, scoped or not, and
   strips `(UNIT-x)` and `(#n)` suffixes.
 - The version input reaches the shell through `env`, not by direct interpolation.
+- Default Gemini model is `gemini-3.8-flash`: the first run got a 404 from `gemini-2.5-flash`, which
+  Google has closed to new users. Override it with `GEMINI_MODEL`.
+- A Gemini failure shows a one-line warning. The API response body goes to the step log only.
+- `Test` passes `--reporter=default`. In GitHub Actions, Vitest otherwise adds its `github-actions`
+  reporter, which appends a "Vitest Test Report" to the run summary once per package (8 here). The
+  cost: a failing test is no longer annotated inline, though it still fails the step and shows in
+  the log.
 
 ## How to test
 

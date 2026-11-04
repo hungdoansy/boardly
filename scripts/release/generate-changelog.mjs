@@ -6,7 +6,7 @@
 // Env:
 //   TAG                  e.g. v2.3.0 (required for summary header)
 //   GEMINI_API_KEY       optional; falls back to the raw git log when missing
-//   GEMINI_MODEL         optional; defaults to gemini-2.5-flash
+//   GEMINI_MODEL         optional; defaults to gemini-3.8-flash
 //   GITHUB_OUTPUT        provided by the runner
 //   GITHUB_STEP_SUMMARY  provided by the runner
 import { execSync } from "node:child_process";
@@ -15,7 +15,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const TAG = process.env.TAG || "";
 const GITHUB_OUTPUT = process.env.GITHUB_OUTPUT || "";
 const GITHUB_STEP_SUMMARY = process.env.GITHUB_STEP_SUMMARY || "";
@@ -123,7 +123,10 @@ async function main() {
       geminiStatus = `Successfully fetched changelog from Gemini (model: ${GEMINI_MODEL})`;
       console.log(geminiStatus);
     } catch (err) {
-      geminiStatus = `Gemini request failed, using raw git log. Reason: ${err.message}`;
+      // The response body stays in the step log: annotations and the run summary
+      // show on the run page, where a raw API error reads like a failed release.
+      console.log(`Gemini request failed: ${err.message}`);
+      geminiStatus = `Gemini unavailable (model: ${GEMINI_MODEL}), using raw git log`;
       console.warn(`::warning::${geminiStatus}`);
     }
   }
