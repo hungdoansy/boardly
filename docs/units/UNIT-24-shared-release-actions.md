@@ -15,6 +15,8 @@ actions. Plan: `docs/plans/2026-11-04-1205-refactor-shared-release-actions-plan.
 - Deleted `scripts/release/generate-changelog.mjs`, `prepend-changelog.mjs` and
   `resolve-targets.mjs`, and their tests. The tests now live in the shared repo.
 - `scripts/release/set-version.mjs` stays, because it knows this repo's Tauri files.
+- Every app calls one Gemini URL, `/v1/models/gemini-3.6-flash:generateContent`, set in the shared
+  action. The workflow passes only the secret, and there is no model or API version input.
 
 No product source changed, and no dependency was added.
 
@@ -77,7 +79,7 @@ last tag, the expected notes are `- No notable changes`.
 - **The GitHub Release step only runs in a real release,** so the first real release is its final
   proof. If it fails after the push, create the release by hand from the tag, using the build
   artifacts within their one-day retention.
-- **boardly's `/v1` Gemini default** is first proved through the shared action at the next release
-  with a `feat:` or `fix:` commit.
+- **`gemini-3.6-flash` is not proved yet.** The dry run had no notable commits, so it skipped
+  Gemini. If the model fails, the notes fall back to the commit list and the run shows a warning.
 - **`softprops/action-gh-release` stays on v2** for this move. The bump to v3, and clearing the Node
   20 annotations, is a separate `v1.x` change.

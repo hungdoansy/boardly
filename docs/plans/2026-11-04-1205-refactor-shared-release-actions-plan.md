@@ -69,6 +69,7 @@ boardly, nodl and messy each carry a copy of the same release logic, and the cop
 
 ### Key Decisions
 
+- **Superseded: every app now calls `/v1/models/gemini-3.6-flash:generateContent`.** The URL is fixed in the shared action, each app passes only its secret, and the `gemini-model` and `gemini-api-version` inputs are gone. The two decisions below, and any mention of those inputs in this plan, record the original design (user-directed, 2026-11-04).
 - **nodl and messy stay on `gemini-2.5-flash`** (session-settled: user-directed — chosen over moving them to `gemini-3.5-flash`: their API key still works for 2.5 Flash). Governs R6.
 - **boardly stays on `gemini-3.5-flash` through `/v1`** (session-settled: user-directed — chosen over the untested `gemini-3.8-flash`: the user tested this exact path and it returned notes). Governs R6.
 - **boardly keeps all four targets with only macOS arm64 on** (session-settled: user-directed — chosen over deleting the other three: the repo goes public later and forks may need them). Governs R11, R13.

@@ -76,9 +76,9 @@ throws if a pattern stops matching, so a build can never ship with a stale versi
 - Changelog also filters `test`, `chore`, `ci`, `build`, `style` and `refactor`, scoped or not, and
   strips `(UNIT-x)` and `(#n)` suffixes.
 - The version input reaches the shell through `env`, not by direct interpolation.
-- Gemini calls use the stable `/v1` path with `gemini-3.5-flash`, confirmed with a real key by cURL.
+- Gemini calls used the stable `/v1` path with `gemini-3.5-flash`, confirmed with a real key by cURL.
   nodl's `gemini-2.5-flash` returned a 404 on the first run because Google has closed it to new
-  users. Override the model with `GEMINI_MODEL`.
+  users. UNIT-24 replaced this with one URL for every app, and `GEMINI_MODEL` no longer exists.
 - A Gemini failure shows a one-line warning. The API response body goes to the step log only.
 - `Test` passes `--reporter=default`. In GitHub Actions, Vitest otherwise adds its `github-actions`
   reporter, which appends a "Vitest Test Report" to the run summary once per package (8 here). The
