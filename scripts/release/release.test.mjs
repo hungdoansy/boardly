@@ -5,33 +5,9 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { formatEntries } from "./generate-changelog.mjs";
-import { prependBlock } from "./prepend-changelog.mjs";
-import { resolveMatrix, TARGETS } from "./resolve-targets.mjs";
 import { setVersion, VERSION_FILES } from "./set-version.mjs";
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-
-describe("resolveMatrix", () => {
-  it("builds only the ticked targets", () => {
-    const { include } = resolveMatrix({ version: "1.0.0", mac_arm64: true, linux_x64: false });
-    expect(include.map((t) => t.name)).toEqual(["mac-arm64"]);
-  });
-
-  it("accepts the string form of a checkbox", () => {
-    const { include } = resolveMatrix({ windows_x64: "true", mac_x64: "false" });
-    expect(include.map((t) => t.name)).toEqual(["windows-x64"]);
-  });
-
-  it("covers all four platforms when everything is ticked", () => {
-    const all = Object.fromEntries(TARGETS.map((t) => [t.input, true]));
-    expect(resolveMatrix(all).include).toHaveLength(4);
-  });
-
-  it("refuses a run with nothing ticked", () => {
-    expect(() => resolveMatrix({ version: "1.0.0" })).toThrow(/at least one target/);
-  });
-});
 
 describe("setVersion", () => {
   let root;
@@ -83,45 +59,5 @@ describe("setVersion", () => {
   it("throws when a file no longer carries a version", () => {
     writeFileSync(join(root, "apps/desktop/package.json"), "{}\n");
     expect(() => setVersion(root, "9.8.7")).toThrow(/apps\/desktop\/package\.json/);
-  });
-});
-
-describe("formatEntries", () => {
-  it("keeps user-facing commits and strips their bookkeeping", () => {
-    const subjects = [
-      "fix(links): unfurl the brand-only providers (UNIT-3.7)",
-      "feat: open card links in the browser (UNIT-9.4) (#9)",
-      "fix(e2e-free): repair drift (#8)",
-      "a commit with no type",
-    ];
-    expect(formatEntries(subjects)).toBe(
-      "- unfurl the brand-only providers\n- open card links in the browser\n- repair drift\n- a commit with no type",
-    );
-  });
-
-  it("drops internal commits, scoped or not", () => {
-    const subjects = [
-      "release: v1.0.0",
-      "docs(solutions): archived project",
-      "chore(prod): bind the port",
-      "test(e2e): stabilise",
-      "",
-    ];
-    expect(formatEntries(subjects)).toBe("- No notable changes");
-  });
-});
-
-describe("prependBlock", () => {
-  const release = { tag: "v1.1.0", date: "2026-11-04", entries: "- new" };
-
-  it("starts a changelog when none exists", () => {
-    expect(prependBlock(null, release)).toBe("# Changelog\n\n## v1.1.0 (2026-11-04)\n\n- new\n");
-  });
-
-  it("puts the new block above older ones", () => {
-    const old = "# Changelog\n\n## v1.0.0 (2026-11-01)\n\n- old\n";
-    expect(prependBlock(old, release)).toBe(
-      "# Changelog\n\n## v1.1.0 (2026-11-04)\n\n- new\n\n## v1.0.0 (2026-11-01)\n\n- old\n",
-    );
   });
 });

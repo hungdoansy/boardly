@@ -4,6 +4,11 @@ Ports the build and versioning pipeline from the sibling `nodl` repo. One manual
 workflow validates a version, builds the desktop app, bumps the version in the repo, writes the
 changelog, tags, and publishes a GitHub Release.
 
+> **Superseded in part by `docs/units/UNIT-24-shared-release-actions.md`.** The changelog, target
+> selection, tag and GitHub Release steps now come from `hungdoansy/desktop-release-actions`, and
+> `resolve-targets.mjs`, `generate-changelog.mjs` and `prepend-changelog.mjs` are gone. The target
+> table and the Tauri notes below still apply.
+
 ## What changed
 
 - `.github/workflows/release.yml`: the workflow. Trigger: `workflow_dispatch` only.

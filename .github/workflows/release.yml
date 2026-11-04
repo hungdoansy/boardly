@@ -1,8 +1,9 @@
 name: Release
-run-name: Release v${{ inputs.version }}
+run-name: Release v${{ inputs.version }}${{ inputs.dry_run && ' (dry run)' || '' }}
 
 # Builds the desktop app, then commits the version bump + changelog to main, tags
-# it, and publishes a GitHub Release. Docs: docs/units/UNIT-23-release-pipeline.md
+# it, and publishes a GitHub Release. The shared steps come from
+# hungdoansy/desktop-release-actions. Docs: docs/units/UNIT-24-shared-release-actions.md
 on:
   workflow_dispatch:
     inputs:
@@ -27,10 +28,14 @@ on:
         description: "Build Linux x64"
         type: boolean
         default: false
+      dry_run:
+        description: "Dry run: build everything, but push and publish nothing"
+        type: boolean
+        default: false
 
+# Only the release job gets write access.
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 jobs:
   prepare:
@@ -40,12 +45,13 @@ jobs:
       tag: ${{ steps.meta.outputs.tag }}
       date: ${{ steps.meta.outputs.date }}
       matrix: ${{ steps.targets.outputs.matrix }}
-      changelog: ${{ steps.changelog.outputs.text }}
+      changelog: ${{ steps.meta.outputs.changelog }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 
@@ -57,33 +63,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Validate version
+      - name: Validate version and draft notes
         id: meta
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Version must be in X.Y.Z format (got: $VERSION)"
-            exit 1
-          fi
+        uses: hungdoansy/desktop-release-actions/validate-and-draft-notes@v1
+        with:
+          version: ${{ inputs.version }}
+          gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
-          TAG="v$VERSION"
-          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG already exists"
-            exit 1
-          fi
-
-          {
-            echo "version=$VERSION"
-            echo "tag=$TAG"
-            echo "date=$(date -u +%F)"
-          } >> "$GITHUB_OUTPUT"
-
+      # All four platforms live here, whether or not a run builds them: a run builds only
+      # what is ticked, so a fork enables one by ticking it or flipping its `default` above.
       - name: Pick build targets
         id: targets
-        env:
-          INPUTS: ${{ toJSON(inputs) }}
-        run: node scripts/release/resolve-targets.mjs
+        uses: hungdoansy/desktop-release-actions/select-build-targets@v1
+        with:
+          selected: ${{ toJSON(inputs) }}
+          targets: |
+            [
+              { "input": "mac_arm64", "name": "mac-arm64", "os": "macos-latest", "target": "aarch64-apple-darwin", "bundles": "dmg" },
+              { "input": "mac_x64", "name": "mac-x64", "os": "macos-latest", "target": "x86_64-apple-darwin", "bundles": "dmg" },
+              { "input": "windows_x64", "name": "windows-x64", "os": "windows-latest", "target": "x86_64-pc-windows-msvc", "bundles": "nsis" },
+              { "input": "linux_x64", "name": "linux-x64", "os": "ubuntu-latest", "target": "x86_64-unknown-linux-gnu", "bundles": "deb,appimage" }
+            ]
 
       - name: Lint
         run: pnpm run lint
@@ -95,13 +95,6 @@ jobs:
       # "Vitest Test Report" to the run summary once per package.
       - name: Test
         run: pnpm run test -- --reporter=default
-
-      - name: Generate changelog
-        id: changelog
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          TAG: ${{ steps.meta.outputs.tag }}
-        run: node scripts/release/generate-changelog.mjs
 
   build:
     name: Build ${{ matrix.name }}
@@ -117,6 +110,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 
@@ -172,6 +167,9 @@ jobs:
   release:
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
@@ -189,44 +187,38 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Update CHANGELOG.md
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-          DATE: ${{ needs.prepare.outputs.date }}
-          ENTRIES: ${{ needs.prepare.outputs.changelog }}
-        run: node scripts/release/prepend-changelog.mjs
-
       - name: Update app version
         run: node scripts/release/set-version.mjs "${{ needs.prepare.outputs.version }}"
 
-      - name: Commit, tag, and push
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add apps/desktop/CHANGELOG.md apps/desktop/package.json \
-            apps/desktop/src-tauri/tauri.conf.json \
-            apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock
-          git commit -m "release: $TAG"
-          git tag -m "$TAG" "$TAG"
-          git push origin main
-          git push origin "$TAG"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Update CHANGELOG.md
+        uses: hungdoansy/desktop-release-actions/prepend-changelog-entry@v1
         with:
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          name: ${{ needs.prepare.outputs.tag }}
-          body: ${{ needs.prepare.outputs.changelog }}
-          draft: false
+          file: apps/desktop/CHANGELOG.md
+          tag: ${{ needs.prepare.outputs.tag }}
+          date: ${{ needs.prepare.outputs.date }}
+          entries: ${{ needs.prepare.outputs.changelog }}
+
+      - name: Tag and publish
+        uses: hungdoansy/desktop-release-actions/tag-and-publish-release@v1
+        with:
+          tag: ${{ needs.prepare.outputs.tag }}
+          changelog: ${{ needs.prepare.outputs.changelog }}
+          dry-run: ${{ inputs.dry_run }}
+          paths: |
+            apps/desktop/CHANGELOG.md
+            apps/desktop/package.json
+            apps/desktop/src-tauri/tauri.conf.json
+            apps/desktop/src-tauri/Cargo.toml
+            apps/desktop/src-tauri/Cargo.lock
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.exe
             artifacts/**/*.deb
             artifacts/**/*.AppImage
 
+      # A dry run keeps the installers for a day, so they can be downloaded and checked.
       - name: Delete artifacts
+        if: ${{ !inputs.dry_run }}
         uses: geekyeggo/delete-artifact@v5
         with:
           name: boardly-*
