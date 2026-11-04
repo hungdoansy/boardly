@@ -78,8 +78,9 @@ last tag, the expected notes are `- No notable changes`.
 
 - **Not run on GitHub yet.** The workflow needs the shared repo published and `v1` tagged first.
 - **The GitHub Release step only runs in a real release,** so the first real release is its final
-  proof. If it fails after the push, create the release by hand from the tag, using the build
-  artifacts within their one-day retention.
+  proof. If it fails after the push, use **Re-run failed jobs** within the artifacts' one-day
+  retention: the job skips the commit and push, then creates the release. Re-run all jobs stops at
+  the tag check.
 - **`gemini-3.6-flash` is not proved yet.** The dry run had no notable commits, so it skipped
   Gemini. If the model fails at a real release, the run stops before anything builds.
 - **`softprops/action-gh-release` stays on v2** for this move. The bump to v3, and clearing the Node
