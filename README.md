@@ -394,6 +394,25 @@ OS keychain — an unsigned build otherwise re-prompts for Keychain access on ev
 Apple Developer License is available, set a stable `signingIdentity` and switch back to the keychain
 (see `CLAUDE.md` §7 and `docs/units/UNIT-P11-desktop-token-file-store.md`).
 
+### Releasing
+
+Run the **Release** workflow from the GitHub Actions tab with a version such as `1.2.0`. It runs
+lint, typecheck and tests, builds the installers, commits the version bump and
+`apps/desktop/CHANGELOG.md` to `main`, tags `v1.2.0`, and publishes a GitHub Release.
+
+Only macOS arm64 builds by default. macOS x64, Windows x64 and Linux x64 are checkboxes in the run
+dialog. They have not been built yet, so a fork enabling one should expect to debug its first run.
+Released builds use the API origin in `apps/web/.env.production`, so a fork with a hosted backend
+changes it there.
+
+The macOS build is ad-hoc signed, not notarized, so clear the quarantine flag after installing:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Boardly.app
+```
+
+Details are in [`docs/units/UNIT-23-release-pipeline.md`](docs/units/UNIT-23-release-pipeline.md).
+
 ---
 
 ## Local production (single Mac)
