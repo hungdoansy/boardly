@@ -47,7 +47,7 @@ table in `docs/units/UNIT-23-release-pipeline.md`.
 - **Composite actions, not reusable workflows.** A composite action ships its own scripts, so the
   logic exists once. A reusable workflow runs in the caller's checkout and owns whole jobs, which
   fits badly with a build job that differs per repo.
-- **`@v1` moves.** A fix to the commit filter or fallback reaches every app with no edit here. The
+- **`@v1` moves.** A fix to the commit filter or notes logic reaches every app with no edit here. The
   repo's rulesets block changes to fixed `v1.x.y` tags, and `v1` only moves to a commit that has one.
 - **The old scripts' behavior is preserved.** The new filter and changelog insert were run over this
   repo's 207 commit subjects and its real changelog, and matched the old scripts exactly.
@@ -59,8 +59,9 @@ table in `docs/units/UNIT-23-release-pipeline.md`.
 - `main` and the tag push in one atomic update, so one cannot land without the other.
 - Bad asset globs stop the run before the push. A run with no assets at all also stops.
 - Gemini is skipped when no commits survive the filter, and the notes read `- No notable changes`.
-- Gemini requests time out after 30 seconds. The step log shows only the status, never the response
-  body.
+- Gemini requests time out after 30 seconds. The run shows only the status, never the response body.
+- A failed Gemini call stops the release at the start of `prepare`, before anything builds. Fix the
+  cause and run it again. Only a missing key still uses the commit list, with a warning.
 
 ## How to test
 
@@ -80,6 +81,6 @@ last tag, the expected notes are `- No notable changes`.
   proof. If it fails after the push, create the release by hand from the tag, using the build
   artifacts within their one-day retention.
 - **`gemini-3.6-flash` is not proved yet.** The dry run had no notable commits, so it skipped
-  Gemini. If the model fails, the notes fall back to the commit list and the run shows a warning.
+  Gemini. If the model fails at a real release, the run stops before anything builds.
 - **`softprops/action-gh-release` stays on v2** for this move. The bump to v3, and clearing the Node
   20 annotations, is a separate `v1.x` change.

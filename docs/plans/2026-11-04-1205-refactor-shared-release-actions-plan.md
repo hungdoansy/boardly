@@ -46,7 +46,7 @@ boardly, nodl and messy each carry a copy of the same release logic, and the cop
 
 **Changelog**
 
-- R4. A missing Gemini key, a failed request or a timeout falls back to the filtered commit list. The release continues, and the run page shows a one-line status with no raw API error.
+- R4. A missing Gemini key, a failed request or a timeout falls back to the filtered commit list. The release continues, and the run page shows a one-line status with no raw API error. **Superseded:** a failed request or timeout now stops the release, and only a missing key uses the commit list (user-directed, 2026-11-04).
 - R5. When no commits survive the filter, Gemini is skipped and the notes read `- No notable changes`.
 - R6. Each repo chooses its own Gemini model and API version.
 - R7. Each repo keeps its changelog location and heading format exactly.

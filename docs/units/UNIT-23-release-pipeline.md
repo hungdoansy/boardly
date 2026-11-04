@@ -79,7 +79,7 @@ throws if a pattern stops matching, so a build can never ship with a stale versi
 - Gemini calls used the stable `/v1` path with `gemini-3.5-flash`, confirmed with a real key by cURL.
   nodl's `gemini-2.5-flash` returned a 404 on the first run because Google has closed it to new
   users. UNIT-24 replaced this with one URL for every app, and `GEMINI_MODEL` no longer exists.
-- A Gemini failure shows a one-line warning. The API response body goes to the step log only.
+- A Gemini failure showed a one-line warning. UNIT-24 changed this: it now stops the release.
 - `Test` passes `--reporter=default`. In GitHub Actions, Vitest otherwise adds its `github-actions`
   reporter, which appends a "Vitest Test Report" to the run summary once per package (8 here). The
   cost: a failing test is no longer annotated inline, though it still fails the step and shows in
