@@ -411,7 +411,12 @@ The macOS build is ad-hoc signed, not notarized, so clear the quarantine flag af
 xattr -dr com.apple.quarantine /Applications/Boardly.app
 ```
 
-Details are in [`docs/units/UNIT-23-release-pipeline.md`](docs/units/UNIT-23-release-pipeline.md).
+Tick **Dry run** to test the pipeline: it builds and shows what it would publish, but pushes
+nothing. The shared steps come from
+[`hungdoansy/desktop-release-actions`](https://github.com/hungdoansy/desktop-release-actions).
+
+Details are in [`docs/units/UNIT-23-release-pipeline.md`](docs/units/UNIT-23-release-pipeline.md) and
+[`docs/units/UNIT-24-shared-release-actions.md`](docs/units/UNIT-24-shared-release-actions.md).
 
 ---
 
