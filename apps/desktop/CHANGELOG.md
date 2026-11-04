@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.0 (2026-11-04)
+
+- No notable changes
+
 ## v1.0.0 (2026-11-04)
 
 - Improved link previews to show full titles (including YouTube links) and fixed fallback behavior for broken links.

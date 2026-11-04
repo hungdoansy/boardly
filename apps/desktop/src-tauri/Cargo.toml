@@ -1,6 +1,6 @@
 [package]
 name = "boardly"
-version = "1.0.0"
+version = "1.1.0"
 description = "Boardly — local-first kanban desktop shell"
 authors = ["Boardly"]
 edition = "2021"
