@@ -10,7 +10,8 @@ actions. Plan: `docs/plans/2026-11-04-1205-refactor-shared-release-actions-plan.
 - Added a `dry_run` checkbox to the workflow.
 - Write access moved from the whole workflow to the `release` job only. `prepare` and `build`
   checkouts no longer keep a token (`persist-credentials: false`).
-- The four build targets moved from `resolve-targets.mjs` into the workflow's `targets` input.
+- The four build targets moved from `resolve-targets.mjs` into `select-build-targets`. The workflow
+  lists only their ids, which are also the checkbox names.
 - Deleted `scripts/release/generate-changelog.mjs`, `prepend-changelog.mjs` and
   `resolve-targets.mjs`, and their tests. The tests now live in the shared repo.
 - `scripts/release/set-version.mjs` stays, because it knows this repo's Tauri files.

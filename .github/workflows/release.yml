@@ -70,20 +70,14 @@ jobs:
           version: ${{ inputs.version }}
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
 
-      # All four platforms live here, whether or not a run builds them: a run builds only
-      # what is ticked, so a fork enables one by ticking it or flipping its `default` above.
+      # A run builds only what is ticked, so a fork enables a platform by ticking it or
+      # flipping its `default` above. The shared action holds each target's runner and triple.
       - name: Pick build targets
         id: targets
         uses: hungdoansy/desktop-release-actions/select-build-targets@v1
         with:
           selected: ${{ toJSON(inputs) }}
-          targets: |
-            [
-              { "input": "mac_arm64", "name": "mac-arm64", "os": "macos-latest", "target": "aarch64-apple-darwin", "bundles": "dmg" },
-              { "input": "mac_x64", "name": "mac-x64", "os": "macos-latest", "target": "x86_64-apple-darwin", "bundles": "dmg" },
-              { "input": "windows_x64", "name": "windows-x64", "os": "windows-latest", "target": "x86_64-pc-windows-msvc", "bundles": "nsis" },
-              { "input": "linux_x64", "name": "linux-x64", "os": "ubuntu-latest", "target": "x86_64-unknown-linux-gnu", "bundles": "deb,appimage" }
-            ]
+          targets: mac_arm64, mac_x64, windows_x64, linux_x64
 
       - name: Lint
         run: pnpm run lint
