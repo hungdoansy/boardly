@@ -510,8 +510,7 @@ timeline view; plugin system; insights/charts; cross-lane swimlane drag.
 
 ## License
 
-No license file is present in this repository. Boardly is a personal, self-hosted project; treat it
-as all-rights-reserved unless a `LICENSE` is added.
+Boardly is released under the [MIT License](LICENSE).
 
 > **Note on Focalboard:** a clone lives at `../demo-app/focalboard/` for _study only_. Its source is
 > AGPL v3.0 and is **not** lifted into Boardly — only ideas (data-model shape, view types,
